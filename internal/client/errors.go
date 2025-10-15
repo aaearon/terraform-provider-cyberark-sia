@@ -2,14 +2,149 @@
 package client
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 
+// ErrorCategory represents the classification of an error
+type ErrorCategory int
+
+const (
+	ErrorCategoryAuth ErrorCategory = iota
+	ErrorCategoryPermission
+	ErrorCategoryNotFound
+	ErrorCategoryConflict
+	ErrorCategoryValidation
+	ErrorCategoryNetwork
+	ErrorCategoryTimeout
+	ErrorCategoryRateLimit
+	ErrorCategoryServer
+	ErrorCategoryUnknown
+)
+
+// classifyError determines the error category using multiple detection strategies
+// Note: ARK SDK v1.5.0 does not expose structured error types or HTTP status codes,
+// so we rely on error message patterns and standard Go error type detection
+func classifyError(err error) ErrorCategory {
+	if err == nil {
+		return ErrorCategoryUnknown
+	}
+
+	errorMsg := strings.ToLower(err.Error())
+
+	// 1. Check for standard Go error types (most reliable)
+
+	// Context errors (timeout/cancellation)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return ErrorCategoryTimeout
+	}
+	if errors.Is(err, context.Canceled) {
+		return ErrorCategoryNetwork // Treat as network since operation was interrupted
+	}
+
+	// Network errors
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		if netErr.Timeout() {
+			return ErrorCategoryTimeout
+		}
+		return ErrorCategoryNetwork
+	}
+
+	// 2. Pattern matching (ordered by specificity - most specific first)
+
+	// Authentication (very specific patterns first)
+	if strings.Contains(errorMsg, "authentication failed") ||
+		strings.Contains(errorMsg, "invalid credentials") ||
+		strings.Contains(errorMsg, "unauthorized") ||
+		strings.Contains(errorMsg, "401") ||
+		strings.Contains(errorMsg, "invalid_client") ||
+		strings.Contains(errorMsg, "invalid client") ||
+		strings.Contains(errorMsg, "access denied") {
+		return ErrorCategoryAuth
+	}
+
+	// Permission errors (403 Forbidden)
+	if strings.Contains(errorMsg, "insufficient permissions") ||
+		strings.Contains(errorMsg, "forbidden") ||
+		strings.Contains(errorMsg, "403") ||
+		strings.Contains(errorMsg, "permission denied") ||
+		strings.Contains(errorMsg, "not authorized") {
+		return ErrorCategoryPermission
+	}
+
+	// Rate limiting (429 Too Many Requests)
+	if strings.Contains(errorMsg, "rate limit") ||
+		strings.Contains(errorMsg, "too many requests") ||
+		strings.Contains(errorMsg, "429") ||
+		strings.Contains(errorMsg, "throttled") ||
+		strings.Contains(errorMsg, "quota exceeded") {
+		return ErrorCategoryRateLimit
+	}
+
+	// Resource not found (404)
+	if strings.Contains(errorMsg, "not found") ||
+		strings.Contains(errorMsg, "404") ||
+		strings.Contains(errorMsg, "does not exist") ||
+		strings.Contains(errorMsg, "no such") {
+		return ErrorCategoryNotFound
+	}
+
+	// Conflict/duplicate (409 Conflict)
+	if strings.Contains(errorMsg, "already exists") ||
+		strings.Contains(errorMsg, "duplicate") ||
+		strings.Contains(errorMsg, "409") ||
+		strings.Contains(errorMsg, "conflict") {
+		return ErrorCategoryConflict
+	}
+
+	// Validation errors (400 Bad Request, 422 Unprocessable Entity)
+	if strings.Contains(errorMsg, "validation") ||
+		strings.Contains(errorMsg, "invalid") ||
+		strings.Contains(errorMsg, "400") ||
+		strings.Contains(errorMsg, "422") ||
+		strings.Contains(errorMsg, "bad request") ||
+		strings.Contains(errorMsg, "malformed") {
+		return ErrorCategoryValidation
+	}
+
+	// Server errors (5xx)
+	if strings.Contains(errorMsg, "server error") ||
+		strings.Contains(errorMsg, "service unavailable") ||
+		strings.Contains(errorMsg, "internal error") ||
+		strings.Contains(errorMsg, "500") ||
+		strings.Contains(errorMsg, "502") ||
+		strings.Contains(errorMsg, "503") ||
+		strings.Contains(errorMsg, "504") {
+		return ErrorCategoryServer
+	}
+
+	// Network/connectivity (check after other patterns)
+	if strings.Contains(errorMsg, "connection refused") ||
+		strings.Contains(errorMsg, "timeout") ||
+		strings.Contains(errorMsg, "timed out") ||
+		strings.Contains(errorMsg, "network") ||
+		strings.Contains(errorMsg, "dial") ||
+		strings.Contains(errorMsg, "no such host") ||
+		strings.Contains(errorMsg, "connection reset") {
+		return ErrorCategoryNetwork
+	}
+
+	// 3. Fallback for unknown errors
+	return ErrorCategoryUnknown
+}
+
 // MapError converts ARK SDK errors to Terraform diagnostics with actionable guidance
 // Returns nil if err is nil (caller should check before appending)
+//
+// Note: ARK SDK v1.5.0 does not provide structured error types with HTTP status codes.
+// Error classification relies on standard Go error types and string pattern matching.
+// For robustness, all patterns are ordered by specificity with comprehensive fallback.
 func MapError(err error, operation string) diag.Diagnostic {
 	if err == nil {
 		// Return an empty error diagnostic (won't be appended by caller check)
@@ -17,9 +152,10 @@ func MapError(err error, operation string) diag.Diagnostic {
 	}
 
 	errorMsg := err.Error()
+	category := classifyError(err)
 
-	// Authentication errors
-	if strings.Contains(errorMsg, "authentication failed") || strings.Contains(errorMsg, "invalid credentials") {
+	switch category {
+	case ErrorCategoryAuth:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Authentication Failed - %s", operation),
 			fmt.Sprintf("Invalid client_id or client_secret.\n\n"+
@@ -29,10 +165,8 @@ func MapError(err error, operation string) diag.Diagnostic {
 				"2. Check client ID format: client-id@cyberark.cloud.tenant-id\n"+
 				"3. Ensure service account has SIA role memberships", errorMsg),
 		)
-	}
 
-	// Permission errors
-	if strings.Contains(errorMsg, "insufficient permissions") || strings.Contains(errorMsg, "forbidden") {
+	case ErrorCategoryPermission:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Insufficient Permissions - %s", operation),
 			fmt.Sprintf("ISPSS service account lacks required permissions.\n\n"+
@@ -40,10 +174,8 @@ func MapError(err error, operation string) diag.Diagnostic {
 				"Recommended action:\n"+
 				"Verify service account has SIA Database Administrator role or equivalent", errorMsg),
 		)
-	}
 
-	// Resource not found
-	if strings.Contains(errorMsg, "not found") || strings.Contains(errorMsg, "does not exist") {
+	case ErrorCategoryNotFound:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Resource Not Found - %s", operation),
 			fmt.Sprintf("The requested resource was not found in SIA.\n\n"+
@@ -53,30 +185,24 @@ func MapError(err error, operation string) diag.Diagnostic {
 				"- Resource ID is incorrect\n\n"+
 				"Run 'terraform refresh' to sync state", errorMsg),
 		)
-	}
 
-	// Conflict/duplicate errors
-	if strings.Contains(errorMsg, "already exists") || strings.Contains(errorMsg, "duplicate") {
+	case ErrorCategoryConflict:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Resource Conflict - %s", operation),
 			fmt.Sprintf("A resource with this identifier already exists.\n\n"+
 				"Error: %s\n\n"+
 				"Use 'terraform import' to manage the existing resource", errorMsg),
 		)
-	}
 
-	// Validation errors
-	if strings.Contains(errorMsg, "validation") || strings.Contains(errorMsg, "invalid") {
+	case ErrorCategoryValidation:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Validation Failed - %s", operation),
 			fmt.Sprintf("SIA API validation failed.\n\n"+
 				"Error: %s\n\n"+
 				"Check configuration values match SIA requirements", errorMsg),
 		)
-	}
 
-	// Network/connectivity errors
-	if strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "timeout") {
+	case ErrorCategoryNetwork:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Network Error - %s", operation),
 			fmt.Sprintf("Unable to connect to SIA API.\n\n"+
@@ -86,12 +212,47 @@ func MapError(err error, operation string) diag.Diagnostic {
 				"2. Verify identity_url is correct\n"+
 				"3. Check firewall rules", errorMsg),
 		)
-	}
 
-	// Generic error with SDK message
-	return diag.NewErrorDiagnostic(
-		fmt.Sprintf("SIA API Error - %s", operation),
-		fmt.Sprintf("An error occurred communicating with SIA API.\n\n"+
-			"Error: %s", errorMsg),
-	)
+	case ErrorCategoryTimeout:
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("Request Timeout - %s", operation),
+			fmt.Sprintf("Request to SIA API exceeded timeout limit.\n\n"+
+				"Error: %s\n\n"+
+				"Recommended actions:\n"+
+				"1. Check network latency to SIA API\n"+
+				"2. Increase request_timeout in provider configuration\n"+
+				"3. Verify SIA API is responsive", errorMsg),
+		)
+
+	case ErrorCategoryRateLimit:
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("Rate Limit Exceeded - %s", operation),
+			fmt.Sprintf("Too many requests to SIA API.\n\n"+
+				"Error: %s\n\n"+
+				"Recommended actions:\n"+
+				"1. Reduce parallelism in Terraform configuration\n"+
+				"2. Wait before retrying\n"+
+				"3. Contact CyberArk support if rate limits are too restrictive", errorMsg),
+		)
+
+	case ErrorCategoryServer:
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("SIA API Server Error - %s", operation),
+			fmt.Sprintf("SIA API encountered an internal error.\n\n"+
+				"Error: %s\n\n"+
+				"This is typically a transient issue. Terraform will retry automatically.\n"+
+				"If the problem persists, contact CyberArk support.", errorMsg),
+		)
+
+	case ErrorCategoryUnknown:
+		fallthrough
+	default:
+		// Comprehensive fallback for unknown error types
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("SIA API Error - %s", operation),
+			fmt.Sprintf("An error occurred communicating with SIA API.\n\n"+
+				"Error: %s\n\n"+
+				"If this error persists, please report it with the full error message above.", errorMsg),
+		)
+	}
 }

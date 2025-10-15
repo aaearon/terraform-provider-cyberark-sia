@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
+	"github.com/cyberark/ark-sdk-golang/pkg/auth"
+	"github.com/cyberark/ark-sdk-golang/pkg/services/sia"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -38,10 +40,10 @@ type CyberArkSIAProviderModel struct {
 type ProviderData struct {
 	// ISPAuth handles authentication with CyberArk Identity Security Platform
 	// Caching is enabled for automatic token refresh
-	ISPAuth interface{}
+	ISPAuth *auth.ArkISPAuth
 
 	// SIAAPI provides access to SIA WorkspacesDB() and SecretsDB() APIs
-	SIAAPI interface{}
+	SIAAPI *sia.ArkSIAAPI
 
 	// MaxRetries for transient API failures
 	MaxRetries int64
@@ -169,6 +171,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	LogProviderConfig(ctx, &config)
 
 	// Initialize authentication
+	// Returns *auth.ArkISPAuth with caching enabled for automatic token refresh
 	LogAuthStart(ctx)
 	ispAuth, err := client.NewISPAuth(ctx, &client.AuthConfig{
 		ClientID:                clientID,
@@ -183,6 +186,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	LogAuthSuccess(ctx)
 
 	// Initialize SIA API client
+	// Returns *sia.ArkSIAAPI for WorkspacesDB() and SecretsDB() access
 	LogSIAClientInit(ctx)
 	siaAPI, err := client.NewSIAClient(ispAuth)
 	if err != nil {
