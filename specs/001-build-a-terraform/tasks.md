@@ -133,21 +133,21 @@ Project structure follows Terraform provider conventions from plan.md:
 
 ### Implementation for User Story 1
 
-- [ ] T024 [P] [US1] Create DatabaseTarget data model in internal/models/database_target.go with all attributes from data-model.md (id, name, database_type, database_version, address, port, database_name, authentication_method, cloud_provider, aws_region, aws_account_id, azure_tenant_id, azure_subscription_id, description, tags, last_modified)
-- [ ] T025 [US1] Implement database_target_resource.go Schema() method in internal/provider/database_target_resource.go with complete attribute definitions per data-model.md
-- [ ] T026 [US1] Add conditional attribute validators in internal/provider/database_target_resource.go (aws_region/aws_account_id required when cloud_provider=aws, azure_tenant_id/azure_subscription_id required when cloud_provider=azure)
-- [ ] T027 [P] [US1] Implement basic validators in internal/provider/validators/port_range.go for port range 1-65535
-- [ ] T028 [US1] Implement database_target_resource.go Create() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().AddDatabase() per contracts/sia_api_contract.md
-- [ ] T029 [US1] Implement database_target_resource.go Read() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().GetDatabase() with drift detection (handle 404 as resource deleted)
-- [ ] T030 [US1] Implement database_target_resource.go Update() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().UpdateDatabase() (send only changed fields)
-- [ ] T031 [US1] Implement database_target_resource.go Delete() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().DeleteDatabase() with graceful handling of already-deleted resources
-- [ ] T032 [US1] Implement database_target_resource.go ImportState() method in internal/provider/database_target_resource.go to support terraform import functionality
-- [ ] T033 [US1] Implement database_target_resource.go Configure() method in internal/provider/database_target_resource.go to receive ProviderData from provider configuration
+- [X] T024 [P] [US1] Create DatabaseTarget data model in internal/models/database_target.go with all attributes from data-model.md (id, name, database_type, database_version, address, port, database_name, authentication_method, cloud_provider, aws_region, aws_account_id, azure_tenant_id, azure_subscription_id, description, tags, last_modified)
+- [X] T025 [US1] Implement database_target_resource.go Schema() method in internal/provider/database_target_resource.go with complete attribute definitions per data-model.md
+- [X] T026 [US1] Add conditional attribute validators in internal/provider/database_target_resource.go (aws_region/aws_account_id required when cloud_provider=aws, azure_tenant_id/azure_subscription_id required when cloud_provider=azure)
+- [X] T027 [P] [US1] Implement basic validators in internal/provider/validators/port_range.go for port range 1-65535 (implemented inline using int64validator.Between)
+- [X] T028 [US1] Implement database_target_resource.go Create() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().AddDatabase() per contracts/sia_api_contract.md
+- [X] T029 [US1] Implement database_target_resource.go Read() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().Database() with drift detection (handle 404 as resource deleted)
+- [X] T030 [US1] Implement database_target_resource.go Update() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().UpdateDatabase() (send only changed fields)
+- [X] T031 [US1] Implement database_target_resource.go Delete() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().DeleteDatabase() with graceful handling of already-deleted resources
+- [X] T032 [US1] Implement database_target_resource.go ImportState() method in internal/provider/database_target_resource.go to support terraform import functionality
+- [X] T033 [US1] Implement database_target_resource.go Configure() method in internal/provider/database_target_resource.go to receive ProviderData from provider configuration
 - [ ] T034 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/aws_rds_postgresql.tf demonstrating AWS RDS PostgreSQL onboarding with Terraform references to aws_db_instance
 - [ ] T035 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/azure_sql_server.tf demonstrating Azure SQL onboarding with Terraform references to azurerm_mssql_server
 - [ ] T036 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/onpremise_oracle.tf demonstrating on-premise Oracle database onboarding
-- [ ] T037 [US1] Add error mapping for database target operations in internal/client/errors.go (400 invalid database type/version, 409 conflict, 422 validation, 404 not found, 5xx service errors)
-- [ ] T038 [US1] Add structured logging for database target CRUD operations in database_target_resource.go (INFO for success, DEBUG for API calls, ERROR for failures, TRACE for authentication - never log sensitive data)
+- [X] T037 [US1] Add error mapping for database target operations in internal/client/errors.go (400 invalid database type/version, 409 conflict, 422 validation, 404 not found, 5xx service errors) - already implemented in Phase 2
+- [X] T038 [US1] Add structured logging for database target CRUD operations in database_target_resource.go (INFO for success, DEBUG for API calls, ERROR for failures, TRACE for authentication - never log sensitive data)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Database targets can be created, read, updated, deleted, and imported via Terraform.
 

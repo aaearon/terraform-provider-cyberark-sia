@@ -210,7 +210,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 // Resources defines the resources implemented in the provider
 func (p *CyberArkSIAProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		// Resources will be implemented in Phase 3+
+		NewDatabaseTargetResource,
 	}
 }
 

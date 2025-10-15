@@ -139,6 +139,15 @@ func classifyError(err error) ErrorCategory {
 	return ErrorCategoryUnknown
 }
 
+// IsNotFoundError returns true if the error represents a 404 Not Found response
+// Used for drift detection in Read() methods to determine if resource was deleted
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return classifyError(err) == ErrorCategoryNotFound
+}
+
 // MapError converts ARK SDK errors to Terraform diagnostics with actionable guidance
 // Returns nil if err is nil (caller should check before appending)
 //
