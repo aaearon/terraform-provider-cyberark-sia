@@ -124,12 +124,12 @@ Project structure follows Terraform provider conventions from plan.md:
 
 **NOTE: Acceptance tests are PRIMARY testing method per Terraform provider best practices**
 
-- [ ] T018 [P] [US1] Create acceptance test for database target basic CRUD lifecycle in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_basic)
-- [ ] T019 [P] [US1] Create acceptance test for AWS RDS PostgreSQL database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_awsRDS)
-- [ ] T020 [P] [US1] Create acceptance test for Azure SQL database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_azureSQL)
-- [ ] T021 [P] [US1] Create acceptance test for on-premise Oracle database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_onPremise)
-- [ ] T022 [P] [US1] Create acceptance test for ImportState functionality in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_import)
-- [ ] T023 [P] [US1] Create acceptance test for multiple database types (PostgreSQL, MySQL, MariaDB, MongoDB, Oracle, SQL Server, Db2) in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_multipleDatabaseTypes)
+- [X] T018 [P] [US1] Create acceptance test for database target basic CRUD lifecycle in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_basic)
+- [X] T019 [P] [US1] Create acceptance test for AWS RDS PostgreSQL database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_awsRDS)
+- [X] T020 [P] [US1] Create acceptance test for Azure SQL database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_azureSQL)
+- [X] T021 [P] [US1] Create acceptance test for on-premise Oracle database target in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_onPremise)
+- [X] T022 [P] [US1] Create acceptance test for ImportState functionality in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_import)
+- [X] T023 [P] [US1] Create acceptance test for multiple database types (PostgreSQL, MySQL, MariaDB, MongoDB, Oracle, SQL Server, Db2) in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_multipleDatabaseTypes)
 
 ### Implementation for User Story 1
 
@@ -143,9 +143,9 @@ Project structure follows Terraform provider conventions from plan.md:
 - [X] T031 [US1] Implement database_target_resource.go Delete() method in internal/provider/database_target_resource.go using siaAPI.WorkspacesDB().DeleteDatabase() with graceful handling of already-deleted resources
 - [X] T032 [US1] Implement database_target_resource.go ImportState() method in internal/provider/database_target_resource.go to support terraform import functionality
 - [X] T033 [US1] Implement database_target_resource.go Configure() method in internal/provider/database_target_resource.go to receive ProviderData from provider configuration
-- [ ] T034 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/aws_rds_postgresql.tf demonstrating AWS RDS PostgreSQL onboarding with Terraform references to aws_db_instance
-- [ ] T035 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/azure_sql_server.tf demonstrating Azure SQL onboarding with Terraform references to azurerm_mssql_server
-- [ ] T036 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/onpremise_oracle.tf demonstrating on-premise Oracle database onboarding
+- [X] T034 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/aws_rds_postgresql.tf demonstrating AWS RDS PostgreSQL onboarding with Terraform references to aws_db_instance
+- [X] T035 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/azure_sql_server.tf demonstrating Azure SQL onboarding with Terraform references to azurerm_mssql_server
+- [X] T036 [P] [US1] Create Terraform HCL examples in examples/resources/database_target/onpremise_oracle.tf demonstrating on-premise Oracle database onboarding
 - [X] T037 [US1] Add error mapping for database target operations in internal/client/errors.go (400 invalid database type/version, 409 conflict, 422 validation, 404 not found, 5xx service errors) - already implemented in Phase 2
 - [X] T038 [US1] Add structured logging for database target CRUD operations in database_target_resource.go (INFO for success, DEBUG for API calls, ERROR for failures, TRACE for authentication - never log sensitive data)
 
