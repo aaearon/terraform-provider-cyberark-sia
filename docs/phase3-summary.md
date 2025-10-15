@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase 3 successfully implements the `cyberark_sia_database_target` resource, enabling infrastructure engineers to register existing databases (AWS RDS, Azure SQL, on-premise) with CyberArk SIA using declarative Terraform configuration.
+Phase 3 successfully implements the `cyberark_sia_database_workspace` resource, enabling infrastructure engineers to register existing databases (AWS RDS, Azure SQL, on-premise) with CyberArk SIA using declarative Terraform configuration.
 
 ---
 
@@ -87,14 +87,14 @@ err := WorkspacesDB().DeleteDatabase(*ArkSIADBDeleteDatabase)
 ```
 internal/
 ├── models/
-│   └── database_target.go          # Data model
+│   └── database_workspace.go          # Data model
 ├── provider/
-│   ├── database_target_resource.go      # Resource implementation
-│   └── database_target_resource_test.go # Acceptance tests
+│   ├── database_workspace_resource.go      # Resource implementation
+│   └── database_workspace_resource_test.go # Acceptance tests
 └── client/
     └── errors.go                   # Added IsNotFoundError()
 
-examples/resources/database_target/
+examples/resources/database_workspace/
 ├── aws_rds_postgresql.tf           # AWS RDS example
 ├── azure_sql_server.tf             # Azure SQL example
 └── onpremise_oracle.tf             # On-premise example
@@ -135,7 +135,7 @@ Minimal, as per Terraform conventions. Existing in Phase 2:
 ### AWS RDS PostgreSQL
 
 ```hcl
-resource "cyberark_sia_database_target" "postgres" {
+resource "cyberark_sia_database_workspace" "postgres" {
   name             = "production-postgres-db"
   database_type    = "postgresql"
   database_version = "14.7"
@@ -157,7 +157,7 @@ resource "cyberark_sia_database_target" "postgres" {
 ### Azure SQL Server
 
 ```hcl
-resource "cyberark_sia_database_target" "azure_sql" {
+resource "cyberark_sia_database_workspace" "azure_sql" {
   name             = "production-sqlserver"
   database_type    = "sqlserver"
   database_version = "13.0.0"
@@ -175,7 +175,7 @@ resource "cyberark_sia_database_target" "azure_sql" {
 ### On-Premise Oracle
 
 ```hcl
-resource "cyberark_sia_database_target" "oracle" {
+resource "cyberark_sia_database_workspace" "oracle" {
   name             = "oracle-production-db"
   database_type    = "oracle"
   database_version = "19.3.0"
@@ -212,7 +212,7 @@ go build -v
 
 ## Next Steps (Phase 4)
 
-**User Story 2**: Implement `strong_account` resource for credential management
+**User Story 2**: Implement `secret` resource for credential management
 
 - Strong account data model
 - CRUD operations using SecretsDB()

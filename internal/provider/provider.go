@@ -8,10 +8,12 @@ import (
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/cyberark/ark-sdk-golang/pkg/auth"
 	"github.com/cyberark/ark-sdk-golang/pkg/services/sia"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -26,13 +28,10 @@ type CyberArkSIAProvider struct {
 
 // CyberArkSIAProviderModel describes the provider data model
 type CyberArkSIAProviderModel struct {
-	ClientID                 types.String `tfsdk:"client_id"`
-	ClientSecret             types.String `tfsdk:"client_secret"`
-	IdentityURL              types.String `tfsdk:"identity_url"`
-	IdentityTenantSubdomain  types.String `tfsdk:"identity_tenant_subdomain"`
-	SIAAPIUrl                types.String `tfsdk:"sia_api_url"`
-	MaxRetries               types.Int64  `tfsdk:"max_retries"`
-	RequestTimeout           types.Int64  `tfsdk:"request_timeout"`
+	ClientID                types.String `tfsdk:"client_id"`
+	ClientSecret            types.String `tfsdk:"client_secret"`
+	IdentityURL             types.String `tfsdk:"identity_url"`
+	IdentityTenantSubdomain types.String `tfsdk:"identity_tenant_subdomain"`
 }
 
 // ProviderData holds the ARK SDK instances shared with resources
@@ -44,12 +43,6 @@ type ProviderData struct {
 
 	// SIAAPI provides access to SIA WorkspacesDB() and SecretsDB() APIs
 	SIAAPI *sia.ArkSIAAPI
-
-	// MaxRetries for transient API failures
-	MaxRetries int64
-
-	// RequestTimeout in seconds
-	RequestTimeout int64
 }
 
 // New is a helper function to simplify provider server and testing implementation
@@ -71,40 +64,42 @@ func (p *CyberArkSIAProvider) Metadata(ctx context.Context, req provider.Metadat
 func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Terraform provider for CyberArk Secure Infrastructure Access (SIA). " +
-			"Manages database targets and strong accounts using the CyberArk ARK SDK.",
+			"Manages database workspaces and secrets using the CyberArk ARK SDK.",
 		Attributes: map[string]schema.Attribute{
 			"client_id": schema.StringAttribute{
 				Description: "ISPSS service account client ID. Can also be set via CYBERARK_CLIENT_ID environment variable.",
 				Optional:    true,
 				Sensitive:   true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"client_secret": schema.StringAttribute{
 				Description: "ISPSS service account client secret. Can also be set via CYBERARK_CLIENT_SECRET environment variable.",
 				Optional:    true,
 				Sensitive:   true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"identity_url": schema.StringAttribute{
-				Description: "CyberArk Identity tenant URL (e.g., https://example.cyberark.cloud). " +
+				Description: "CyberArk Identity tenant URL (e.g., https://abc123.cyberark.cloud). " +
+					"Optional - only needed for GovCloud (https://abc123.cyberarkgov.cloud) or custom identity deployments. " +
+					"If not provided, the URL is automatically resolved from identity_tenant_subdomain. " +
 					"Can also be set via CYBERARK_IDENTITY_URL environment variable.",
 				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 			"identity_tenant_subdomain": schema.StringAttribute{
-				Description: "CyberArk Identity tenant subdomain. " +
+				Description: "CyberArk Identity tenant subdomain (e.g., 'abc123' from abc123.cyberark.cloud). " +
+					"Required for constructing the service account username. " +
 					"Can also be set via CYBERARK_TENANT_SUBDOMAIN environment variable.",
-				Optional: true,
-			},
-			"sia_api_url": schema.StringAttribute{
-				Description: "SIA API base URL. If not provided, derived from identity_url. " +
-					"Can also be set via CYBERARK_SIA_API_URL environment variable.",
-				Optional: true,
-			},
-			"max_retries": schema.Int64Attribute{
-				Description: "Maximum number of retry attempts for transient API failures. Defaults to 3.",
-				Optional:    true,
-			},
-			"request_timeout": schema.Int64Attribute{
-				Description: "API request timeout in seconds. Defaults to 30.",
-				Optional:    true,
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 			},
 		},
 	}
@@ -139,12 +134,6 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 			"client_secret must be set in provider configuration or via CYBERARK_CLIENT_SECRET environment variable",
 		)
 	}
-	if identityURL == "" {
-		resp.Diagnostics.AddError(
-			"Missing identity_url",
-			"identity_url must be set in provider configuration or via CYBERARK_IDENTITY_URL environment variable",
-		)
-	}
 	if tenantSubdomain == "" {
 		resp.Diagnostics.AddError(
 			"Missing identity_tenant_subdomain",
@@ -154,17 +143,6 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 
 	if resp.Diagnostics.HasError() {
 		return
-	}
-
-	// Set default values
-	maxRetries := int64(3)
-	if !config.MaxRetries.IsNull() {
-		maxRetries = config.MaxRetries.ValueInt64()
-	}
-
-	requestTimeout := int64(30)
-	if !config.RequestTimeout.IsNull() {
-		requestTimeout = config.RequestTimeout.ValueInt64()
 	}
 
 	// Log configuration (without sensitive data)
@@ -197,10 +175,8 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 
 	// Create provider data for resource sharing
 	providerData := &ProviderData{
-		ISPAuth:        ispAuth,
-		SIAAPI:         siaAPI,
-		MaxRetries:     maxRetries,
-		RequestTimeout: requestTimeout,
+		ISPAuth: ispAuth,
+		SIAAPI:  siaAPI,
 	}
 
 	// Make provider data available to resources
@@ -210,7 +186,8 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 // Resources defines the resources implemented in the provider
 func (p *CyberArkSIAProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewDatabaseTargetResource,
+		NewDatabaseWorkspaceResource,
+		NewSecretResource,
 	}
 }
 

@@ -20,10 +20,6 @@ const (
 	// CYBERARK_TENANT_SUBDOMAIN is the CyberArk Identity tenant subdomain
 	// Example: example (from example.cyberark.cloud)
 	EnvTenantSubdomain = "CYBERARK_TENANT_SUBDOMAIN"
-
-	// CYBERARK_SIA_API_URL is the optional SIA API base URL
-	// If not set, derived from identity_url
-	EnvSIAAPIURL = "CYBERARK_SIA_API_URL"
 )
 
 // TestAccPreCheckVars lists the required environment variables for acceptance tests

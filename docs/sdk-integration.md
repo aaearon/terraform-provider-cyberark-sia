@@ -152,23 +152,45 @@ siaAPI, err := sia.NewArkSIAAPI(ispAuth)
 
 ## Data Models
 
-### Database Target (For Phase 3 Resource Implementation)
+### Database Target (Phase 3 - VALIDATED)
 
-**ARK SDK Model**: `ArkSIADBAddDatabase`
+**ARK SDK Model**: `ArkSIADBAddDatabase` (Create), `ArkSIADBUpdateDatabase` (Update), `ArkSIADBDatabase` (Response)
 
-**Confirmed Fields** (from Context7 examples):
-- `Name` (string) - Database target name
-- `ProviderEngine` (dbmodels.EngineType) - Database type/engine
-- `ReadWriteEndpoint` (string) - Connection endpoint
-- `SecretID` (string) - Reference to strong account secret
+**Terraform → SDK Field Mappings**:
 
-**Likely Additional Fields** (infer from SIA requirements):
-- `Port` (int) - Database port
-- `DatabaseName` (string) - Database/schema name
-- `Region` (string) - For AWS/Azure
-- `AccountID` / `SubscriptionID` - Cloud provider identifiers
+| Terraform Attribute | SDK Field | Type | Required? | Notes |
+|---------------------|-----------|------|-----------|-------|
+| `name` | `Name` | string | ✅ Required | Only truly required field per SDK validate tag |
+| `network_name` | `NetworkName` | string | Optional | Network segmentation. Defaults to "ON-PREMISE" |
+| `database_type` | `ProviderEngine` | string | Optional | e.g., "postgres", "mysql", "mariadb" |
+| `address` | `ReadWriteEndpoint` | string | Optional | Hostname/IP/FQDN |
+| `port` | `Port` | int | Optional | SDK uses family defaults (PostgreSQL=5432, etc.) |
+| `auth_database` | `AuthDatabase` | string | Optional | MongoDB authentication database (default: "admin") |
+| `services` | `Services` | []string | Optional | Oracle/SQL Server service list |
+| `account` | `Account` | string | Optional | Snowflake/MongoDB Atlas account name |
+| `authentication_method` | `ConfiguredAuthMethodType` | string | Optional | Values: "ad_ephemeral_user", "local_ephemeral_user", "rds_iam_authentication", "atlas_ephemeral_user" |
+| `secret_id` | `SecretID` | string | Optional | **Required for ZSP/JIT**. References secret for ephemeral access provisioning |
+| `enable_certificate_validation` | `EnableCertificateValidation` | bool | Optional | Enforce TLS cert validation (default: true) |
+| `certificate_id` | `Certificate` | string | Optional | Certificate ID for TLS/mTLS. Will reference cyberark_sia_certificate resource |
+| `cloud_provider` | `Platform` | string | Optional | Values: "AWS", "AZURE", "GCP", "ON-PREMISE", "ATLAS" |
+| `region` | `Region` | string | Optional | **Required for RDS IAM auth**. Used in AWS Signature Version 4 token generation |
+| `read_only_endpoint` | `ReadOnlyEndpoint` | string | Optional | Read replica endpoint for scaling reads |
+| `description` | (Not in SDK) | string | Optional | Provider-only field (not sent to API) |
+| `tags` | `Tags` | map[string]string | Optional | Key-value metadata |
 
-**TBD**: Exact field names and types - verify during Phase 3 implementation
+**Removed Fields** (Phase 3 Cleanup - Did Not Exist in SDK):
+- ❌ `database_version` - No SDK equivalent
+- ❌ `aws_account_id` - No SDK equivalent (generic fields only)
+- ❌ `azure_tenant_id` - No SDK equivalent
+- ❌ `azure_subscription_id` - No SDK equivalent
+
+**Not Yet Exposed** (Available in SDK, Future Enhancement - Active Directory):
+- `Domain` - Windows domain name
+- `DomainControllerName` - Domain controller hostname
+- `DomainControllerNetbios` - Domain controller NetBIOS name
+- `DomainControllerUseLDAPS` - Use LDAPS (default: false)
+- `DomainControllerEnableCertValidation` - Enforce DC cert validation (default: true)
+- `DomainControllerLDAPSCertificate` - Certificate ID for DC TLS
 
 ### Strong Account (Secret)
 
@@ -248,7 +270,7 @@ See `internal/client/retry.go` for `RetryWithBackoff()` with exponential backoff
 
 ## Phase 3 Implementation Checklist
 
-When implementing `database_target` resource:
+When implementing `database_workspace` resource:
 
 1. ✅ Import `dbmodels` package
 2. ✅ Use `siaAPI.WorkspacesDB().AddDatabase()` in Create()
@@ -259,7 +281,7 @@ When implementing `database_target` resource:
 7. ✅ Map errors with `MapError()`
 8. ✅ Handle 404 in Read() as resource deleted (drift detection)
 
-When implementing `strong_account` resource:
+When implementing `secret` resource:
 
 1. ✅ Import `dbsecretsmodels` package
 2. ✅ Use `siaAPI.SecretsDB().AddSecret()` in Create()
@@ -296,5 +318,5 @@ When implementing `strong_account` resource:
 
 ## Version History
 
-- **2025-10-15**: Initial version based on Phase 2 research and Context7 examples
-- **Next Update**: During Phase 3 implementation as actual SDK usage is confirmed
+- **2025-10-15 (Phase 2.5)**: Initial version based on Phase 2 research and Context7 examples
+- **2025-10-15 (Phase 3 Cleanup)**: Validated database workspace field mappings against ARK SDK v1.5.0, removed non-existent fields, documented actual SDK requirements

@@ -28,8 +28,10 @@ provider "aws" {
 provider "cyberark_sia" {
   client_id                 = var.cyberark_client_id
   client_secret             = var.cyberark_client_secret
-  identity_url              = var.cyberark_identity_url
   identity_tenant_subdomain = var.cyberark_tenant_subdomain
+
+  # Optional: Override identity URL for GovCloud or custom deployments
+  # identity_url = var.cyberark_identity_url
 }
 
 # Get current AWS account information
@@ -75,32 +77,21 @@ resource "aws_db_instance" "postgres" {
 }
 
 # Register the RDS instance with CyberArk SIA
-resource "cyberark_sia_database_target" "postgres" {
-  name             = "production-postgres-db"
-  database_type    = "postgresql"
-  database_version = "14.7"
+resource "cyberark_sia_database_workspace" "postgres" {
+  # Database name on the server (actual database that SIA connects to)
+  name          = aws_db_instance.postgres.db_name # "appdb"
+  database_type = "postgres-aws-rds"
 
   # Use Terraform reference to get endpoint dynamically
   address = aws_db_instance.postgres.address
   port    = aws_db_instance.postgres.port
 
-  database_name = aws_db_instance.postgres.db_name
-
   # Authentication method
-  authentication_method = "local" # Use "aws_iam" for RDS IAM authentication
+  authentication_method = "local_ephemeral_user" # Use "rds_iam_authentication" for RDS IAM auth
 
   # AWS-specific metadata
   cloud_provider = "aws"
-  aws_region     = "us-east-1"
-  aws_account_id = data.aws_caller_identity.current.account_id
-
-  description = "Production PostgreSQL database for application services"
-
-  tags = {
-    Environment = "production"
-    Team        = "platform"
-    Application = "api-backend"
-  }
+  region         = "us-east-1"
 
   # Ensure RDS instance is created before SIA registration
   depends_on = [aws_db_instance.postgres]
@@ -155,12 +146,13 @@ variable "cyberark_client_secret" {
 }
 
 variable "cyberark_identity_url" {
-  description = "CyberArk Identity URL"
+  description = "CyberArk Identity URL (optional - only needed for GovCloud or custom deployments)"
   type        = string
+  default     = ""
 }
 
 variable "cyberark_tenant_subdomain" {
-  description = "CyberArk tenant subdomain"
+  description = "CyberArk tenant subdomain (e.g., 'abc123' from abc123.cyberark.cloud)"
   type        = string
 }
 
@@ -186,9 +178,9 @@ variable "private_subnet_ids" {
 }
 
 # Outputs
-output "database_target_id" {
+output "# NOTE: Secrets are standalone - no workspace_id needed" {
   description = "SIA database target ID"
-  value       = cyberark_sia_database_target.postgres.id
+  value       = cyberark_sia_database_workspace.postgres.id
 }
 
 output "rds_endpoint" {

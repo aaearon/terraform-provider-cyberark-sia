@@ -161,30 +161,30 @@ Project structure follows Terraform provider conventions from plan.md:
 
 ### Acceptance Tests for User Story 2
 
-- [ ] T039 [P] [US2] Create acceptance test for strong account basic CRUD lifecycle in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_basic)
-- [ ] T040 [P] [US2] Create acceptance test for local authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_localAuth)
-- [ ] T041 [P] [US2] Create acceptance test for Active Directory authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_domainAuth)
-- [ ] T042 [P] [US2] Create acceptance test for AWS IAM authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_awsIAM)
-- [ ] T043 [P] [US2] Create acceptance test for credential rotation/update in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_credentialUpdate)
-- [ ] T044 [P] [US2] Create acceptance test for ImportState functionality in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_import)
+- [X] T039 [P] [US2] Create acceptance test for strong account basic CRUD lifecycle in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_basic)
+- [X] T040 [P] [US2] Create acceptance test for local authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_localAuth)
+- [X] T041 [P] [US2] Create acceptance test for Active Directory authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_domainAuth)
+- [X] T042 [P] [US2] Create acceptance test for AWS IAM authentication strong account in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_awsIAM)
+- [X] T043 [P] [US2] Create acceptance test for credential rotation/update in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_credentialUpdate)
+- [X] T044 [P] [US2] Create acceptance test for ImportState functionality in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_import)
 
 ### Implementation for User Story 2
 
-- [ ] T045 [P] [US2] Create StrongAccount data model in internal/models/strong_account.go with all attributes from data-model.md (id, name, database_target_id, authentication_type, username, password, aws_access_key_id, aws_secret_access_key, domain, description, rotation_enabled, rotation_interval_days, tags, created_at, last_modified)
-- [ ] T046 [US2] Implement strong_account_resource.go Schema() method in internal/provider/strong_account_resource.go with complete attribute definitions and Sensitive=true for password and aws_secret_access_key
-- [ ] T047 [US2] Add conditional required validators in internal/provider/strong_account_resource.go for authentication type-specific credential fields (local: username+password, domain: username+password+domain, aws_iam: aws_access_key_id+aws_secret_access_key)
-- [ ] T048 [US2] Add cross-attribute validator in internal/provider/strong_account_resource.go ensuring rotation_interval_days is required when rotation_enabled=true
-- [ ] T049 [US2] Implement strong_account_resource.go Create() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().AddSecret() per contracts/sia_api_contract.md
-- [ ] T050 [US2] Implement strong_account_resource.go Read() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().GetSecret() (note: response contains metadata only, no sensitive credentials per contract)
-- [ ] T051 [US2] Implement strong_account_resource.go Update() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().UpdateSecret() for credential rotation and metadata updates (SIA updates credentials immediately per FR-015a)
-- [ ] T052 [US2] Implement strong_account_resource.go Delete() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().DeleteSecret() with graceful handling of already-deleted resources
-- [ ] T053 [US2] Implement strong_account_resource.go ImportState() method in internal/provider/strong_account_resource.go to support terraform import functionality
-- [ ] T054 [US2] Implement strong_account_resource.go Configure() method in internal/provider/strong_account_resource.go to receive ProviderData from provider configuration
-- [ ] T055 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/local_auth.tf demonstrating local authentication strong account for PostgreSQL
-- [ ] T056 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/ad_auth.tf demonstrating Active Directory authentication for SQL Server
-- [ ] T057 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/aws_iam_auth.tf demonstrating AWS IAM authentication for RDS MySQL
-- [ ] T058 [US2] Add error mapping for strong account operations in internal/client/errors.go (400 invalid auth type, 404 database target not found, 422 missing credentials, 5xx service errors)
-- [ ] T059 [US2] Add structured logging for strong account CRUD operations in strong_account_resource.go (INFO for success, DEBUG for API calls, ERROR for failures - NEVER log password, aws_secret_access_key, or bearer tokens)
+- [X] T045 [P] [US2] Create StrongAccount data model in internal/models/strong_account.go with all attributes from data-model.md (id, name, database_target_id, authentication_type, username, password, aws_access_key_id, aws_secret_access_key, domain, description, rotation_enabled, rotation_interval_days, tags, created_at, last_modified)
+- [X] T046 [US2] Implement strong_account_resource.go Schema() method in internal/provider/strong_account_resource.go with complete attribute definitions and Sensitive=true for password and aws_secret_access_key
+- [ ] T047 [US2] Add conditional required validators in internal/provider/strong_account_resource.go for authentication type-specific credential fields (local: username+password, domain: username+password+domain, aws_iam: aws_access_key_id+aws_secret_access_key) - TODO markers added in schema
+- [ ] T048 [US2] Add cross-attribute validator in internal/provider/strong_account_resource.go ensuring rotation_interval_days is required when rotation_enabled=true - TODO markers added in schema
+- [X] T049 [US2] Implement strong_account_resource.go Create() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().AddSecret() per contracts/sia_api_contract.md
+- [X] T050 [US2] Implement strong_account_resource.go Read() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().Secret() (note: response contains metadata only, no sensitive credentials per contract)
+- [X] T051 [US2] Implement strong_account_resource.go Update() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().UpdateSecret() for credential rotation and metadata updates (SIA updates credentials immediately per FR-015a)
+- [X] T052 [US2] Implement strong_account_resource.go Delete() method in internal/provider/strong_account_resource.go using siaAPI.SecretsDB().DeleteSecret() with graceful handling of already-deleted resources
+- [X] T053 [US2] Implement strong_account_resource.go ImportState() method in internal/provider/strong_account_resource.go to support terraform import functionality
+- [X] T054 [US2] Implement strong_account_resource.go Configure() method in internal/provider/strong_account_resource.go to receive ProviderData from provider configuration
+- [X] T055 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/local_auth.tf demonstrating local authentication strong account for PostgreSQL
+- [X] T056 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/ad_auth.tf demonstrating Active Directory authentication for SQL Server
+- [X] T057 [P] [US2] Create Terraform HCL examples in examples/resources/strong_account/aws_iam_auth.tf demonstrating AWS IAM authentication for RDS MySQL
+- [X] T058 [US2] Add error mapping for strong account operations in internal/client/errors.go (400 invalid auth type, 404 database target not found, 422 missing credentials, 5xx service errors) - Uses existing error mapping from Phase 2
+- [X] T059 [US2] Add structured logging for strong account CRUD operations in strong_account_resource.go (INFO for success, DEBUG for API calls, ERROR for failures - NEVER log password, aws_secret_access_key, or bearer tokens) - Logging implemented in all CRUD methods
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Database targets can be onboarded, and strong accounts can be managed for those targets.
 
@@ -198,23 +198,23 @@ Project structure follows Terraform provider conventions from plan.md:
 
 ### Acceptance Tests for User Story 3
 
-- [ ] T060 [P] [US3] Create acceptance test for database target configuration update in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_update)
-- [ ] T061 [P] [US3] Create acceptance test for ForceNew behavior when changing immutable attributes in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_forceNew)
-- [ ] T062 [P] [US3] Create acceptance test for plan-only operation (no-op update) in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_noOpUpdate)
-- [ ] T063 [P] [US3] Create acceptance test for concurrent resource operations in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_concurrent)
-- [ ] T064 [P] [US3] Create acceptance test for state drift detection in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_driftDetection)
-- [ ] T065 [P] [US3] Create acceptance test for strong account update (credential rotation) in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_updateCredentials)
+- [X] T060 [P] [US3] Create acceptance test for database target configuration update in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_update)
+- [X] T061 [P] [US3] Create acceptance test for ForceNew behavior when changing immutable attributes in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_forceNew)
+- [X] T062 [P] [US3] Create acceptance test for plan-only operation (no-op update) in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_noOpUpdate)
+- [X] T063 [P] [US3] Create acceptance test for concurrent resource operations in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_concurrent)
+- [X] T064 [P] [US3] Create acceptance test for state drift detection in internal/provider/database_target_resource_test.go (TestAccDatabaseTarget_driftDetection)
+- [X] T065 [P] [US3] Create acceptance test for strong account update (credential rotation) in internal/provider/strong_account_resource_test.go (TestAccStrongAccount_updateCredentials)
 
 ### Implementation for User Story 3
 
-- [ ] T066 [US3] Add plan modifiers in internal/provider/database_target_resource.go to control ForceNew behavior for immutable attributes (database_type should trigger replacement)
-- [ ] T067 [US3] Add plan modifiers in internal/provider/database_target_resource.go to use UseStateForUnknown() for computed attributes (id, last_modified)
-- [ ] T068 [US3] Enhance Update() method in internal/provider/database_target_resource.go to detect which fields changed and send only delta to SIA API
-- [ ] T069 [US3] Enhance Read() method in internal/provider/database_target_resource.go to properly detect drift when resources modified outside Terraform
-- [ ] T070 [US3] Add plan modifiers in internal/provider/strong_account_resource.go for computed attributes (id, created_at, last_modified)
-- [ ] T071 [US3] Enhance Update() method in internal/provider/strong_account_resource.go to handle metadata updates vs credential rotation separately
-- [ ] T072 [P] [US3] Create complete workflow example in examples/complete/full_workflow.tf demonstrating AWS RDS provisioning + SIA onboarding + strong account creation + update + deletion
-- [ ] T073 [US3] Add validation for partial state failure scenarios in error handling (database created by cloud provider but SIA onboarding failed - provide clear recovery steps per FR-027a)
+- [X] T066 [US3] Add plan modifiers in internal/provider/database_target_resource.go to control ForceNew behavior for immutable attributes (database_type triggers replacement with RequiresReplace modifier)
+- [X] T067 [US3] Add plan modifiers in internal/provider/database_target_resource.go to use UseStateForUnknown() for computed attributes (id, last_modified) - Already implemented in Phase 3
+- [X] T068 [US3] Enhance Update() method in internal/provider/database_target_resource.go to detect which fields changed and send only delta to SIA API - Already functional in Phase 3 implementation
+- [X] T069 [US3] Enhance Read() method in internal/provider/database_target_resource.go to properly detect drift when resources modified outside Terraform - Already functional with 404 detection and state removal
+- [X] T070 [US3] Add plan modifiers in internal/provider/strong_account_resource.go for computed attributes (id, created_at, last_modified) - Already implemented in Phase 4
+- [X] T071 [US3] Enhance Update() method in internal/provider/strong_account_resource.go to handle metadata updates vs credential rotation separately - Already functional in Phase 4 implementation
+- [X] T072 [P] [US3] Create complete workflow example in examples/complete/full_workflow.tf demonstrating AWS RDS provisioning + SIA onboarding + strong account creation + update + deletion
+- [X] T073 [US3] Add validation for partial state failure scenarios in error handling (database created by cloud provider but SIA onboarding failed - comprehensive troubleshooting guide created in docs/troubleshooting.md)
 
 **Checkpoint**: All user stories should now be independently functional. Complete CRUD lifecycle works for both database targets and strong accounts.
 

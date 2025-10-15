@@ -21,7 +21,7 @@ This document defines the data entities managed by the Terraform provider, their
 | Attribute | Type | Required | Computed | Sensitive | Description | Validation |
 |-----------|------|----------|----------|-----------|-------------|------------|
 | `id` | string | No | Yes | No | SIA-assigned unique identifier for the database target | N/A (assigned by SIA) |
-| `name` | string | Yes | No | No | User-friendly name for the database target | Length: 1-255 chars, unique within SIA tenant |
+| `name` | string | Yes | No | No | Database name on the server (actual database/schema/catalog that SIA connects to) | Length: 1-255 chars, unique within SIA tenant |
 | `database_type` | string | Yes | No | No | Type of database system | OneOf: `db2`, `mariadb`, `mongodb`, `mysql`, `oracle`, `postgresql`, `sqlserver` |
 | `database_version` | string | Yes | No | No | Database version (semver format) | Min version per database type (see validation rules) |
 | `address` | string | Yes | No | No | Hostname, IP address, or FQDN of database | Valid hostname/IP format |
@@ -33,8 +33,6 @@ This document defines the data entities managed by the Terraform provider, their
 | `aws_account_id` | string | Conditional | No | No | AWS account ID (required if cloud_provider=aws) | 12-digit number |
 | `azure_tenant_id` | string | Conditional | No | No | Azure tenant ID (required if cloud_provider=azure) | Valid UUID |
 | `azure_subscription_id` | string | Conditional | No | No | Azure subscription ID (required if cloud_provider=azure) | Valid UUID |
-| `description` | string | No | No | No | User-provided description | Max 1024 chars |
-| `tags` | map(string) | No | No | No | Key-value metadata tags | Max 50 tags, key/value max 255 chars |
 | `last_modified` | string | No | Yes | No | Timestamp of last modification (ISO 8601) | N/A (computed by SIA) |
 
 ### Validation Rules
@@ -108,10 +106,8 @@ stateDiagram-v2
 | `aws_access_key_id` | string | Conditional | No | Yes | AWS access key (required if authentication_type=aws_iam) | Valid AWS access key format |
 | `aws_secret_access_key` | string | Conditional | No | Yes | AWS secret key (required if authentication_type=aws_iam) | Never logged or output |
 | `domain` | string | Conditional | No | No | AD domain (required if authentication_type=domain) | Valid domain format (e.g., `corp.example.com`) |
-| `description` | string | No | No | No | User-provided description | Max 1024 chars |
 | `rotation_enabled` | bool | No | No | No | Whether SIA should rotate credentials | Default: false (manual rotation via Terraform) |
 | `rotation_interval_days` | number | Conditional | No | No | Days between rotations (if rotation_enabled=true) | Range: 1-365 |
-| `tags` | map(string) | No | No | No | Key-value metadata tags | Max 50 tags, key/value max 255 chars |
 | `created_at` | string | No | Yes | No | Timestamp of creation (ISO 8601) | N/A (computed by SIA) |
 | `last_modified` | string | No | Yes | No | Timestamp of last modification (ISO 8601) | N/A (computed by SIA) |
 
@@ -184,11 +180,12 @@ stateDiagram-v2
 |-----------|------|----------|-----------|-------------|------------|
 | `client_id` | string | Yes | Yes | ISPSS service account client ID | Non-empty string |
 | `client_secret` | string | Yes | Yes | ISPSS service account client secret | Non-empty string |
-| `identity_url` | string | Yes | No | CyberArk Identity tenant URL | Valid HTTPS URL (e.g., `https://example.cyberark.cloud`) |
+| `identity_url` | string | No | No | CyberArk Identity tenant URL (optional - auto-resolved from subdomain) | Valid HTTPS URL (e.g., `https://example.cyberark.cloud`) |
 | `identity_tenant_subdomain` | string | Yes | No | Tenant subdomain for ISPSS | Alphanumeric, 1-63 chars |
-| `sia_api_url` | string | No | No | SIA API base URL (if non-standard) | Valid HTTPS URL, defaults to derived from identity_url |
 | `max_retries` | number | No | No | Max retry attempts for API calls | Range: 0-10, default: 3 |
 | `request_timeout` | number | No | No | API request timeout in seconds | Range: 10-300, default: 30 |
+
+**Note**: `sia_api_url` was removed (2025-10-15) as it was non-functional. ARK SDK automatically constructs SIA API URL as `https://{subdomain}.dpa.{domain}` from authenticated JWT token with no override mechanism.
 
 ### Example Configuration
 

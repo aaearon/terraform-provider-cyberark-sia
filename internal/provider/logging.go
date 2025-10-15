@@ -22,9 +22,6 @@ func LogProviderConfig(ctx context.Context, config *CyberArkSIAProviderModel) {
 	tflog.Debug(ctx, "Provider configuration loaded", map[string]interface{}{
 		"identity_url":              config.IdentityURL.ValueString(),
 		"identity_tenant_subdomain": config.IdentityTenantSubdomain.ValueString(),
-		"sia_api_url":               config.SIAAPIUrl.ValueString(),
-		"max_retries":               config.MaxRetries.ValueInt64(),
-		"request_timeout":           config.RequestTimeout.ValueInt64(),
 		// NEVER log: client_id, client_secret
 	})
 }

@@ -31,12 +31,10 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 	if config.ClientSecret == "" {
 		return nil, fmt.Errorf("client_secret is required")
 	}
-	if config.IdentityURL == "" {
-		return nil, fmt.Errorf("identity_url is required")
-	}
 	if config.IdentityTenantSubdomain == "" {
 		return nil, fmt.Errorf("identity_tenant_subdomain is required")
 	}
+	// Note: IdentityURL is optional - SDK will resolve it via discovery service if empty
 
 	// Initialize ARK SDK auth with caching enabled for automatic token refresh
 	ispAuth := auth.NewArkISPAuth(true)

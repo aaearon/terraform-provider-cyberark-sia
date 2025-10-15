@@ -19,12 +19,14 @@ terraform {
 provider "cyberark_sia" {
   client_id                 = var.cyberark_client_id
   client_secret             = var.cyberark_client_secret
-  identity_url              = var.cyberark_identity_url
   identity_tenant_subdomain = var.cyberark_tenant_subdomain
+
+  # Optional: Override identity URL for GovCloud or custom deployments
+  # identity_url = var.cyberark_identity_url
 }
 
 # Register on-premise Oracle database with CyberArk SIA
-resource "cyberark_sia_database_target" "oracle_prod" {
+resource "cyberark_sia_database_workspace" "oracle_prod" {
   name             = "oracle-production-db"
   database_type    = "oracle"
   database_version = "19.3.0" # Oracle 19c
@@ -52,7 +54,7 @@ resource "cyberark_sia_database_target" "oracle_prod" {
 }
 
 # Example: Oracle RAC (Real Application Clusters) configuration
-resource "cyberark_sia_database_target" "oracle_rac" {
+resource "cyberark_sia_database_workspace" "oracle_rac" {
   name             = "oracle-rac-cluster"
   database_type    = "oracle"
   database_version = "19.12.0"
@@ -77,7 +79,7 @@ resource "cyberark_sia_database_target" "oracle_rac" {
 }
 
 # Example: Oracle with specific service name
-resource "cyberark_sia_database_target" "oracle_service" {
+resource "cyberark_sia_database_workspace" "oracle_service" {
   name             = "oracle-hr-service"
   database_type    = "oracle"
   database_version = "21.3.0"
@@ -100,7 +102,7 @@ resource "cyberark_sia_database_target" "oracle_service" {
 }
 
 # Example: Development Oracle database
-resource "cyberark_sia_database_target" "oracle_dev" {
+resource "cyberark_sia_database_workspace" "oracle_dev" {
   name             = "oracle-development"
   database_type    = "oracle"
   database_version = "19.3.0"
@@ -136,34 +138,35 @@ variable "cyberark_client_secret" {
 }
 
 variable "cyberark_identity_url" {
-  description = "CyberArk Identity URL (e.g., https://example.cyberark.cloud)"
+  description = "CyberArk Identity URL (optional - only needed for GovCloud or custom deployments)"
   type        = string
+  default     = ""
 }
 
 variable "cyberark_tenant_subdomain" {
-  description = "CyberArk tenant subdomain"
+  description = "CyberArk tenant subdomain (e.g., 'abc123' from abc123.cyberark.cloud)"
   type        = string
 }
 
 # Outputs
 output "oracle_prod_id" {
   description = "SIA database target ID for production Oracle"
-  value       = cyberark_sia_database_target.oracle_prod.id
+  value       = cyberark_sia_database_workspace.oracle_prod.id
 }
 
 output "oracle_rac_id" {
   description = "SIA database target ID for Oracle RAC cluster"
-  value       = cyberark_sia_database_target.oracle_rac.id
+  value       = cyberark_sia_database_workspace.oracle_rac.id
 }
 
 output "oracle_hr_id" {
   description = "SIA database target ID for HR Oracle service"
-  value       = cyberark_sia_database_target.oracle_service.id
+  value       = cyberark_sia_database_workspace.oracle_service.id
 }
 
 output "oracle_dev_id" {
   description = "SIA database target ID for development Oracle"
-  value       = cyberark_sia_database_target.oracle_dev.id
+  value       = cyberark_sia_database_workspace.oracle_dev.id
 }
 
 # Notes for on-premise deployments:

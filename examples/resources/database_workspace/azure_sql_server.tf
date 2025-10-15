@@ -28,8 +28,10 @@ provider "azurerm" {
 provider "cyberark_sia" {
   client_id                 = var.cyberark_client_id
   client_secret             = var.cyberark_client_secret
-  identity_url              = var.cyberark_identity_url
   identity_tenant_subdomain = var.cyberark_tenant_subdomain
+
+  # Optional: Override identity URL for GovCloud or custom deployments
+  # identity_url = var.cyberark_identity_url
 }
 
 # Get current Azure client configuration
@@ -97,7 +99,7 @@ resource "azurerm_mssql_firewall_rule" "sia_connector" {
 }
 
 # Register the Azure SQL Server with CyberArk SIA
-resource "cyberark_sia_database_target" "azure_sql" {
+resource "cyberark_sia_database_workspace" "azure_sql" {
   name             = "production-sqlserver"
   database_type    = "sqlserver"
   database_version = "13.0.0" # SQL Server 2016+
@@ -112,18 +114,7 @@ resource "cyberark_sia_database_target" "azure_sql" {
   authentication_method = "domain"
 
   # Azure-specific metadata
-  cloud_provider        = "azure"
-  azure_tenant_id       = data.azurerm_client_config.current.tenant_id
-  azure_subscription_id = data.azurerm_client_config.current.subscription_id
-
-  description = "Production SQL Server for application services"
-
-  tags = {
-    Environment  = "production"
-    Team         = "platform"
-    Application  = "api-backend"
-    CloudProvider = "Azure"
-  }
+  cloud_provider = "azure"
 
   # Ensure SQL Server is created before SIA registration
   depends_on = [azurerm_mssql_server.main]
@@ -150,12 +141,13 @@ variable "cyberark_client_secret" {
 }
 
 variable "cyberark_identity_url" {
-  description = "CyberArk Identity URL"
+  description = "CyberArk Identity URL (optional - only needed for GovCloud or custom deployments)"
   type        = string
+  default     = ""
 }
 
 variable "cyberark_tenant_subdomain" {
-  description = "CyberArk tenant subdomain"
+  description = "CyberArk tenant subdomain (e.g., 'abc123' from abc123.cyberark.cloud)"
   type        = string
 }
 
@@ -176,9 +168,9 @@ variable "sia_connector_ip" {
 }
 
 # Outputs
-output "database_target_id" {
+output "# NOTE: Secrets are standalone - no workspace_id needed" {
   description = "SIA database target ID"
-  value       = cyberark_sia_database_target.azure_sql.id
+  value       = cyberark_sia_database_workspace.azure_sql.id
 }
 
 output "sql_server_fqdn" {
