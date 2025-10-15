@@ -43,16 +43,16 @@ Project structure follows Terraform provider conventions from plan.md:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Implement provider schema in internal/provider/provider.go with authentication configuration attributes (client_id, client_secret, identity_url, identity_tenant_subdomain, max_retries, request_timeout)
-- [ ] T009 Implement Provider.Configure() method in internal/provider/provider.go to initialize ARK SDK auth (ArkISPAuth with caching enabled) and SIA API client
-- [ ] T010 [P] Create ProviderData struct in internal/provider/provider.go to hold ispAuth and siaAPI instances for sharing with resources
-- [ ] T011 [P] Implement authentication logic in internal/client/auth.go using ARK SDK ArkISPAuth with ISPSS OAuth2 client credentials flow
-- [ ] T012 [P] Create SIA API client wrapper in internal/client/sia_client.go initializing sia.NewArkSIAAPI() for WorkspacesDB() and SecretsDB() access
-- [ ] T013 [P] Implement error mapping helper in internal/client/errors.go to convert ARK SDK errors to Terraform diagnostics per contracts/sia_api_contract.md
-- [ ] T014 [P] Implement retry logic wrapper in internal/client/retry.go with exponential backoff for transient failures
-- [ ] T015 [P] Setup structured logging helpers in internal/provider/logging.go using terraform-plugin-log (NEVER log sensitive data: client_secret, passwords, tokens)
-- [ ] T016 Create acceptance test infrastructure in internal/provider/provider_test.go with testAccPreCheck(), testAccProtoV6ProviderFactories
-- [ ] T017 [P] Create environment variable configuration for acceptance tests (TF_ACC, CYBERARK_CLIENT_ID, CYBERARK_CLIENT_SECRET, CYBERARK_IDENTITY_URL, CYBERARK_TENANT_SUBDOMAIN)
+- [X] T008 Implement provider schema in internal/provider/provider.go with authentication configuration attributes (client_id, client_secret, identity_url, identity_tenant_subdomain, max_retries, request_timeout)
+- [X] T009 Implement Provider.Configure() method in internal/provider/provider.go to initialize ARK SDK auth (ArkISPAuth with caching enabled) and SIA API client
+- [X] T010 [P] Create ProviderData struct in internal/provider/provider.go to hold ispAuth and siaAPI instances for sharing with resources
+- [X] T011 [P] Implement authentication logic in internal/client/auth.go using ARK SDK ArkISPAuth with ISPSS OAuth2 client credentials flow
+- [X] T012 [P] Create SIA API client wrapper in internal/client/sia_client.go initializing sia.NewArkSIAAPI() for WorkspacesDB() and SecretsDB() access
+- [X] T013 [P] Implement error mapping helper in internal/client/errors.go to convert ARK SDK errors to Terraform diagnostics per contracts/sia_api_contract.md
+- [X] T014 [P] Implement retry logic wrapper in internal/client/retry.go with exponential backoff for transient failures
+- [X] T015 [P] Setup structured logging helpers in internal/provider/logging.go using terraform-plugin-log (NEVER log sensitive data: client_secret, passwords, tokens)
+- [X] T016 Create acceptance test infrastructure in internal/provider/provider_test.go with testAccPreCheck(), testAccProtoV6ProviderFactories
+- [X] T017 [P] Create environment variable configuration for acceptance tests (TF_ACC, CYBERARK_CLIENT_ID, CYBERARK_CLIENT_SECRET, CYBERARK_IDENTITY_URL, CYBERARK_TENANT_SUBDOMAIN)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

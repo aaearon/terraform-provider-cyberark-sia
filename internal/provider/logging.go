@@ -1,0 +1,93 @@
+// Package provider implements the CyberArk SIA Terraform provider
+package provider
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+// SensitiveFields are fields that should NEVER be logged
+var SensitiveFields = []string{
+	"client_secret",
+	"password",
+	"aws_secret_access_key",
+	"token",
+	"bearer",
+	"secret",
+}
+
+// LogProviderConfig logs provider configuration (masking sensitive data)
+func LogProviderConfig(ctx context.Context, config *CyberArkSIAProviderModel) {
+	tflog.Debug(ctx, "Provider configuration loaded", map[string]interface{}{
+		"identity_url":              config.IdentityURL.ValueString(),
+		"identity_tenant_subdomain": config.IdentityTenantSubdomain.ValueString(),
+		"sia_api_url":               config.SIAAPIUrl.ValueString(),
+		"max_retries":               config.MaxRetries.ValueInt64(),
+		"request_timeout":           config.RequestTimeout.ValueInt64(),
+		// NEVER log: client_id, client_secret
+	})
+}
+
+// LogAuthSuccess logs successful authentication
+func LogAuthSuccess(ctx context.Context) {
+	tflog.Info(ctx, "Successfully authenticated with CyberArk ISPSS")
+}
+
+// LogAuthStart logs authentication attempt
+func LogAuthStart(ctx context.Context) {
+	tflog.Debug(ctx, "Initializing authentication with CyberArk ISPSS")
+}
+
+// LogSIAClientInit logs SIA API client initialization
+func LogSIAClientInit(ctx context.Context) {
+	tflog.Debug(ctx, "Initializing SIA API client")
+}
+
+// LogSIAClientSuccess logs successful SIA API client creation
+func LogSIAClientSuccess(ctx context.Context) {
+	tflog.Info(ctx, "Successfully initialized SIA API client")
+}
+
+// LogOperationStart logs the start of an API operation
+func LogOperationStart(ctx context.Context, operation string, resourceType string) {
+	tflog.Debug(ctx, "Starting operation", map[string]interface{}{
+		"operation":     operation,
+		"resource_type": resourceType,
+	})
+}
+
+// LogOperationSuccess logs successful completion of an API operation
+func LogOperationSuccess(ctx context.Context, operation string, resourceType string, resourceID string) {
+	tflog.Info(ctx, "Operation completed successfully", map[string]interface{}{
+		"operation":     operation,
+		"resource_type": resourceType,
+		"resource_id":   resourceID,
+	})
+}
+
+// LogOperationError logs operation failure
+func LogOperationError(ctx context.Context, operation string, resourceType string, err error) {
+	tflog.Error(ctx, "Operation failed", map[string]interface{}{
+		"operation":     operation,
+		"resource_type": resourceType,
+		"error":         err.Error(),
+	})
+}
+
+// LogRetryAttempt logs retry attempt with backoff info
+func LogRetryAttempt(ctx context.Context, attempt int, maxRetries int, delay string) {
+	tflog.Warn(ctx, "Retrying operation after transient failure", map[string]interface{}{
+		"attempt":     attempt,
+		"max_retries": maxRetries,
+		"delay":       delay,
+	})
+}
+
+// LogDriftDetected logs when state drift is detected
+func LogDriftDetected(ctx context.Context, resourceType string, resourceID string) {
+	tflog.Warn(ctx, "State drift detected - resource modified outside Terraform", map[string]interface{}{
+		"resource_type": resourceType,
+		"resource_id":   resourceID,
+	})
+}
