@@ -53,7 +53,15 @@ terraform.rc
 
 # Test artifacts
 *.log
+debug*.log
+apply*.log
 test-fixtures/
+
+# Backup files
+*.backup
+*.bak
+*.pre-fix
+*.old
 
 # CI/CD
 .github/workflows/*.log
@@ -63,3 +71,12 @@ docs/.terraform/
 
 # Local Terraform provider development
 ~/.terraform.d/plugins/local/
+
+test-crud/
+test-terraform/
+
+# Ignore compiled binaries
+terraform-provider-cyberark-sia
+
+# Ignore archived specs
+specs-archive/

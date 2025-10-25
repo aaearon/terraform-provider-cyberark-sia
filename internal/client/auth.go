@@ -11,41 +11,40 @@ import (
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	ClientID                string
-	ClientSecret            string
-	IdentityURL             string
-	IdentityTenantSubdomain string
+	Username     string // Service account username in full format (e.g., "user@cyberark.cloud.12345")
+	ClientSecret string // Service account password/secret
+	IdentityURL  string // Optional - SDK auto-resolves from username if empty
 }
 
-// NewISPAuth creates a new ARK SDK authentication client
+// NewISPAuth creates a new ARK SDK authentication client using IdentityServiceUser method
 // Caching is enabled for automatic token refresh
+// The SDK automatically extracts tenant information from the username and resolves the Identity URL
 func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, error) {
 	if config == nil {
 		return nil, fmt.Errorf("auth config cannot be nil")
 	}
 
 	// Validate required fields
-	if config.ClientID == "" {
-		return nil, fmt.Errorf("client_id is required")
+	if config.Username == "" {
+		return nil, fmt.Errorf("username is required")
 	}
 	if config.ClientSecret == "" {
 		return nil, fmt.Errorf("client_secret is required")
 	}
-	if config.IdentityTenantSubdomain == "" {
-		return nil, fmt.Errorf("identity_tenant_subdomain is required")
-	}
-	// Note: IdentityURL is optional - SDK will resolve it via discovery service if empty
+	// Note: IdentityURL is optional - SDK will resolve it from username if empty
 
 	// Initialize ARK SDK auth with caching enabled for automatic token refresh
 	ispAuth := auth.NewArkISPAuth(true)
 
-	// Create authentication profile
+	// Create authentication profile using IdentityServiceUser method for service accounts
+	// This uses OAuth 2.0 client credentials flow (not interactive user auth)
 	profile := &authmodels.ArkAuthProfile{
-		Username:   fmt.Sprintf("%s@cyberark.cloud.%s", config.ClientID, config.IdentityTenantSubdomain),
-		AuthMethod: authmodels.Identity,
-		AuthMethodSettings: &authmodels.IdentityArkAuthMethodSettings{
-			IdentityURL:             config.IdentityURL,
-			IdentityTenantSubdomain: config.IdentityTenantSubdomain,
+		Username:   config.Username, // Full username - SDK extracts tenant from @suffix
+		AuthMethod: authmodels.IdentityServiceUser,
+		AuthMethodSettings: &authmodels.IdentityServiceUserArkAuthMethodSettings{
+			IdentityURL:                      config.IdentityURL,          // Optional - SDK auto-resolves from username
+			IdentityTenantSubdomain:          "",                          // Empty - SDK extracts from username
+			IdentityAuthorizationApplication: "__idaptive_cybr_user_oidc", // SDK default OAuth app
 		},
 	}
 
@@ -64,6 +63,13 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
+
+	// DEBUG: Log authentication success
+	fmt.Printf("========================================\n")
+	fmt.Printf("[DEBUG AUTH] ✅ Authentication SUCCESSFUL!\n")
+	fmt.Printf("[DEBUG AUTH] Username: %s\n", config.Username)
+	fmt.Printf("[DEBUG AUTH] ISPAuth object created\n")
+	fmt.Printf("========================================\n")
 
 	return ispAuth.(*auth.ArkISPAuth), nil
 }

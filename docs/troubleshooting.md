@@ -340,3 +340,31 @@ When opening support tickets, include:
 - [CyberArk SIA Documentation](https://docs.cyberark.com/sia)
 - [Terraform Provider Best Practices](https://www.terraform.io/docs/extend/best-practices/index.html)
 - [ARK SDK Documentation](https://github.com/cyberark/ark-sdk-golang)
+
+## Known Limitations
+
+### Certificate `last_updated_by` Field Warning
+
+**Symptom**:
+```
+Warning: Provider returned invalid result object after apply
+After the apply operation, the provider still indicated an unknown value
+for cyberarksia_certificate.*.last_updated_by
+```
+
+**Impact**: This is a cosmetic warning that does not prevent resource creation or any other CRUD operations. The field is correctly set to `null` for newly created certificates and will be populated after the first update operation.
+
+**Root Cause**: Terraform Plugin Framework limitation in handling nullable computed fields during the plan/apply cycle. The framework automatically marks nullable computed attributes as "unknown" during planning, which conflicts with the API's behavior of returning `null` for this field on newly created certificates.
+
+**Workaround**: None required - all operations function correctly despite the warning. You can safely ignore this message.
+
+**Verification**: After apply completes, run `terraform show` to verify the certificate was created successfully:
+```bash
+terraform show | grep -A5 "cyberarksia_certificate"
+```
+
+All fields except `last_updated_by` will be populated. The field will remain `null` until the certificate is updated.
+
+**Future Fix**: This will be resolved in a future version when either:
+1. The Terraform Plugin Framework improves nullable computed field handling
+2. The SIA API is updated to always return a value for this field

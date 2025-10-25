@@ -28,10 +28,9 @@ type CyberArkSIAProvider struct {
 
 // CyberArkSIAProviderModel describes the provider data model
 type CyberArkSIAProviderModel struct {
-	ClientID                types.String `tfsdk:"client_id"`
-	ClientSecret            types.String `tfsdk:"client_secret"`
-	IdentityURL             types.String `tfsdk:"identity_url"`
-	IdentityTenantSubdomain types.String `tfsdk:"identity_tenant_subdomain"`
+	Username     types.String `tfsdk:"username"`
+	ClientSecret types.String `tfsdk:"client_secret"`
+	IdentityURL  types.String `tfsdk:"identity_url"`
 }
 
 // ProviderData holds the ARK SDK instances shared with resources
@@ -43,6 +42,10 @@ type ProviderData struct {
 
 	// SIAAPI provides access to SIA WorkspacesDB() and SecretsDB() APIs
 	SIAAPI *sia.ArkSIAAPI
+
+	// CertificatesClient handles certificate CRUD operations (Phase 6 - User Story 4)
+	// Initialized on-demand by certificate resource Configure()
+	CertificatesClient *client.CertificatesClient
 }
 
 // New is a helper function to simplify provider server and testing implementation
@@ -56,7 +59,7 @@ func New(version string) func() provider.Provider {
 
 // Metadata returns the provider type name
 func (p *CyberArkSIAProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "cyberark_sia"
+	resp.TypeName = "cyberarksia"
 	resp.Version = p.version
 }
 
@@ -64,39 +67,33 @@ func (p *CyberArkSIAProvider) Metadata(ctx context.Context, req provider.Metadat
 func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Terraform provider for CyberArk Secure Infrastructure Access (SIA). " +
-			"Manages database workspaces and secrets using the CyberArk ARK SDK.",
+			"Manages database workspaces, certificates, and secrets using the CyberArk ARK SDK.",
 		Attributes: map[string]schema.Attribute{
-			"client_id": schema.StringAttribute{
-				Description: "ISPSS service account client ID. Can also be set via CYBERARK_CLIENT_ID environment variable.",
-				Optional:    true,
-				Sensitive:   true,
+			"username": schema.StringAttribute{
+				Description: "Service account username in full format (e.g., 'my-service-account@cyberark.cloud.12345'). " +
+					"The tenant information is automatically extracted from the username by the ARK SDK. " +
+					"Can also be set via CYBERARK_USERNAME environment variable.",
+				Required:  true,
+				Sensitive: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
 			},
 			"client_secret": schema.StringAttribute{
-				Description: "ISPSS service account client secret. Can also be set via CYBERARK_CLIENT_SECRET environment variable.",
-				Optional:    true,
-				Sensitive:   true,
+				Description: "Service account password/secret. " +
+					"Can also be set via CYBERARK_CLIENT_SECRET environment variable.",
+				Required:  true,
+				Sensitive: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
 			},
 			"identity_url": schema.StringAttribute{
 				Description: "CyberArk Identity tenant URL (e.g., https://abc123.cyberark.cloud). " +
-					"Optional - only needed for GovCloud (https://abc123.cyberarkgov.cloud) or custom identity deployments. " +
-					"If not provided, the URL is automatically resolved from identity_tenant_subdomain. " +
+					"OPTIONAL - only needed for GovCloud (https://abc123.cyberarkgov.cloud) or custom identity deployments. " +
+					"If not provided, the URL is automatically resolved from the username by the ARK SDK. " +
 					"Can also be set via CYBERARK_IDENTITY_URL environment variable.",
 				Optional: true,
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
-			},
-			"identity_tenant_subdomain": schema.StringAttribute{
-				Description: "CyberArk Identity tenant subdomain (e.g., 'abc123' from abc123.cyberark.cloud). " +
-					"Required for constructing the service account username. " +
-					"Can also be set via CYBERARK_TENANT_SUBDOMAIN environment variable.",
-				Required: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
@@ -116,28 +113,21 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	}
 
 	// Get values from environment variables if not set in configuration
-	clientID := getEnvOrConfig(config.ClientID.ValueString(), EnvClientID)
+	username := getEnvOrConfig(config.Username.ValueString(), EnvUsername)
 	clientSecret := getEnvOrConfig(config.ClientSecret.ValueString(), EnvClientSecret)
 	identityURL := getEnvOrConfig(config.IdentityURL.ValueString(), EnvIdentityURL)
-	tenantSubdomain := getEnvOrConfig(config.IdentityTenantSubdomain.ValueString(), EnvTenantSubdomain)
 
 	// Validate required fields
-	if clientID == "" {
+	if username == "" {
 		resp.Diagnostics.AddError(
-			"Missing client_id",
-			"client_id must be set in provider configuration or via CYBERARK_CLIENT_ID environment variable",
+			"Missing username",
+			"username must be set in provider configuration or via CYBERARK_USERNAME environment variable",
 		)
 	}
 	if clientSecret == "" {
 		resp.Diagnostics.AddError(
 			"Missing client_secret",
 			"client_secret must be set in provider configuration or via CYBERARK_CLIENT_SECRET environment variable",
-		)
-	}
-	if tenantSubdomain == "" {
-		resp.Diagnostics.AddError(
-			"Missing identity_tenant_subdomain",
-			"identity_tenant_subdomain must be set in provider configuration or via CYBERARK_TENANT_SUBDOMAIN environment variable",
 		)
 	}
 
@@ -150,12 +140,12 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 
 	// Initialize authentication
 	// Returns *auth.ArkISPAuth with caching enabled for automatic token refresh
+	// Uses IdentityServiceUser method - SDK auto-resolves Identity URL from username if not provided
 	LogAuthStart(ctx)
 	ispAuth, err := client.NewISPAuth(ctx, &client.AuthConfig{
-		ClientID:                clientID,
-		ClientSecret:            clientSecret,
-		IdentityURL:             identityURL,
-		IdentityTenantSubdomain: tenantSubdomain,
+		Username:     username,
+		ClientSecret: clientSecret,
+		IdentityURL:  identityURL, // Optional - SDK auto-resolves from username
 	})
 	if err != nil {
 		resp.Diagnostics.Append(client.MapError(err, "provider configuration"))
@@ -188,6 +178,7 @@ func (p *CyberArkSIAProvider) Resources(ctx context.Context) []func() resource.R
 	return []func() resource.Resource{
 		NewDatabaseWorkspaceResource,
 		NewSecretResource,
+		NewCertificateResource,
 	}
 }
 

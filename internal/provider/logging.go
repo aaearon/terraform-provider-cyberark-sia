@@ -20,9 +20,9 @@ var SensitiveFields = []string{
 // LogProviderConfig logs provider configuration (masking sensitive data)
 func LogProviderConfig(ctx context.Context, config *CyberArkSIAProviderModel) {
 	tflog.Debug(ctx, "Provider configuration loaded", map[string]interface{}{
-		"identity_url":              config.IdentityURL.ValueString(),
-		"identity_tenant_subdomain": config.IdentityTenantSubdomain.ValueString(),
-		// NEVER log: client_id, client_secret
+		"identity_url": config.IdentityURL.ValueString(),
+		// NEVER log: username, client_secret
+		// Note: Username contains tenant info - logged only when identity_url is not provided
 	})
 }
 

@@ -2,7 +2,6 @@
 package provider
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -536,3 +535,132 @@ resource "cyberark_sia_database_workspace" "drift_test" {
 
 }
 `
+
+// ============================================================================
+// Phase 4 (User Story 2): Certificate Association Tests
+// ============================================================================
+
+// TestAccDatabaseWorkspace_withCertificate tests database workspace with certificate reference
+// Validates:
+// - Certificate upload works
+// - Database workspace can reference certificate via certificate_id
+// - TLS validation is enabled
+// - Certificate ID is persisted in state
+func TestAccDatabaseWorkspace_withCertificate(t *testing.T) {
+	t.Skip("Phase 4: Requires certificate resource to be implemented (Phase 3 complete)")
+
+	// Test plan:
+	// 1. Create certificate resource with valid PEM
+	// 2. Create database workspace referencing certificate_id
+	// 3. Verify certificate_id is set in state
+	// 4. Verify enable_certificate_validation is true
+
+	// Expected config:
+	// resource "cyberark_sia_certificate" "test" {
+	//   cert_name = "test-db-cert"
+	//   cert_body = file("testdata/test-cert.pem")
+	// }
+	//
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name                          = "test-postgres-with-cert"
+	//   database_type                 = "postgres"
+	//   certificate_id                = cyberark_sia_certificate.test.id
+	//   enable_certificate_validation = true
+	// }
+}
+
+// TestAccDatabaseWorkspace_updateCertificate tests updating certificate association
+// Validates:
+// - Database workspace can be created without certificate
+// - Certificate can be added to existing workspace
+// - Update operation succeeds
+// - New certificate ID is persisted in state
+func TestAccDatabaseWorkspace_updateCertificate(t *testing.T) {
+	t.Skip("Phase 4: Requires certificate resource to be implemented (Phase 3 complete)")
+
+	// Test plan:
+	// Step 1: Create database workspace without certificate
+	// Step 2: Update workspace to add certificate_id
+	// Step 3: Verify certificate_id is now set in state
+
+	// Expected configs:
+	// Initial:
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name          = "test-postgres"
+	//   database_type = "postgres"
+	// }
+	//
+	// Updated:
+	// resource "cyberark_sia_certificate" "test" {
+	//   cert_name = "test-cert"
+	//   cert_body = file("testdata/test-cert.pem")
+	// }
+	//
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name           = "test-postgres"
+	//   database_type  = "postgres"
+	//   certificate_id = cyberark_sia_certificate.test.id  # Added
+	// }
+}
+
+// TestAccDatabaseWorkspace_removeCertificate tests removing certificate association
+// Validates:
+// - Database workspace can be created with certificate
+// - Certificate reference can be removed (set to null)
+// - Update operation succeeds
+// - Certificate ID is removed from state
+func TestAccDatabaseWorkspace_removeCertificate(t *testing.T) {
+	t.Skip("Phase 4: Requires certificate resource to be implemented (Phase 3 complete)")
+
+	// Test plan:
+	// Step 1: Create database workspace with certificate_id
+	// Step 2: Update workspace to remove certificate_id (set to null)
+	// Step 3: Verify certificate_id is removed from state
+
+	// Expected configs:
+	// Initial:
+	// resource "cyberark_sia_certificate" "test" {
+	//   cert_name = "test-cert"
+	//   cert_body = file("testdata/test-cert.pem")
+	// }
+	//
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name           = "test-postgres"
+	//   database_type  = "postgres"
+	//   certificate_id = cyberark_sia_certificate.test.id
+	// }
+	//
+	// Updated:
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name          = "test-postgres"
+	//   database_type = "postgres"
+	//   # certificate_id removed
+	// }
+}
+
+// TestAccDatabaseWorkspace_invalidCertificateID tests error handling for non-existent certificate
+// Validates:
+// - Database workspace creation fails with actionable error
+// - Error message provides guidance on verifying certificate exists
+// - Error message includes the invalid certificate ID
+func TestAccDatabaseWorkspace_invalidCertificateID(t *testing.T) {
+	t.Skip("Phase 4: Requires certificate resource to be implemented (Phase 3 complete)")
+
+	// Test plan:
+	// 1. Attempt to create database workspace with non-existent certificate_id
+	// 2. Verify creation fails with clear error message
+	// 3. Verify error message mentions certificate not found
+	// 4. Verify error message includes certificate ID
+
+	// Expected config (should fail):
+	// resource "cyberark_sia_database_workspace" "test" {
+	//   name           = "test-postgres"
+	//   database_type  = "postgres"
+	//   certificate_id = "non-existent-cert-id-12345"
+	// }
+
+	// Expected error pattern:
+	// Error: Certificate Not Found
+	// The specified certificate (ID: non-existent-cert-id-12345) does not exist or is invalid.
+	// Ensure the certificate exists before associating it with this database workspace.
+}

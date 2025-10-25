@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/models"
@@ -28,6 +29,29 @@ var (
 	_ resource.ResourceWithConfigure   = &databaseWorkspaceResource{}
 	_ resource.ResourceWithImportState = &databaseWorkspaceResource{}
 )
+
+// cloudProviderToAPI converts user-friendly cloud_provider values to API-expected Platform values
+// Terraform uses lowercase with underscores (aws, azure, gcp, on_premise, atlas)
+// SIA API expects uppercase with hyphens (AWS, AZURE, GCP, ON-PREMISE, ATLAS)
+func cloudProviderToAPI(tfValue string) string {
+	switch tfValue {
+	case "on_premise":
+		return "ON-PREMISE"
+	default:
+		return strings.ToUpper(tfValue)
+	}
+}
+
+// cloudProviderFromAPI converts API Platform values to Terraform cloud_provider values
+// Reverse of cloudProviderToAPI()
+func cloudProviderFromAPI(apiValue string) string {
+	switch apiValue {
+	case "ON-PREMISE":
+		return "on_premise"
+	default:
+		return strings.ToLower(apiValue)
+	}
+}
 
 // NewDatabaseWorkspaceResource is a helper function to simplify the provider implementation
 func NewDatabaseWorkspaceResource() resource.Resource {
@@ -170,7 +194,7 @@ func (r *databaseWorkspaceResource) Schema(ctx context.Context, req resource.Sch
 				Description: "Certificate ID for TLS/mTLS connections (Certificate in SDK). " +
 					"References a certificate stored in SIA's certificate service. " +
 					"Optional - used for mutual TLS (mTLS) or custom CA certificates. " +
-					"Will eventually reference cyberark_sia_certificate resource.",
+					"References cyberark_sia_certificate resource ID.",
 				Optional: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -258,21 +282,27 @@ func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.Cre
 
 	// Build ARK SDK request model
 	// Per docs/sdk-integration.md: Use siaAPI.WorkspacesDB().AddDatabase()
+	// Convert cloud_provider from Terraform format to API format (on_premise -> ON-PREMISE, aws -> AWS, etc.)
+	platformValue := ""
+	if !plan.CloudProvider.IsNull() && !plan.CloudProvider.IsUnknown() {
+		platformValue = cloudProviderToAPI(plan.CloudProvider.ValueString())
+	}
+
 	addDatabaseReq := &dbmodels.ArkSIADBAddDatabase{
-		Name:                        plan.Name.ValueString(),
-		NetworkName:                 plan.NetworkName.ValueString(),
-		Platform:                    plan.CloudProvider.ValueString(),
-		AuthDatabase:                plan.AuthDatabase.ValueString(),
-		Services:                    services,
-		Account:                     plan.Account.ValueString(),
-		ProviderEngine:              plan.DatabaseType.ValueString(),
-		Certificate:                 plan.CertificateID.ValueString(),
-		ReadWriteEndpoint:           plan.Address.ValueString(),
-		ReadOnlyEndpoint:            plan.ReadOnlyEndpoint.ValueString(),
-		Port:                        int(plan.Port.ValueInt64()),
-		SecretID:                    plan.SecretID.ValueString(),
-		ConfiguredAuthMethodType:    plan.AuthenticationMethod.ValueString(),
-		Region:                      plan.Region.ValueString(),
+		Name:                     plan.Name.ValueString(),
+		NetworkName:              plan.NetworkName.ValueString(),
+		Platform:                 platformValue,
+		AuthDatabase:             plan.AuthDatabase.ValueString(),
+		Services:                 services,
+		Account:                  plan.Account.ValueString(),
+		ProviderEngine:           plan.DatabaseType.ValueString(),
+		Certificate:              plan.CertificateID.ValueString(),
+		ReadWriteEndpoint:        plan.Address.ValueString(),
+		ReadOnlyEndpoint:         plan.ReadOnlyEndpoint.ValueString(),
+		Port:                     int(plan.Port.ValueInt64()),
+		SecretID:                 plan.SecretID.ValueString(),
+		ConfiguredAuthMethodType: plan.AuthenticationMethod.ValueString(),
+		Region:                   plan.Region.ValueString(),
 	}
 
 	// SECURITY: Default to true if not explicitly set (secure by default)
@@ -298,6 +328,29 @@ func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.Cre
 		tflog.Error(ctx, "Failed to create database workspace", map[string]interface{}{
 			"error": err.Error(),
 		})
+
+		// Check for certificate-related errors and provide actionable guidance
+		errMsg := strings.ToLower(err.Error())
+		if !plan.CertificateID.IsNull() &&
+			(strings.Contains(errMsg, "certificate") &&
+				(strings.Contains(errMsg, "not found") ||
+					strings.Contains(errMsg, "does not exist") ||
+					strings.Contains(errMsg, "invalid"))) {
+			resp.Diagnostics.AddError(
+				"Certificate Not Found",
+				fmt.Sprintf(
+					"The specified certificate (ID: %s) does not exist or is invalid.\n\n"+
+						"Ensure the certificate exists before associating it with this database workspace.\n"+
+						"You can verify the certificate exists with:\n"+
+						"  terraform state show cyberark_sia_certificate.<name>\n\n"+
+						"Original error: %s",
+					plan.CertificateID.ValueString(),
+					err.Error(),
+				),
+			)
+			return
+		}
+
 		resp.Diagnostics.Append(client.MapError(err, "create database workspace"))
 		return
 	}
@@ -307,9 +360,16 @@ func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.Cre
 	plan.DatabaseType = types.StringValue(database.ProviderDetails.Engine)
 	plan.LastModified = types.StringValue("") // TODO: Extract from response if available
 
-	tflog.Info(ctx, "Created database workspace", map[string]interface{}{
+	// Log certificate association if configured
+	logFields := map[string]interface{}{
 		"id": plan.ID.ValueString(),
-	})
+	}
+	if !plan.CertificateID.IsNull() && plan.CertificateID.ValueString() != "" {
+		logFields["certificate_id"] = plan.CertificateID.ValueString()
+		tflog.Info(ctx, "Database workspace associated with certificate", logFields)
+	} else {
+		tflog.Info(ctx, "Created database workspace", logFields)
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -384,7 +444,12 @@ func (r *databaseWorkspaceResource) Read(ctx context.Context, req resource.ReadR
 	// Map response to state - update fields from API response
 	state.Name = types.StringValue(database.Name)
 	state.NetworkName = types.StringValue(database.NetworkName)
-	state.CloudProvider = types.StringValue(database.Platform)
+	// Convert Platform from API format back to Terraform format (ON-PREMISE -> on_premise, AWS -> aws, etc.)
+	if database.Platform != "" {
+		state.CloudProvider = types.StringValue(cloudProviderFromAPI(database.Platform))
+	} else {
+		state.CloudProvider = types.StringNull()
+	}
 	state.AuthDatabase = types.StringValue(database.AuthDatabase)
 	state.Account = types.StringValue(database.Account)
 	state.DatabaseType = types.StringValue(database.ProviderDetails.Engine)
@@ -460,11 +525,17 @@ func (r *databaseWorkspaceResource) Update(ctx context.Context, req resource.Upd
 	// Build update request with only changed fields
 	// Per docs/sdk-integration.md: Use siaAPI.WorkspacesDB().UpdateDatabase()
 	// SDK signature: UpdateDatabase(*ArkSIADBUpdateDatabase) (*ArkSIADBDatabase, error)
+	// Convert cloud_provider from Terraform format to API format (on_premise -> ON-PREMISE, aws -> AWS, etc.)
+	platformValue := ""
+	if !plan.CloudProvider.IsNull() && !plan.CloudProvider.IsUnknown() {
+		platformValue = cloudProviderToAPI(plan.CloudProvider.ValueString())
+	}
+
 	updateReq := &dbmodels.ArkSIADBUpdateDatabase{
 		ID:                       databaseID,
 		NewName:                  plan.Name.ValueString(),
 		NetworkName:              plan.NetworkName.ValueString(),
-		Platform:                 plan.CloudProvider.ValueString(),
+		Platform:                 platformValue,
 		AuthDatabase:             plan.AuthDatabase.ValueString(),
 		Services:                 services,
 		Account:                  plan.Account.ValueString(),
@@ -501,6 +572,29 @@ func (r *databaseWorkspaceResource) Update(ctx context.Context, req resource.Upd
 		tflog.Error(ctx, "Failed to update database workspace", map[string]interface{}{
 			"error": err.Error(),
 		})
+
+		// Check for certificate-related errors and provide actionable guidance
+		errMsg := strings.ToLower(err.Error())
+		if !plan.CertificateID.IsNull() &&
+			(strings.Contains(errMsg, "certificate") &&
+				(strings.Contains(errMsg, "not found") ||
+					strings.Contains(errMsg, "does not exist") ||
+					strings.Contains(errMsg, "invalid"))) {
+			resp.Diagnostics.AddError(
+				"Certificate Not Found",
+				fmt.Sprintf(
+					"The specified certificate (ID: %s) does not exist or is invalid.\n\n"+
+						"Ensure the certificate exists before associating it with this database workspace.\n"+
+						"You can verify the certificate exists with:\n"+
+						"  terraform state show cyberark_sia_certificate.<name>\n\n"+
+						"Original error: %s",
+					plan.CertificateID.ValueString(),
+					err.Error(),
+				),
+			)
+			return
+		}
+
 		resp.Diagnostics.Append(client.MapError(err, "update database workspace"))
 		return
 	}
@@ -510,9 +604,31 @@ func (r *databaseWorkspaceResource) Update(ctx context.Context, req resource.Upd
 	plan.DatabaseType = types.StringValue(updated.ProviderDetails.Engine)
 	plan.LastModified = types.StringValue("") // TODO: Extract from response if available
 
-	tflog.Info(ctx, "Updated database workspace", map[string]interface{}{
+	// Log certificate association changes if updated
+	logFields := map[string]interface{}{
 		"id": state.ID.ValueString(),
-	})
+	}
+
+	// Track certificate changes (added, updated, or removed)
+	oldCertID := state.CertificateID.ValueString()
+	newCertID := plan.CertificateID.ValueString()
+
+	if oldCertID != newCertID {
+		if newCertID != "" {
+			logFields["certificate_id"] = newCertID
+			if oldCertID != "" {
+				logFields["old_certificate_id"] = oldCertID
+				tflog.Info(ctx, "Database workspace certificate updated", logFields)
+			} else {
+				tflog.Info(ctx, "Database workspace associated with certificate", logFields)
+			}
+		} else {
+			logFields["old_certificate_id"] = oldCertID
+			tflog.Info(ctx, "Certificate removed from database workspace", logFields)
+		}
+	} else {
+		tflog.Info(ctx, "Updated database workspace", logFields)
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

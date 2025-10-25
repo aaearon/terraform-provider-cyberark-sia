@@ -96,7 +96,13 @@ func classifyError(err error) ErrorCategory {
 	}
 
 	// Conflict/duplicate (409 Conflict)
-	if strings.Contains(errorMsg, "already exists") ||
+	// Certificate-specific patterns (check before generic patterns)
+	if strings.Contains(errorMsg, "certificate_in_use") ||
+		strings.Contains(errorMsg, "certificate in use") ||
+		strings.Contains(errorMsg, "certificate is currently in use") ||
+		strings.Contains(errorMsg, "duplicate_name") ||
+		strings.Contains(errorMsg, "duplicate name") ||
+		strings.Contains(errorMsg, "already exists") ||
 		strings.Contains(errorMsg, "duplicate") ||
 		strings.Contains(errorMsg, "409") ||
 		strings.Contains(errorMsg, "conflict") {
@@ -264,4 +270,76 @@ func MapError(err error, operation string) diag.Diagnostic {
 				"If this error persists, please report it with the full error message above.", errorMsg),
 		)
 	}
+}
+
+// MapCertificateError converts certificate-specific errors to Terraform diagnostics.
+// Extends MapError with certificate-specific error handling patterns.
+//
+// Certificate-Specific Errors:
+//   - CERTIFICATE_IN_USE: Certificate cannot be deleted (database workspaces reference it)
+//   - DUPLICATE_NAME: Certificate name already exists
+//   - INVALID_CERTIFICATE: PEM/DER validation failed server-side
+//
+// Parameters:
+//   - err: Error from certificate API call
+//   - operation: Operation name for context (e.g., "Create Certificate")
+//
+// Returns:
+//   - diag.Diagnostic: Actionable error message for Terraform
+func MapCertificateError(err error, operation string) diag.Diagnostic {
+	if err == nil {
+		return diag.NewErrorDiagnostic("", "")
+	}
+
+	errorMsg := err.Error()
+	errorLower := strings.ToLower(errorMsg)
+
+	// Certificate-specific error patterns (check before generic MapError)
+
+	// CERTIFICATE_IN_USE: Cannot delete certificate referenced by database workspaces
+	if strings.Contains(errorLower, "certificate_in_use") ||
+		strings.Contains(errorLower, "certificate in use") ||
+		strings.Contains(errorLower, "certificate is currently in use") {
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("Certificate In Use - %s", operation),
+			fmt.Sprintf("Cannot delete certificate: currently in use by database workspaces.\n\n"+
+				"Error: %s\n\n"+
+				"Recommended actions:\n"+
+				"1. Identify database workspaces referencing this certificate\n"+
+				"2. Update those workspaces to remove certificate_id reference\n"+
+				"3. Then retry certificate deletion", errorMsg),
+		)
+	}
+
+	// DUPLICATE_NAME: Certificate name already exists
+	if strings.Contains(errorLower, "duplicate_name") ||
+		strings.Contains(errorLower, "duplicate name") ||
+		(strings.Contains(errorLower, "certificate") && strings.Contains(errorLower, "already exists")) {
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("Duplicate Certificate Name - %s", operation),
+			fmt.Sprintf("A certificate with this name already exists.\n\n"+
+				"Error: %s\n\n"+
+				"Recommended actions:\n"+
+				"1. Use 'terraform import' to manage the existing certificate\n"+
+				"2. Or choose a different cert_name value", errorMsg),
+		)
+	}
+
+	// INVALID_CERTIFICATE: Server-side certificate validation failed
+	if strings.Contains(errorLower, "invalid certificate") ||
+		strings.Contains(errorLower, "invalid cert") ||
+		strings.Contains(errorLower, "malformed certificate") {
+		return diag.NewErrorDiagnostic(
+			fmt.Sprintf("Invalid Certificate - %s", operation),
+			fmt.Sprintf("Certificate validation failed.\n\n"+
+				"Error: %s\n\n"+
+				"Recommended actions:\n"+
+				"1. Verify cert_body contains valid PEM or DER encoded certificate\n"+
+				"2. Ensure certificate does not contain private key material\n"+
+				"3. Check certificate is not expired or corrupted", errorMsg),
+		)
+	}
+
+	// Fallback to generic error mapping
+	return MapError(err, operation)
 }

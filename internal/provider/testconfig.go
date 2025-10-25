@@ -7,25 +7,22 @@ const (
 	// TF_ACC must be set to "1" to enable acceptance tests
 	EnvTFAcc = "TF_ACC"
 
-	// CYBERARK_CLIENT_ID is the ISPSS service account client ID
-	EnvClientID = "CYBERARK_CLIENT_ID"
+	// CYBERARK_USERNAME is the service account username in full format
+	// Example: my-service-account@cyberark.cloud.12345
+	EnvUsername = "CYBERARK_USERNAME"
 
-	// CYBERARK_CLIENT_SECRET is the ISPSS service account client secret
+	// CYBERARK_CLIENT_SECRET is the service account password/secret
 	EnvClientSecret = "CYBERARK_CLIENT_SECRET"
 
-	// CYBERARK_IDENTITY_URL is the CyberArk Identity tenant URL
+	// CYBERARK_IDENTITY_URL is the CyberArk Identity tenant URL (optional)
 	// Example: https://example.cyberark.cloud
+	// If not provided, automatically resolved from username by ARK SDK
 	EnvIdentityURL = "CYBERARK_IDENTITY_URL"
-
-	// CYBERARK_TENANT_SUBDOMAIN is the CyberArk Identity tenant subdomain
-	// Example: example (from example.cyberark.cloud)
-	EnvTenantSubdomain = "CYBERARK_TENANT_SUBDOMAIN"
 )
 
 // TestAccPreCheckVars lists the required environment variables for acceptance tests
 var TestAccPreCheckVars = []string{
-	EnvClientID,
+	EnvUsername,
 	EnvClientSecret,
-	EnvIdentityURL,
-	EnvTenantSubdomain,
+	// EnvIdentityURL is optional - omitted from required list
 }
