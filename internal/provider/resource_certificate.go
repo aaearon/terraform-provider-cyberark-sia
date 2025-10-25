@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -262,6 +263,121 @@ func (r *CertificateResource) Configure(ctx context.Context, req resource.Config
 	r.providerData = providerData
 }
 
+// mapCertificateToState maps a certificate API response to a Terraform state model
+// Centralizes the mapping logic used in both Create and Read operations
+func mapCertificateToState(ctx context.Context, cert *client.Certificate, model *CertificateModel, resp interface{}) {
+	// resp can be either *resource.CreateResponse or *resource.ReadResponse
+	// Extract the Diagnostics field using type assertion
+	var diags *diag.Diagnostics
+	switch r := resp.(type) {
+	case *resource.CreateResponse:
+		diags = &r.Diagnostics
+	case *resource.ReadResponse:
+		diags = &r.Diagnostics
+	default:
+		// Should never happen
+		return
+	}
+
+	// Map computed IDs and metadata
+	model.ID = types.StringValue(cert.CertificateID)
+	model.CertificateID = types.StringValue(cert.CertificateID)
+	model.TenantID = types.StringValue(cert.TenantID)
+	model.ExpirationDate = types.StringValue(cert.ExpirationDate)
+
+	// Map input fields (returned by GET)
+	if cert.CertName != "" {
+		model.CertName = types.StringValue(cert.CertName)
+	} else {
+		model.CertName = types.StringNull()
+	}
+	if cert.CertDescription != "" {
+		model.CertDescription = types.StringValue(cert.CertDescription)
+	} else {
+		model.CertDescription = types.StringNull()
+	}
+	if cert.DomainName != "" {
+		model.DomainName = types.StringValue(cert.DomainName)
+	} else {
+		model.DomainName = types.StringNull()
+	}
+
+	// cert_body is returned by GET - store in state if present
+	if cert.CertBody != "" {
+		model.CertBody = types.StringValue(cert.CertBody)
+	}
+
+	// Map labels if present
+	if cert.Labels != nil && len(cert.Labels) > 0 {
+		labelsMap, labelDiags := types.MapValueFrom(ctx, types.StringType, cert.Labels)
+		diags.Append(labelDiags...)
+		if !diags.HasError() {
+			model.Labels = labelsMap
+		}
+	} else {
+		model.Labels = types.MapNull(types.StringType)
+	}
+
+	// Map computed fields
+	if cert.Checksum != "" {
+		model.Checksum = types.StringValue(cert.Checksum)
+	}
+	model.Version = types.Int64Value(int64(cert.Version))
+	if cert.CreatedBy != "" {
+		model.CreatedBy = types.StringValue(cert.CreatedBy)
+	}
+
+	// LastUpdatedBy is a pointer - properly handle JSON null vs absent vs empty
+	if cert.LastUpdatedBy != nil && *cert.LastUpdatedBy != "" {
+		model.LastUpdatedBy = types.StringValue(*cert.LastUpdatedBy)
+	} else {
+		model.LastUpdatedBy = types.StringNull()
+	}
+
+	if cert.UpdatedTime != "" {
+		model.UpdatedTime = types.StringValue(cert.UpdatedTime)
+	}
+
+	// Map metadata object if present
+	if cert.Metadata != nil {
+		// Convert SANs to types.List
+		var sansList types.List
+		if cert.Metadata.SubjectAlternativeName != nil {
+			sansListVal, sansDiags := types.ListValueFrom(ctx, types.StringType, cert.Metadata.SubjectAlternativeName)
+			diags.Append(sansDiags...)
+			if !diags.HasError() {
+				sansList = sansListVal
+			}
+		} else {
+			sansList = types.ListNull(types.StringType)
+		}
+
+		// Build metadata object
+		metadataModel := CertificateMetadataModel{
+			Issuer:                 types.StringValue(cert.Metadata.Issuer),
+			Subject:                types.StringValue(cert.Metadata.Subject),
+			ValidFrom:              types.StringValue(cert.Metadata.ValidFrom),
+			ValidTo:                types.StringValue(cert.Metadata.ValidTo),
+			SerialNumber:           types.StringValue(cert.Metadata.SerialNumber),
+			SubjectAlternativeName: sansList,
+		}
+
+		// Convert to types.Object
+		metadataObj, metaDiags := types.ObjectValueFrom(ctx, map[string]attr.Type{
+			"issuer":                   types.StringType,
+			"subject":                  types.StringType,
+			"valid_from":               types.StringType,
+			"valid_to":                 types.StringType,
+			"serial_number":            types.StringType,
+			"subject_alternative_name": types.ListType{ElemType: types.StringType},
+		}, metadataModel)
+		diags.Append(metaDiags...)
+		if !diags.HasError() {
+			model.Metadata = metadataObj
+		}
+	}
+}
+
 // Create creates the certificate resource and sets the initial Terraform state
 func (r *CertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan CertificateModel
@@ -345,82 +461,10 @@ func (r *CertificateResource) Create(ctx context.Context, req resource.CreateReq
 		"last_updated_nil": fullCertificate.LastUpdatedBy == nil,
 	})
 
-	// Map GET response (14 fields) to Terraform state
-	plan.ID = types.StringValue(fullCertificate.CertificateID)
-	plan.CertificateID = types.StringValue(fullCertificate.CertificateID)
-	plan.TenantID = types.StringValue(fullCertificate.TenantID)
-	plan.ExpirationDate = types.StringValue(fullCertificate.ExpirationDate)
-
-	// Map input fields (returned by GET)
-	if fullCertificate.CertName != "" {
-		plan.CertName = types.StringValue(fullCertificate.CertName)
-	}
-	if fullCertificate.CertDescription != "" {
-		plan.CertDescription = types.StringValue(fullCertificate.CertDescription)
-	}
-	if fullCertificate.DomainName != "" {
-		plan.DomainName = types.StringValue(fullCertificate.DomainName)
-	}
-
-	// Map labels if present
-	if fullCertificate.Labels != nil && len(fullCertificate.Labels) > 0 {
-		labelsMap, diags := types.MapValueFrom(ctx, types.StringType, fullCertificate.Labels)
-		resp.Diagnostics.Append(diags...)
-		if !resp.Diagnostics.HasError() {
-			plan.Labels = labelsMap
-		}
-	}
-
-	// Map computed fields (returned by GET, not CREATE)
-	if fullCertificate.Checksum != "" {
-		plan.Checksum = types.StringValue(fullCertificate.Checksum)
-	}
-	plan.Version = types.Int64Value(int64(fullCertificate.Version))
-	if fullCertificate.CreatedBy != "" {
-		plan.CreatedBy = types.StringValue(fullCertificate.CreatedBy)
-	}
-	// LastUpdatedBy is a pointer - properly handle JSON null vs absent vs empty
-	if fullCertificate.LastUpdatedBy != nil && *fullCertificate.LastUpdatedBy != "" {
-		plan.LastUpdatedBy = types.StringValue(*fullCertificate.LastUpdatedBy)
-	} else {
-		plan.LastUpdatedBy = types.StringNull()
-	}
-	if fullCertificate.UpdatedTime != "" {
-		plan.UpdatedTime = types.StringValue(fullCertificate.UpdatedTime)
-	}
-
-	// Map metadata object if present
-	if fullCertificate.Metadata != nil {
-		// Convert SANs to types.List
-		sansList, diags := types.ListValueFrom(ctx, types.StringType, fullCertificate.Metadata.SubjectAlternativeName)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		// Build metadata object
-		metadataModel := CertificateMetadataModel{
-			Issuer:                 types.StringValue(fullCertificate.Metadata.Issuer),
-			Subject:                types.StringValue(fullCertificate.Metadata.Subject),
-			ValidFrom:              types.StringValue(fullCertificate.Metadata.ValidFrom),
-			ValidTo:                types.StringValue(fullCertificate.Metadata.ValidTo),
-			SerialNumber:           types.StringValue(fullCertificate.Metadata.SerialNumber),
-			SubjectAlternativeName: sansList,
-		}
-
-		// Convert to types.Object
-		metadataObj, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
-			"issuer":                   types.StringType,
-			"subject":                  types.StringType,
-			"valid_from":               types.StringType,
-			"valid_to":                 types.StringType,
-			"serial_number":            types.StringType,
-			"subject_alternative_name": types.ListType{ElemType: types.StringType},
-		}, metadataModel)
-		resp.Diagnostics.Append(diags...)
-		if !resp.Diagnostics.HasError() {
-			plan.Metadata = metadataObj
-		}
+	// Map GET response (14 fields) to Terraform state using helper
+	mapCertificateToState(ctx, fullCertificate, &plan, resp)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// CertBody must persist in state (already in plan, UseStateForUnknown ensures it stays)
@@ -469,107 +513,14 @@ func (r *CertificateResource) Read(ctx context.Context, req resource.ReadRequest
 		"version":        certificate.Version,
 	})
 
-	// Map GET response (14 fields) to Terraform state
-	state.ID = types.StringValue(certificate.CertificateID)
-	state.CertificateID = types.StringValue(certificate.CertificateID)
-	state.TenantID = types.StringValue(certificate.TenantID)
-
-	// Map input fields (returned by GET)
-	if certificate.CertName != "" {
-		state.CertName = types.StringValue(certificate.CertName)
-	} else {
-		state.CertName = types.StringNull()
-	}
-	if certificate.CertDescription != "" {
-		state.CertDescription = types.StringValue(certificate.CertDescription)
-	} else {
-		state.CertDescription = types.StringNull()
-	}
-	if certificate.DomainName != "" {
-		state.DomainName = types.StringValue(certificate.DomainName)
-	} else {
-		state.DomainName = types.StringNull()
-	}
-
-	// cert_body IS returned by GET (Issue #4 confirmed) - store in state
-	if certificate.CertBody != "" {
-		state.CertBody = types.StringValue(certificate.CertBody)
+	// Map GET response (14 fields) to Terraform state using helper
+	mapCertificateToState(ctx, certificate, &state, resp)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// cert_password is write-only, keep existing state value
 	// (UseStateForUnknown plan modifier ensures it persists)
-
-	// Map labels
-	if certificate.Labels != nil && len(certificate.Labels) > 0 {
-		labelsMap, diags := types.MapValueFrom(ctx, types.StringType, certificate.Labels)
-		resp.Diagnostics.Append(diags...)
-		if !resp.Diagnostics.HasError() {
-			state.Labels = labelsMap
-		}
-	} else {
-		state.Labels = types.MapNull(types.StringType)
-	}
-
-	// Map computed attributes
-	state.ExpirationDate = types.StringValue(certificate.ExpirationDate)
-	state.Checksum = types.StringValue(certificate.Checksum)
-	state.Version = types.Int64Value(int64(certificate.Version))
-	state.CreatedBy = types.StringValue(certificate.CreatedBy)
-
-	// LastUpdatedBy is a pointer - properly handle JSON null vs absent vs empty
-	if certificate.LastUpdatedBy != nil && *certificate.LastUpdatedBy != "" {
-		state.LastUpdatedBy = types.StringValue(*certificate.LastUpdatedBy)
-	} else {
-		state.LastUpdatedBy = types.StringNull()
-	}
-
-	state.UpdatedTime = types.StringValue(certificate.UpdatedTime)
-
-	// Map nested metadata block
-	if certificate.Metadata != nil {
-		metadataModel := CertificateMetadataModel{
-			Issuer:       types.StringValue(certificate.Metadata.Issuer),
-			Subject:      types.StringValue(certificate.Metadata.Subject),
-			ValidFrom:    types.StringValue(certificate.Metadata.ValidFrom),
-			ValidTo:      types.StringValue(certificate.Metadata.ValidTo),
-			SerialNumber: types.StringValue(certificate.Metadata.SerialNumber),
-		}
-
-		// Map SANs (array)
-		if certificate.Metadata.SubjectAlternativeName != nil {
-			sansList, diags := types.ListValueFrom(ctx, types.StringType, certificate.Metadata.SubjectAlternativeName)
-			resp.Diagnostics.Append(diags...)
-			if !resp.Diagnostics.HasError() {
-				metadataModel.SubjectAlternativeName = sansList
-			}
-		} else {
-			// Empty array
-			metadataModel.SubjectAlternativeName = types.ListNull(types.StringType)
-		}
-
-		// Convert metadata model to types.Object
-		metadataAttrTypes := map[string]attr.Type{
-			"issuer":                   types.StringType,
-			"subject":                  types.StringType,
-			"valid_from":               types.StringType,
-			"valid_to":                 types.StringType,
-			"serial_number":            types.StringType,
-			"subject_alternative_name": types.ListType{ElemType: types.StringType},
-		}
-		metadataValues := map[string]attr.Value{
-			"issuer":                   metadataModel.Issuer,
-			"subject":                  metadataModel.Subject,
-			"valid_from":               metadataModel.ValidFrom,
-			"valid_to":                 metadataModel.ValidTo,
-			"serial_number":            metadataModel.SerialNumber,
-			"subject_alternative_name": metadataModel.SubjectAlternativeName,
-		}
-		metadataObj, diags := types.ObjectValue(metadataAttrTypes, metadataValues)
-		resp.Diagnostics.Append(diags...)
-		if !resp.Diagnostics.HasError() {
-			state.Metadata = metadataObj
-		}
-	}
 
 	// Drift detection: Log if version/checksum/updated_time changed
 	tflog.Debug(ctx, "Drift detection", map[string]interface{}{

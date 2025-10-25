@@ -2,6 +2,7 @@
 package provider
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -64,9 +65,10 @@ func TestAccCertificate_deleteInUse(t *testing.T) {
 			},
 			// Attempt to delete only certificate (should fail with 409)
 			{
-				Config:      testAccCertificateConfig_deleteCertificateOnly("test-db-workspace"),
-				ExpectError: nil, // TODO: Add regex pattern to match "certificate is currently in use" error
-				// TODO: Verify error message lists the dependent database workspace
+				Config: testAccCertificateConfig_deleteCertificateOnly("test-db-workspace"),
+				// SIA API returns 409 Conflict when attempting to delete a certificate in use
+				// Error message should indicate the certificate is associated with database workspace(s)
+				ExpectError: regexp.MustCompile(`(?i)(certificate.*in use|cannot delete.*certificate|409|conflict)`),
 			},
 		},
 	})

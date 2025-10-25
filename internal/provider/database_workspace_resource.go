@@ -13,6 +13,7 @@ import (
 	dbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/sia/workspaces/db/models"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -248,6 +249,49 @@ func (r *databaseWorkspaceResource) Configure(ctx context.Context, req resource.
 	r.providerData = providerData
 }
 
+// handleCertificateError checks if an error is certificate-related and adds an actionable error diagnostic
+// Returns true if a certificate error was detected and handled, false otherwise
+func handleCertificateError(certificateID types.String, err error, resp interface{}) bool {
+	// Only check if certificate ID is provided
+	if certificateID.IsNull() {
+		return false
+	}
+
+	// Extract diagnostics from response (works for both Create and Update)
+	var diags *diag.Diagnostics
+	switch r := resp.(type) {
+	case *resource.CreateResponse:
+		diags = &r.Diagnostics
+	case *resource.UpdateResponse:
+		diags = &r.Diagnostics
+	default:
+		return false
+	}
+
+	// Check for certificate-related error messages
+	errMsg := strings.ToLower(err.Error())
+	if strings.Contains(errMsg, "certificate") &&
+		(strings.Contains(errMsg, "not found") ||
+			strings.Contains(errMsg, "does not exist") ||
+			strings.Contains(errMsg, "invalid")) {
+		diags.AddError(
+			"Certificate Not Found",
+			fmt.Sprintf(
+				"The specified certificate (ID: %s) does not exist or is invalid.\n\n"+
+					"Ensure the certificate exists before associating it with this database workspace.\n"+
+					"You can verify the certificate exists with:\n"+
+					"  terraform state show cyberark_sia_certificate.<name>\n\n"+
+					"Original error: %s",
+				certificateID.ValueString(),
+				err.Error(),
+			),
+		)
+		return true
+	}
+
+	return false
+}
+
 // Create creates the resource and sets the initial Terraform state
 func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Check if provider is configured
@@ -330,24 +374,7 @@ func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.Cre
 		})
 
 		// Check for certificate-related errors and provide actionable guidance
-		errMsg := strings.ToLower(err.Error())
-		if !plan.CertificateID.IsNull() &&
-			(strings.Contains(errMsg, "certificate") &&
-				(strings.Contains(errMsg, "not found") ||
-					strings.Contains(errMsg, "does not exist") ||
-					strings.Contains(errMsg, "invalid"))) {
-			resp.Diagnostics.AddError(
-				"Certificate Not Found",
-				fmt.Sprintf(
-					"The specified certificate (ID: %s) does not exist or is invalid.\n\n"+
-						"Ensure the certificate exists before associating it with this database workspace.\n"+
-						"You can verify the certificate exists with:\n"+
-						"  terraform state show cyberark_sia_certificate.<name>\n\n"+
-						"Original error: %s",
-					plan.CertificateID.ValueString(),
-					err.Error(),
-				),
-			)
+		if handleCertificateError(plan.CertificateID, err, resp) {
 			return
 		}
 
@@ -358,7 +385,9 @@ func (r *databaseWorkspaceResource) Create(ctx context.Context, req resource.Cre
 	// Map response to state
 	plan.ID = types.StringValue(strconv.Itoa(database.ID))
 	plan.DatabaseType = types.StringValue(database.ProviderDetails.Engine)
-	plan.LastModified = types.StringValue("") // TODO: Extract from response if available
+	// Note: ARK SDK v1.5.0 ArkSIADBDatabase model does not expose last_modified field
+	// The API may track modification time internally, but it's not returned in the response
+	plan.LastModified = types.StringValue("")
 
 	// Log certificate association if configured
 	logFields := map[string]interface{}{
@@ -574,24 +603,7 @@ func (r *databaseWorkspaceResource) Update(ctx context.Context, req resource.Upd
 		})
 
 		// Check for certificate-related errors and provide actionable guidance
-		errMsg := strings.ToLower(err.Error())
-		if !plan.CertificateID.IsNull() &&
-			(strings.Contains(errMsg, "certificate") &&
-				(strings.Contains(errMsg, "not found") ||
-					strings.Contains(errMsg, "does not exist") ||
-					strings.Contains(errMsg, "invalid"))) {
-			resp.Diagnostics.AddError(
-				"Certificate Not Found",
-				fmt.Sprintf(
-					"The specified certificate (ID: %s) does not exist or is invalid.\n\n"+
-						"Ensure the certificate exists before associating it with this database workspace.\n"+
-						"You can verify the certificate exists with:\n"+
-						"  terraform state show cyberark_sia_certificate.<name>\n\n"+
-						"Original error: %s",
-					plan.CertificateID.ValueString(),
-					err.Error(),
-				),
-			)
+		if handleCertificateError(plan.CertificateID, err, resp) {
 			return
 		}
 
@@ -602,7 +614,9 @@ func (r *databaseWorkspaceResource) Update(ctx context.Context, req resource.Upd
 	// Map response to state
 	plan.ID = types.StringValue(strconv.Itoa(updated.ID))
 	plan.DatabaseType = types.StringValue(updated.ProviderDetails.Engine)
-	plan.LastModified = types.StringValue("") // TODO: Extract from response if available
+	// Note: ARK SDK v1.5.0 ArkSIADBDatabase model does not expose last_modified field
+	// The API may track modification time internally, but it's not returned in the response
+	plan.LastModified = types.StringValue("")
 
 	// Log certificate association changes if updated
 	logFields := map[string]interface{}{

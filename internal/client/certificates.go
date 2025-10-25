@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -335,12 +334,6 @@ func (c *CertificatesClient) CreateCertificate(ctx context.Context, req *Certifi
 		return nil, fmt.Errorf("failed to encode CREATE request: %w", err)
 	}
 
-	// DEBUG: Log request details
-	fmt.Printf("[DEBUG API] Creating certificate...\n")
-	fmt.Printf("[DEBUG API] Endpoint: POST %s\n", certificatesURL)
-	fmt.Printf("[DEBUG API] Request has cert_name: %v\n", req.CertName != "")
-	fmt.Printf("[DEBUG API] Request has cert_body: %v (length: %d)\n", req.CertBody != "", len(req.CertBody))
-
 	// Execute POST request with retry logic
 	var cert Certificate
 	err := RetryWithBackoff(ctx, &RetryConfig{
@@ -349,28 +342,17 @@ func (c *CertificatesClient) CreateCertificate(ctx context.Context, req *Certifi
 		MaxDelay:   MaxDelay,
 	}, func() error {
 		// POST request using SDK client (auto-handles auth headers)
-		fmt.Printf("[DEBUG API] Calling SDK Post() method...\n")
 		response, postErr := c.client.Post(ctx, certificatesURL, requestMap)
 		if postErr != nil {
-			fmt.Printf("[DEBUG API] POST error: %v\n", postErr)
 			return postErr
 		}
 		defer response.Body.Close()
 
-		// Log raw response details to stderr (captured by TF_LOG)
-		fmt.Fprintf(os.Stderr, "[CERTIFICATE API] FULL URL: %s\n", response.Request.URL.String())
-		fmt.Fprintf(os.Stderr, "[CERTIFICATE API] Method: %s\n", response.Request.Method)
-		fmt.Fprintf(os.Stderr, "[CERTIFICATE API] HTTP Status: %d %s\n", response.StatusCode, response.Status)
-
-		// Read response body once for both logging and processing
+		// Read response body for processing
 		bodyBytes, readErr := io.ReadAll(response.Body)
 		if readErr != nil {
-			fmt.Fprintf(os.Stderr, "[CERTIFICATE API] Failed to read response body: %v\n", readErr)
 			return fmt.Errorf("failed to read response body: %w", readErr)
 		}
-		fmt.Fprintf(os.Stderr, "[CERTIFICATE API] Response Body: %s\n", string(bodyBytes))
-
-		fmt.Printf("[DEBUG API] Response status: %d\n", response.StatusCode)
 
 		// Check HTTP status code
 		if response.StatusCode != http.StatusCreated {
@@ -637,15 +619,9 @@ func (c *CertificatesClient) ListCertificates(ctx context.Context) ([]Certificat
 	}
 	defer httpResponse.Body.Close()
 
-	// Log request details
-	fmt.Fprintf(os.Stderr, "[CERTIFICATE API LIST] FULL URL: %s\n", httpResponse.Request.URL.String())
-	fmt.Fprintf(os.Stderr, "[CERTIFICATE API LIST] Method: %s\n", httpResponse.Request.Method)
-	fmt.Fprintf(os.Stderr, "[CERTIFICATE API LIST] HTTP Status: %d %s\n", httpResponse.StatusCode, httpResponse.Status)
-
 	// Check HTTP status code
 	if httpResponse.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(httpResponse.Body)
-		fmt.Fprintf(os.Stderr, "[CERTIFICATE API LIST] Response Body: %s\n", string(bodyBytes))
 		return nil, fmt.Errorf("failed to list certificates - [%d] - [%s]",
 			httpResponse.StatusCode, string(bodyBytes))
 	}

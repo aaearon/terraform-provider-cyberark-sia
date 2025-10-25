@@ -64,12 +64,5 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
-	// DEBUG: Log authentication success
-	fmt.Printf("========================================\n")
-	fmt.Printf("[DEBUG AUTH] ✅ Authentication SUCCESSFUL!\n")
-	fmt.Printf("[DEBUG AUTH] Username: %s\n", config.Username)
-	fmt.Printf("[DEBUG AUTH] ISPAuth object created\n")
-	fmt.Printf("========================================\n")
-
 	return ispAuth.(*auth.ArkISPAuth), nil
 }

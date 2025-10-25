@@ -260,7 +260,9 @@ func (r *secretResource) Create(ctx context.Context, req resource.CreateRequest,
 		addSecretReq.SecretType = "iam_user"
 		addSecretReq.IAMAccessKeyID = plan.AWSAccessKeyID.ValueString()
 		addSecretReq.IAMSecretAccessKey = plan.AWSSecretAccessKey.ValueString()
-		// TODO: Verify if IAMAccount and IAMUsername are needed from database_target_id
+		// Note: IAMAccount and IAMUsername are optional fields in ARK SDK v1.5.0
+		// They may be derived automatically from the database_workspace_id if not provided
+		// The SDK associates the secret with the database workspace, which determines the account context
 
 	default:
 		resp.Diagnostics.AddError(
