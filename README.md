@@ -35,6 +35,25 @@ make install
 
 This installs the provider to `~/.terraform.d/plugins/` for local testing.
 
+## Authentication
+
+This provider uses **OAuth2 Client Credentials Grant** to authenticate with the CyberArk Identity platform. The provider obtains an OAuth2 access token using service account credentials and uses it for all API requests.
+
+**Service Account Setup:**
+1. Create a service account in CyberArk Identity with SIA permissions
+2. Generate OAuth2 client credentials (username and client_secret)
+3. Configure the provider with these credentials
+
+**Authentication Flow:**
+1. Provider authenticates to `https://{tenant_id}.id.cyberark.cloud/oauth2/platformtoken`
+2. Obtains an OAuth2 access token (valid for 1 hour)
+3. Uses the access token for all SIA API requests
+
+**Security Notes:**
+- Access tokens expire after 3600 seconds (1 hour)
+- The provider handles token refresh automatically
+- Never commit client_secret to version control - use environment variables or secure variable storage
+
 ## Quick Start
 
 ```hcl
@@ -48,8 +67,8 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = "service-account@cyberark.cloud.1234"
-  client_secret = var.client_secret
+  username      = "service-account@cyberark.cloud.1234"  # OAuth2 client username
+  client_secret = var.client_secret                     # OAuth2 client secret
 }
 
 # Create a TLS certificate
@@ -121,23 +140,6 @@ Manages database workspace configurations for secure access.
 
 See [examples/resources/database_workspace/](examples/resources/database_workspace/) for usage examples.
 
-## Known Limitations
-
-### `last_updated_by` Field Warning
-
-The `last_updated_by` computed field on certificate resources may show a Terraform warning during apply operations:
-
-```
-Warning: Provider returned invalid result object after apply
-After the apply operation, the provider still indicated an unknown value for cyberarksia_certificate.*.last_updated_by
-```
-
-**Impact**: This is a cosmetic warning that does not prevent resource creation or other CRUD operations. The field is correctly set to `null` for newly created certificates and populated after update operations.
-
-**Root Cause**: Terraform Plugin Framework limitation in handling nullable computed fields during plan/apply cycle.
-
-**Workaround**: None required - all operations function correctly despite the warning.
-
 ## Development
 
 ### Building
@@ -188,7 +190,7 @@ Contributions are welcome! Please:
 
 Built using:
 - [HashiCorp Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework)
-- [CyberArk ARK SDK for Go](https://github.com/cyberark/ark-sdk-golang)
+- Custom OAuth2 implementation for CyberArk Identity authentication
 
 ## Support
 

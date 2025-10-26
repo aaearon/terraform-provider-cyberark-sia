@@ -112,13 +112,6 @@ type Certificate struct {
 
 	// Computed Attributes (API-generated)
 	ExpirationDate string `json:"expiration_date" mapstructure:"expiration_date"` // ISO 8601 timestamp
-	Checksum       string `json:"checksum" mapstructure:"checksum"`               // SHA256 hash of cert_body (64 hex chars)
-	Version        int    `json:"version" mapstructure:"version"`                 // Version number (starts at 1, increments on update)
-
-	// Audit Fields
-	CreatedBy     string  `json:"created_by" mapstructure:"created_by"`           // User email who created
-	LastUpdatedBy *string `json:"last_updated_by" mapstructure:"last_updated_by"` // User email who last updated (null if never) - pointer to distinguish null from empty
-	UpdatedTime   string  `json:"updated_time" mapstructure:"updated_time"`       // Last modification timestamp (ISO 8601)
 
 	// Nested Metadata Block (extracted from certificate X.509 structure)
 	Metadata *CertificateMetadata `json:"metadata" mapstructure:"metadata"`
@@ -142,13 +135,12 @@ type CertificateMetadata struct {
 //   - CertBody: PEM or DER encoded certificate content
 //
 // Optional Fields:
-//   - CertName, CertDescription, CertType, CertPassword, DomainName, Labels
+//   - CertName, CertDescription, CertType, DomainName, Labels
 type CertificateCreateRequest struct {
 	CertName        string            `json:"cert_name,omitempty" mapstructure:"cert_name"`               // Optional, unique if provided
 	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`                         // Required: PEM/DER certificate
 	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"` // Optional description
 	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`               // Optional: "PEM" (default) or "DER"
-	CertPassword    string            `json:"cert_password,omitempty" mapstructure:"cert_password"`       // Optional: Password for encrypted certs (write-only)
 	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`           // Optional domain assignment
 	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`                     // Optional key-value tags
 }
@@ -165,7 +157,6 @@ type CertificateUpdateRequest struct {
 	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`                         // ⚠️ REQUIRED (must come from state)
 	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"` // Optional
 	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`               // Optional
-	CertPassword    string            `json:"cert_password,omitempty" mapstructure:"cert_password"`       // Optional (write-only)
 	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`           // Optional
 	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`                     // Optional
 }

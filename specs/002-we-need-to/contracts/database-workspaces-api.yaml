@@ -1,0 +1,496 @@
+openapi: 3.0.3
+info:
+  title: CyberArk SIA Database Workspaces API
+  description: API contract for managing database workspaces in CyberArk Secure Infrastructure Access
+  version: 1.0.0
+  contact:
+    name: CyberArk SIA Team
+    url: https://docs.cyberark.com
+
+servers:
+  - url: https://{subdomain}.dpa.{platform_domain}
+    description: CyberArk SIA API endpoint
+    variables:
+      subdomain:
+        description: Tenant subdomain (extracted from JWT token)
+        default: example-tenant
+      platform_domain:
+        description: Platform domain (extracted from JWT token)
+        default: cyberark.cloud
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/workspaces/db:
+    post:
+      summary: Create Database Workspace
+      description: Creates a new database workspace configuration
+      operationId: createDatabaseWorkspace
+      tags:
+        - Database Workspaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabaseWorkspaceCreateRequest'
+            example:
+              name: customers-db
+              provider_engine: postgres
+              read_write_endpoint: postgres.example.com
+              port: 5432
+              network_name: ON-PREMISE
+              enable_certificate_validation: true
+              tags:
+                environment: production
+                team: platform
+      responses:
+        '201':
+          description: Database workspace created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseWorkspace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: List Database Workspaces
+      description: Retrieves a list of all database workspaces
+      operationId: listDatabaseWorkspaces
+      tags:
+        - Database Workspaces
+      responses:
+        '200':
+          description: List of database workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DatabaseWorkspace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/workspaces/db/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: Database workspace ID
+        required: true
+        schema:
+          type: string
+          example: "1234567890123456"
+
+    get:
+      summary: Get Database Workspace
+      description: Retrieves details of a specific database workspace
+      operationId: getDatabaseWorkspace
+      tags:
+        - Database Workspaces
+      responses:
+        '200':
+          description: Database workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseWorkspace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update Database Workspace
+      description: Updates an existing database workspace configuration
+      operationId: updateDatabaseWorkspace
+      tags:
+        - Database Workspaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabaseWorkspaceUpdateRequest'
+            example:
+              name: customers-db
+              provider_engine: postgres
+              read_write_endpoint: postgres-updated.example.com
+              port: 5432
+      responses:
+        '200':
+          description: Database workspace updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseWorkspace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete Database Workspace
+      description: Deletes a database workspace
+      operationId: deleteDatabaseWorkspace
+      tags:
+        - Database Workspaces
+      responses:
+        '204':
+          description: Database workspace deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict - workspace is in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: WORKSPACE_IN_USE
+                message: "Cannot delete workspace: referenced by 3 active secrets"
+                details:
+                  - secret_id: "111111"
+                  - secret_id: "222222"
+                  - secret_id: "333333"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: OAuth2 access token obtained from /oauth2/platformtoken
+
+  schemas:
+    DatabaseWorkspaceCreateRequest:
+      type: object
+      required:
+        - name
+        - provider_engine
+      properties:
+        name:
+          type: string
+          description: Database name on server
+          example: customers-db
+        provider_engine:
+          type: string
+          description: Database engine type
+          example: postgres
+          enum: [postgres, mysql, postgres-aws-rds, mysql-aws-rds, mariadb, oracle, mssql, mongodb, snowflake, cassandra, redis, elasticsearch]
+        network_name:
+          type: string
+          description: Network segmentation
+          default: ON-PREMISE
+          example: ON-PREMISE
+        platform:
+          type: string
+          description: Cloud provider
+          default: ON-PREMISE
+          enum: [AWS, AZURE, GCP, ON-PREMISE, ATLAS]
+        auth_database:
+          type: string
+          description: MongoDB authentication database
+          default: admin
+        services:
+          type: array
+          items:
+            type: string
+          description: Oracle/SQL Server services
+        account:
+          type: string
+          description: Snowflake/Atlas account name
+        read_write_endpoint:
+          type: string
+          description: Hostname/IP/FQDN
+          example: postgres.example.com
+        read_only_endpoint:
+          type: string
+          description: Read replica endpoint
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: Database port
+          example: 5432
+        secret_id:
+          type: string
+          description: Secret reference for ZSP/JIT authentication
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key-value metadata
+        configured_auth_method_type:
+          type: string
+          description: Authentication method
+          enum: [ad_ephemeral_user, local_ephemeral_user, rds_iam_authentication, atlas_ephemeral_user]
+        region:
+          type: string
+          description: AWS region (required for RDS IAM authentication)
+        enable_certificate_validation:
+          type: boolean
+          description: Enforce TLS certificate validation
+          default: true
+        certificate:
+          type: string
+          description: TLS/mTLS certificate ID
+        domain:
+          type: string
+          description: Active Directory domain
+        domain_controller_name:
+          type: string
+          description: AD domain controller name
+        domain_controller_netbios:
+          type: string
+          description: AD domain controller NetBIOS name
+        domain_controller_use_ldaps:
+          type: boolean
+          description: Use LDAPS
+          default: false
+        domain_controller_enable_certificate_validation:
+          type: boolean
+          description: Enforce DC certificate validation
+          default: true
+        domain_controller_ldaps_certificate:
+          type: string
+          description: Certificate ID for DC TLS
+
+    DatabaseWorkspaceUpdateRequest:
+      type: object
+      description: Same as create request, but all fields optional (partial updates supported)
+      properties:
+        name:
+          type: string
+        provider_engine:
+          type: string
+        network_name:
+          type: string
+        platform:
+          type: string
+        auth_database:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        account:
+          type: string
+        read_write_endpoint:
+          type: string
+        read_only_endpoint:
+          type: string
+        port:
+          type: integer
+        secret_id:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        configured_auth_method_type:
+          type: string
+        region:
+          type: string
+        enable_certificate_validation:
+          type: boolean
+        certificate:
+          type: string
+        domain:
+          type: string
+        domain_controller_name:
+          type: string
+        domain_controller_netbios:
+          type: string
+        domain_controller_use_ldaps:
+          type: boolean
+        domain_controller_enable_certificate_validation:
+          type: boolean
+        domain_controller_ldaps_certificate:
+          type: string
+
+    DatabaseWorkspace:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Workspace ID (server-generated)
+          example: "1234567890123456"
+        tenant_id:
+          type: string
+          description: CyberArk tenant ID
+        name:
+          type: string
+          description: Database name
+        provider_engine:
+          type: string
+          description: Database engine type
+        network_name:
+          type: string
+        platform:
+          type: string
+        auth_database:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        account:
+          type: string
+        read_write_endpoint:
+          type: string
+        read_only_endpoint:
+          type: string
+        port:
+          type: integer
+        secret_id:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        configured_auth_method_type:
+          type: string
+        region:
+          type: string
+        enable_certificate_validation:
+          type: boolean
+        certificate:
+          type: string
+        domain:
+          type: string
+        domain_controller_name:
+          type: string
+        domain_controller_netbios:
+          type: string
+        domain_controller_use_ldaps:
+          type: boolean
+        domain_controller_enable_certificate_validation:
+          type: boolean
+        domain_controller_ldaps_certificate:
+          type: string
+        created_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+        modified_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad Request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: INVALID_INPUT
+            message: "Validation failed: provider_engine is required"
+
+    Unauthorized:
+      description: Unauthorized - Invalid or expired access token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: UNAUTHORIZED
+            message: "Access token is invalid or expired"
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: FORBIDDEN
+            message: "Service account does not have DpaAdmin role"
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: NOT_FOUND
+            message: "Database workspace not found"
+
+    Conflict:
+      description: Conflict - Resource already exists or constraint violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: ALREADY_EXISTS
+            message: "Database workspace with name 'customers-db' already exists"
+
+    RateLimited:
+      description: Too Many Requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: RATE_LIMIT_EXCEEDED
+            message: "Rate limit exceeded. Retry after 60 seconds."
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: INTERNAL_ERROR
+            message: "An internal server error occurred"

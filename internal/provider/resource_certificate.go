@@ -35,7 +35,7 @@ func NewCertificateResource() resource.Resource {
 // CertificateResource defines the resource implementation
 type CertificateResource struct {
 	providerData    *ProviderData
-	certificatesAPI *client.CertificatesClient
+	certificatesAPI *client.CertificatesClientOAuth2
 }
 
 // CertificateModel describes the resource data model
@@ -47,21 +47,15 @@ type CertificateModel struct {
 
 	// Input Attributes
 	CertName        types.String `tfsdk:"cert_name"`        // Certificate name (optional, unique)
-	CertBody        types.String `tfsdk:"cert_body"`        // PEM/DER certificate content (SENSITIVE, must persist!)
+	CertBody        types.String `tfsdk:"cert_body"`        // PEM/DER certificate content (must persist!)
 	CertDescription types.String `tfsdk:"cert_description"` // Human-readable description
 	CertType        types.String `tfsdk:"cert_type"`        // "PEM" or "DER"
-	CertPassword    types.String `tfsdk:"cert_password"`    // Password for encrypted certs (SENSITIVE, must persist!)
 	DomainName      types.String `tfsdk:"domain_name"`      // Logical domain assignment
 	Labels          types.Map    `tfsdk:"labels"`           // Key-value metadata
 
 	// Computed Attributes
 	ExpirationDate types.String `tfsdk:"expiration_date"` // Certificate expiration (ISO 8601)
-	Checksum       types.String `tfsdk:"checksum"`        // SHA256 hash of cert_body
-	Version        types.Int64  `tfsdk:"version"`         // Version number (increments on update)
 	TenantID       types.String `tfsdk:"tenant_id"`       // Internal tenant identifier
-	CreatedBy      types.String `tfsdk:"created_by"`      // User who created certificate
-	LastUpdatedBy  types.String `tfsdk:"last_updated_by"` // User who last updated
-	UpdatedTime    types.String `tfsdk:"updated_time"`    // Last modification timestamp
 
 	// Nested Metadata Block
 	Metadata types.Object `tfsdk:"metadata"` // Certificate metadata (issuer, subject, etc.)
@@ -116,10 +110,9 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 			},
 			"cert_body": schema.StringAttribute{
 				Description: "PEM or DER encoded certificate content. " +
-					"Must be a valid X.509 certificate without private key material. " +
-					"CRITICAL: This attribute is sensitive and must persist in state for updates.",
-				Required:  true,
-				Sensitive: true,
+					"Must be a valid X.509 certificate without private key material (public certificate only). " +
+					"CRITICAL: This attribute must persist in state as it's required for all update operations.",
+				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(), // CRITICAL: Persist for updates!
 				},
@@ -137,15 +130,6 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("PEM", "DER"),
-				},
-			},
-			"cert_password": schema.StringAttribute{
-				Description: "Password for encrypted/password-protected certificates. " +
-					"Write-only field that must persist in state for updates.",
-				Optional:  true,
-				Sensitive: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(), // CRITICAL: Persist for updates!
 				},
 			},
 			"domain_name": schema.StringAttribute{
@@ -168,34 +152,9 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 				Description: "Certificate expiration date in ISO 8601 format.",
 				Computed:    true,
 			},
-			"checksum": schema.StringAttribute{
-				Description: "SHA256 hash of cert_body (64 hexadecimal characters). " +
-					"Used for drift detection.",
-				Computed: true,
-			},
-			"version": schema.Int64Attribute{
-				Description: "Certificate version number. Starts at 1 and increments on each update. " +
-					"Used for drift detection.",
-				Computed: true,
-			},
 			"tenant_id": schema.StringAttribute{
 				Description: "Internal tenant identifier. Read-only.",
 				Computed:    true,
-			},
-			"created_by": schema.StringAttribute{
-				Description: "Email address of the user who created the certificate.",
-				Computed:    true,
-			},
-			"last_updated_by": schema.StringAttribute{
-				Description: "Email address of the user who last updated the certificate. " +
-					"Null if the certificate has never been updated. This field is managed by the API and cannot be set by users.",
-				Optional: true,
-				Computed: true,
-			},
-			"updated_time": schema.StringAttribute{
-				Description: "Last modification timestamp in ISO 8601 format. " +
-					"Used for drift detection.",
-				Computed: true,
 			},
 
 			// Nested Metadata Block
@@ -249,17 +208,17 @@ func (r *CertificateResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	// Initialize certificates client
-	certsClient, err := client.NewCertificatesClient(providerData.ISPAuth)
-	if err != nil {
+	// Use OAuth2-based certificates client from provider
+	// This client uses access tokens directly (not ID tokens) to avoid 401 errors
+	if providerData.CertificatesClient == nil {
 		resp.Diagnostics.AddError(
-			"Failed to Initialize Certificates Client",
-			fmt.Sprintf("Unable to create certificates client: %s", err.Error()),
+			"Certificates Client Not Initialized",
+			"The certificates client was not properly initialized in the provider. Please report this issue.",
 		)
 		return
 	}
 
-	r.certificatesAPI = certsClient
+	r.certificatesAPI = providerData.CertificatesClient
 	r.providerData = providerData
 }
 
@@ -302,10 +261,14 @@ func mapCertificateToState(ctx context.Context, cert *client.Certificate, model 
 		model.DomainName = types.StringNull()
 	}
 
-	// cert_body is returned by GET - store in state if present
-	if cert.CertBody != "" {
-		model.CertBody = types.StringValue(cert.CertBody)
+	// cert_body: Only set from API if not already in model (preserve plan value)
+	// This prevents "inconsistent result" errors when Terraform compares plan vs apply
+	if model.CertBody.IsNull() || model.CertBody.IsUnknown() {
+		if cert.CertBody != "" {
+			model.CertBody = types.StringValue(cert.CertBody)
+		}
 	}
+	// Otherwise keep the cert_body from the plan (user input)
 
 	// Map labels if present
 	if cert.Labels != nil && len(cert.Labels) > 0 {
@@ -318,25 +281,7 @@ func mapCertificateToState(ctx context.Context, cert *client.Certificate, model 
 		model.Labels = types.MapNull(types.StringType)
 	}
 
-	// Map computed fields
-	if cert.Checksum != "" {
-		model.Checksum = types.StringValue(cert.Checksum)
-	}
-	model.Version = types.Int64Value(int64(cert.Version))
-	if cert.CreatedBy != "" {
-		model.CreatedBy = types.StringValue(cert.CreatedBy)
-	}
-
-	// LastUpdatedBy is a pointer - properly handle JSON null vs absent vs empty
-	if cert.LastUpdatedBy != nil && *cert.LastUpdatedBy != "" {
-		model.LastUpdatedBy = types.StringValue(*cert.LastUpdatedBy)
-	} else {
-		model.LastUpdatedBy = types.StringNull()
-	}
-
-	if cert.UpdatedTime != "" {
-		model.UpdatedTime = types.StringValue(cert.UpdatedTime)
-	}
+	// No additional computed fields to map beyond expiration_date and tenant_id (already mapped above)
 
 	// Map metadata object if present
 	if cert.Metadata != nil {
@@ -414,9 +359,6 @@ func (r *CertificateResource) Create(ctx context.Context, req resource.CreateReq
 	if !plan.CertType.IsNull() && !plan.CertType.IsUnknown() {
 		createReq.CertType = plan.CertType.ValueString()
 	}
-	if !plan.CertPassword.IsNull() && !plan.CertPassword.IsUnknown() {
-		createReq.CertPassword = plan.CertPassword.ValueString()
-	}
 	if !plan.DomainName.IsNull() && !plan.DomainName.IsUnknown() {
 		createReq.DomainName = plan.DomainName.ValueString()
 	}
@@ -455,20 +397,16 @@ func (r *CertificateResource) Create(ctx context.Context, req resource.CreateReq
 
 	// DEBUG: Log the actual API response to see what we're getting
 	tflog.Debug(ctx, "API GET Certificate Response", map[string]interface{}{
-		"certificate_id":   fullCertificate.CertificateID,
-		"created_by":       fullCertificate.CreatedBy,
-		"last_updated_by":  fullCertificate.LastUpdatedBy,
-		"last_updated_nil": fullCertificate.LastUpdatedBy == nil,
+		"certificate_id": fullCertificate.CertificateID,
 	})
 
-	// Map GET response (14 fields) to Terraform state using helper
+	// Map GET response to Terraform state using helper
 	mapCertificateToState(ctx, fullCertificate, &plan, resp)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// CertBody must persist in state (already in plan, UseStateForUnknown ensures it stays)
-	// CertPassword must persist in state (already in plan, UseStateForUnknown ensures it stays)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -510,24 +448,17 @@ func (r *CertificateResource) Read(ctx context.Context, req resource.ReadRequest
 
 	tflog.Info(ctx, "Certificate read successfully", map[string]interface{}{
 		"certificate_id": certificate.CertificateID,
-		"version":        certificate.Version,
 	})
 
-	// Map GET response (14 fields) to Terraform state using helper
+	// Map GET response to Terraform state using helper
 	mapCertificateToState(ctx, certificate, &state, resp)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// cert_password is write-only, keep existing state value
-	// (UseStateForUnknown plan modifier ensures it persists)
-
-	// Drift detection: Log if version/checksum/updated_time changed
+	// Drift detection: Log state changes
 	tflog.Debug(ctx, "Drift detection", map[string]interface{}{
 		"certificate_id": certificate.CertificateID,
-		"version":        certificate.Version,
-		"checksum":       certificate.Checksum,
-		"updated_time":   certificate.UpdatedTime,
 	})
 
 	// Save updated data into Terraform state
@@ -584,15 +515,6 @@ func (r *CertificateResource) Update(ctx context.Context, req resource.UpdateReq
 		updateReq.CertType = plan.CertType.ValueString()
 	}
 
-	// cert_password: Same fallback pattern as cert_body
-	certPassword := plan.CertPassword.ValueString()
-	if certPassword == "" && plan.CertPassword.IsUnknown() && !state.CertPassword.IsNull() {
-		certPassword = state.CertPassword.ValueString()
-	}
-	if certPassword != "" {
-		updateReq.CertPassword = certPassword
-	}
-
 	if !plan.DomainName.IsNull() && !plan.DomainName.IsUnknown() {
 		updateReq.DomainName = plan.DomainName.ValueString()
 	}
@@ -622,7 +544,6 @@ func (r *CertificateResource) Update(ctx context.Context, req resource.UpdateReq
 
 	tflog.Info(ctx, "Certificate updated successfully", map[string]interface{}{
 		"certificate_id": certificate.CertificateID,
-		"version":        certificate.Version,
 	})
 
 	// Map UPDATE response to Terraform state (8 fields from UPDATE response)
@@ -633,11 +554,6 @@ func (r *CertificateResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// CertBody must persist in state (UseStateForUnknown ensures it stays)
 	plan.CertBody = types.StringValue(certBody)
-
-	// CertPassword must persist in state (UseStateForUnknown ensures it stays)
-	if certPassword != "" {
-		plan.CertPassword = types.StringValue(certPassword)
-	}
 
 	// Map optional fields from response if present
 	if certificate.CertName != "" {
@@ -667,7 +583,7 @@ func (r *CertificateResource) Update(ctx context.Context, req resource.UpdateReq
 		plan.Labels = types.MapNull(types.StringType)
 	}
 
-	// Note: UPDATE response does NOT include metadata, checksum, version, audit fields
+	// Note: UPDATE response may not include all computed fields
 	// These will be populated on next Read/Refresh
 
 	// Save updated data into Terraform state
