@@ -649,3 +649,56 @@ func (a *ArkISPAuth) Authenticate(
 - Consider making profile name configurable (advanced use case)
 - Add debug logging for auth lifecycle (troubleshooting)
 - Document pattern in SDK integration guide
+
+---
+
+## FAQ: Do All Resources Use In-Memory Profile Authentication?
+
+**Q: Does the in-memory profile fix apply to database workspace and secret resources?**
+
+**A: Yes, all resources automatically benefit** from the in-memory profile implementation. Here's why:
+
+### Architecture Overview
+
+All resources share the same authenticated `ISPAuth` instance created during provider initialization:
+
+| Resource | Authentication Source | Refresh Mechanism |
+|----------|----------------------|-------------------|
+| Certificate | CertificatesClient (custom) | Custom refresh callback with in-memory profile |
+| Database Workspace | SIAAPI.WorkspacesDB() (SDK) | SDK's built-in refresh using ActiveProfile |
+| Secret | SIAAPI.SecretsDB() (SDK) | SDK's built-in refresh using ActiveProfile |
+
+### Why SDK Services Don't Need Custom Refresh
+
+The ARK SDK services (WorkspacesDB, SecretsDB) automatically use the in-memory profile because:
+
+1. **Shared ISPAuth Reference**: All SDK services receive the same `ISPAuth` instance that was authenticated with the in-memory profile
+
+2. **ActiveProfile Preservation**: The SDK stores the in-memory profile:
+   ```go
+   // Set during Authenticate() in provider initialization
+   ispAuth.ActiveProfile = inMemoryProfile  // "terraform-ephemeral"
+   ```
+
+3. **SDK Refresh Pattern**: SDK services call `LoadAuthentication(ispAuth.ActiveProfile, true)` which:
+   - Uses the stored `ActiveProfile` (our in-memory profile)
+   - Skips cache because `CacheKeyring = nil` (set by `NewArkISPAuth(false)`)
+   - Re-authenticates using the same in-memory credentials
+
+4. **No Filesystem Access**: The SDK never loads profiles from `~/.ark/profiles/` because:
+   - `ActiveProfile` is already set (not nil)
+   - Cache is disabled (`CacheKeyring = nil`)
+
+### Certificate Resource Exception
+
+The certificate resource required a **custom refresh callback** because:
+
+1. **Manual ISP Client Creation**: Uses `isp.FromISPAuth()` directly instead of SDK service
+2. **Custom Refresh Callback**: Must explicitly re-authenticate with in-memory profile
+3. **Not a Built-in SDK Service**: CertificatesAPI isn't part of the standard SDK services
+
+### Verification
+
+No cache-related issues have been reported for database workspace or secret resources, confirming that SDK services properly maintain the in-memory profile authentication state.
+
+**Summary**: Database workspace and secret resources work correctly without additional changes because they use SDK services that automatically preserve and use the in-memory profile.
