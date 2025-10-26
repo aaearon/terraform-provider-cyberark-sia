@@ -7,33 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **CRITICAL**: Fixed 401 Unauthorized errors for certificate resource by implementing OAuth2 access token authentication
-  - ARK SDK's `IdentityServiceUser` method was exchanging access tokens for ID tokens
-  - SIA API requires access tokens (API authorization claims), not ID tokens (identity claims only)
-  - Created custom OAuth2 client (`internal/client/oauth2.go`) that uses `/oauth2/platformtoken` endpoint
-  - Implemented `CertificatesClientOAuth2` that uses access tokens directly
-  - See `docs/oauth2-authentication-fix.md` for detailed analysis and proof
-- **IN PROGRESS**: Secret resource migrated to OAuth2 access token authentication (T029-T034 complete)
-  - Removed ARK SDK dependencies from `internal/provider/secret_resource.go`
-  - Implemented `SecretsClient` wrapper using generic `RestClient`
-  - All CRUD operations (Create, Read, Update, Delete) now use OAuth2 access tokens
-  - Following certificate resource pattern (manual TF↔API model conversion)
-
-### Changed
-- Provider schema: `username` and `client_secret` are now optional (can use environment variables)
-- Certificate resource now uses OAuth2 access token authentication instead of ARK SDK
-- Secret resource now uses custom OAuth2 client instead of ARK SDK (partial - needs testing)
-- Removed `Sensitive: true` from `cert_body` attribute (public certificates are not sensitive)
-
-### Known Issues
-- ⚠️ **Database Workspace resource still uses ARK SDK (ID tokens) - will have 401 errors**
-- ⚠️ Secret resource migration incomplete - needs acceptance testing (T035)
-- ⚠️ ARK SDK cleanup pending (T057-T069) - old wrapper files still present
-- Migration to OAuth2 access tokens required for database workspace resource (see `docs/oauth2-authentication-fix.md`)
-
-## [Unreleased - Prior Changes]
-
 ### BREAKING CHANGES
 - **Certificate Resource**: Removed 6 fabricated attributes that don't exist in the CyberArk SIA Certificates API
   - Removed `created_by` (user who created certificate - not returned by API)

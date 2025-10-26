@@ -7,6 +7,7 @@ import (
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/models"
+	secretsmodels "github.com/cyberark/ark-sdk-golang/pkg/services/sia/secrets/db/models"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -232,45 +233,57 @@ func (r *secretResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	tflog.Info(ctx, "Creating secret", map[string]interface{}{
-		"name": plan.Name.ValueString(),
+		"name":                plan.Name.ValueString(),
+		"authentication_type": plan.AuthenticationType.ValueString(),
 	})
 
-	// Convert Terraform model to API model (following certificate pattern)
-	createReq := &models.SecretAPI{
-		Name:       plan.Name.ValueString(),
-		DatabaseID: plan.DatabaseWorkspaceID.ValueString(),
+	// Build ARK SDK request model based on authentication type
+	// Per docs/sdk-integration.md: Use siaAPI.SecretsDB().AddSecret()
+	addSecretReq := &secretsmodels.ArkSIADBAddSecret{
+		SecretName: plan.Name.ValueString(),
 	}
 
 	// Set authentication type-specific fields
 	authType := plan.AuthenticationType.ValueString()
 	switch authType {
 	case "local", "domain":
-		if !plan.Username.IsNull() {
-			createReq.Username = plan.Username.ValueString()
-		}
-		if !plan.Password.IsNull() {
-			createReq.Password = models.StringPtr(plan.Password.ValueString())
-		}
+		addSecretReq.SecretType = "username_password"
+		addSecretReq.Username = plan.Username.ValueString()
+		addSecretReq.Password = plan.Password.ValueString()
+		// Note: ARK SDK v1.5.0 does not have a separate Domain field for username_password secrets.
+		// For Active Directory authentication, include the domain in the username field:
+		// - Windows format: "DOMAIN\username"
+		// - UPN format: "username@domain.com"
+		// The domain field in Terraform schema is for user convenience but not sent to SDK.
 
 	case "aws_iam":
-		// Note: AWS IAM auth not yet implemented in SecretsClient
-		// TODO: Add IAM fields to models.SecretAPI when needed
-		resp.Diagnostics.AddError(
-			"Unsupported Authentication Type",
-			"AWS IAM authentication is not yet supported. Use 'local' or 'domain' authentication.",
-		)
-		return
+		addSecretReq.SecretType = "iam_user"
+		addSecretReq.IAMAccessKeyID = plan.AWSAccessKeyID.ValueString()
+		addSecretReq.IAMSecretAccessKey = plan.AWSSecretAccessKey.ValueString()
+		// Note: IAMAccount and IAMUsername are optional fields in ARK SDK v1.5.0
+		// They may be derived automatically from the database_workspace_id if not provided
+		// The SDK associates the secret with the database workspace, which determines the account context
 
 	default:
 		resp.Diagnostics.AddError(
 			"Invalid Authentication Type",
-			fmt.Sprintf("Unsupported authentication type: %s. Valid values: local, domain", authType),
+			fmt.Sprintf("Unsupported authentication type: %s. Valid values: local, domain, aws_iam", authType),
 		)
 		return
 	}
 
-	// Call API to create secret
-	secret, err := r.providerData.SecretsClient.CreateSecret(ctx, createReq)
+	// Wrap SDK call with retry logic per docs/sdk-integration.md
+	var secretMetadata *secretsmodels.ArkSIADBSecretMetadata
+	err := client.RetryWithBackoff(ctx, &client.RetryConfig{
+		MaxRetries: client.DefaultMaxRetries,
+		BaseDelay:  client.BaseDelay,
+		MaxDelay:   client.MaxDelay,
+	}, func() error {
+		var apiErr error
+		secretMetadata, apiErr = r.providerData.SIAAPI.SecretsDB().AddSecret(addSecretReq)
+		return apiErr
+	})
+
 	if err != nil {
 		tflog.Error(ctx, "Failed to create secret", map[string]interface{}{
 			"error": err.Error(),
@@ -279,14 +292,10 @@ func (r *secretResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// Map API response to Terraform state
-	plan.ID = types.StringValue(*secret.ID)
-	if secret.CreatedTime != nil {
-		plan.CreatedAt = types.StringValue(*secret.CreatedTime)
-	}
-	if secret.ModifiedTime != nil {
-		plan.LastModified = types.StringValue(*secret.ModifiedTime)
-	}
+	// Map response to state
+	plan.ID = types.StringValue(secretMetadata.SecretID)
+	plan.CreatedAt = types.StringValue(secretMetadata.CreationTime)
+	plan.LastModified = types.StringValue(secretMetadata.LastUpdateTime)
 
 	tflog.Info(ctx, "Created secret", map[string]interface{}{
 		"id": plan.ID.ValueString(),
@@ -318,8 +327,23 @@ func (r *secretResource) Read(ctx context.Context, req resource.ReadRequest, res
 		"id": state.ID.ValueString(),
 	})
 
-	// Call API to get secret
-	secret, err := r.providerData.SecretsClient.GetSecret(ctx, state.ID.ValueString())
+	// Per docs/sdk-integration.md: Use siaAPI.SecretsDB().GetSecret()
+	// Note: Response contains metadata only, no sensitive credentials per contract
+	// Handle 404 as resource deleted (drift detection)
+	var secretMetadata *secretsmodels.ArkSIADBSecretMetadata
+	err := client.RetryWithBackoff(ctx, &client.RetryConfig{
+		MaxRetries: client.DefaultMaxRetries,
+		BaseDelay:  client.BaseDelay,
+		MaxDelay:   client.MaxDelay,
+	}, func() error {
+		var apiErr error
+		// SDK method signature: Secret(*ArkSIADBGetSecret) (*ArkSIADBSecretMetadata, error)
+		secretMetadata, apiErr = r.providerData.SIAAPI.SecretsDB().Secret(&secretsmodels.ArkSIADBGetSecret{
+			SecretID: state.ID.ValueString(),
+		})
+		return apiErr
+	})
+
 	if err != nil {
 		// Check if resource was deleted outside Terraform (404)
 		if client.IsNotFoundError(err) {
@@ -337,15 +361,11 @@ func (r *secretResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	// Map API response to Terraform state
-	// NOTE: Sensitive credentials (password) are NOT returned by API
-	state.Name = types.StringValue(secret.Name)
-	if secret.CreatedTime != nil {
-		state.CreatedAt = types.StringValue(*secret.CreatedTime)
-	}
-	if secret.ModifiedTime != nil {
-		state.LastModified = types.StringValue(*secret.ModifiedTime)
-	}
+	// Map response to state - update non-sensitive fields from API response
+	// NOTE: Sensitive credentials (password, secret keys) are NOT returned by API
+	state.Name = types.StringValue(secretMetadata.SecretName)
+	state.CreatedAt = types.StringValue(secretMetadata.CreationTime)
+	state.LastModified = types.StringValue(secretMetadata.LastUpdateTime)
 
 	tflog.Debug(ctx, "Successfully read secret", map[string]interface{}{
 		"id": state.ID.ValueString(),
@@ -378,26 +398,49 @@ func (r *secretResource) Update(ctx context.Context, req resource.UpdateRequest,
 		"id": state.ID.ValueString(),
 	})
 
-	// Convert Terraform plan to API model for update
-	updateReq := &models.SecretAPI{
-		Name:       plan.Name.ValueString(),
-		DatabaseID: plan.DatabaseWorkspaceID.ValueString(),
+	// Build update request - handle both metadata and credential updates
+	// Per docs/sdk-integration.md: Use siaAPI.SecretsDB().UpdateSecret()
+	// SDK signature: UpdateSecret(*ArkSIADBUpdateSecret) (*ArkSIADBSecretMetadata, error)
+	// Note: SIA updates credentials immediately per FR-015a
+	updateReq := &secretsmodels.ArkSIADBUpdateSecret{
+		SecretID:      state.ID.ValueString(),
+		NewSecretName: plan.Name.ValueString(),
 	}
 
-	// Update credentials if changed
+	// Update credentials if changed (based on authentication type)
 	authType := plan.AuthenticationType.ValueString()
 	switch authType {
 	case "local", "domain":
+		// Update username/password if provided
 		if !plan.Username.IsNull() {
 			updateReq.Username = plan.Username.ValueString()
 		}
 		if !plan.Password.IsNull() {
-			updateReq.Password = models.StringPtr(plan.Password.ValueString())
+			updateReq.Password = plan.Password.ValueString()
+		}
+
+	case "aws_iam":
+		// Update IAM credentials if provided
+		if !plan.AWSAccessKeyID.IsNull() {
+			updateReq.IAMAccessKeyID = plan.AWSAccessKeyID.ValueString()
+		}
+		if !plan.AWSSecretAccessKey.IsNull() {
+			updateReq.IAMSecretAccessKey = plan.AWSSecretAccessKey.ValueString()
 		}
 	}
 
-	// Call API to update secret
-	updated, err := r.providerData.SecretsClient.UpdateSecret(ctx, state.ID.ValueString(), updateReq)
+	// Wrap SDK call with retry logic
+	var updated *secretsmodels.ArkSIADBSecretMetadata
+	err := client.RetryWithBackoff(ctx, &client.RetryConfig{
+		MaxRetries: client.DefaultMaxRetries,
+		BaseDelay:  client.BaseDelay,
+		MaxDelay:   client.MaxDelay,
+	}, func() error {
+		var apiErr error
+		updated, apiErr = r.providerData.SIAAPI.SecretsDB().UpdateSecret(updateReq)
+		return apiErr
+	})
+
 	if err != nil {
 		tflog.Error(ctx, "Failed to update secret", map[string]interface{}{
 			"error": err.Error(),
@@ -406,10 +449,8 @@ func (r *secretResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// Map API response to state
-	if updated.ModifiedTime != nil {
-		plan.LastModified = types.StringValue(*updated.ModifiedTime)
-	}
+	// Map response to state
+	plan.LastModified = types.StringValue(updated.LastUpdateTime)
 
 	tflog.Info(ctx, "Updated secret", map[string]interface{}{
 		"id": state.ID.ValueString(),
@@ -441,8 +482,19 @@ func (r *secretResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		"id": state.ID.ValueString(),
 	})
 
-	// Call API to delete secret
-	err := r.providerData.SecretsClient.DeleteSecret(ctx, state.ID.ValueString())
+	// Per docs/sdk-integration.md: Use siaAPI.SecretsDB().DeleteSecret()
+	// SDK signature: DeleteSecret(*ArkSIADBDeleteSecret) error
+	// Gracefully handle already-deleted resources
+	err := client.RetryWithBackoff(ctx, &client.RetryConfig{
+		MaxRetries: client.DefaultMaxRetries,
+		BaseDelay:  client.BaseDelay,
+		MaxDelay:   client.MaxDelay,
+	}, func() error {
+		return r.providerData.SIAAPI.SecretsDB().DeleteSecret(&secretsmodels.ArkSIADBDeleteSecret{
+			SecretID: state.ID.ValueString(),
+		})
+	})
+
 	if err != nil {
 		// Gracefully handle already-deleted resource (404)
 		if client.IsNotFoundError(err) {

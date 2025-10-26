@@ -35,7 +35,7 @@ func NewCertificateResource() resource.Resource {
 // CertificateResource defines the resource implementation
 type CertificateResource struct {
 	providerData    *ProviderData
-	certificatesAPI *client.CertificatesClientOAuth2
+	certificatesAPI *client.CertificatesClient
 }
 
 // CertificateModel describes the resource data model
@@ -208,17 +208,17 @@ func (r *CertificateResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	// Use OAuth2-based certificates client from provider
-	// This client uses access tokens directly (not ID tokens) to avoid 401 errors
-	if providerData.CertificatesClient == nil {
+	// Initialize certificates client
+	certsClient, err := client.NewCertificatesClient(providerData.ISPAuth)
+	if err != nil {
 		resp.Diagnostics.AddError(
-			"Certificates Client Not Initialized",
-			"The certificates client was not properly initialized in the provider. Please report this issue.",
+			"Failed to Initialize Certificates Client",
+			fmt.Sprintf("Unable to create certificates client: %s", err.Error()),
 		)
 		return
 	}
 
-	r.certificatesAPI = providerData.CertificatesClient
+	r.certificatesAPI = certsClient
 	r.providerData = providerData
 }
 
