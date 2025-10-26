@@ -368,3 +368,284 @@ All fields except `last_updated_by` will be populated. The field will remain `nu
 **Future Fix**: This will be resolved in a future version when either:
 1. The Terraform Plugin Framework improves nullable computed field handling
 2. The SIA API is updated to always return a value for this field
+
+---
+
+## ARK SDK Authentication and Cache Management
+
+### Understanding ARK SDK Caching Behavior
+
+The ARK SDK (github.com/cyberark/ark-sdk-golang v1.5.0) has built-in caching mechanisms that can cause authentication issues if not properly managed in Terraform provider context.
+
+**Default SDK Behavior**:
+- Loads profiles from `~/.ark/profiles/` when `Authenticate(nil, ...)` is called
+- Caches tokens in `~/.ark_cache/` directory
+- Uses keyring storage for credential caching
+- Caching persists even when `NewArkISPAuth(false)` is used (false only disables one layer)
+
+**Problem in Terraform Context**:
+This caching behavior is problematic for Terraform providers because:
+1. **Stale tokens**: Cached tokens may be expired or from different credentials
+2. **401 Unauthorized errors**: Subsequent CRUD operations fail with authentication errors
+3. **Manual workarounds required**: Users had to manually delete `~/.ark_cache` between runs
+4. **State inconsistency**: Resource creation succeeds but read operations fail
+
+### Symptoms of Cache-Related Auth Issues
+
+**Certificate Resource Example**:
+```bash
+# First operation (CREATE)
+terraform apply
+# ✅ Success: cyberarksia_certificate.test created (ID: 1761472452063442)
+
+# Second operation (READ) - FAILS with stale cache
+terraform plan
+# ❌ Error: 401 Unauthorized
+# The provider could not read certificate 1761472452063442
+
+# Manual workaround (before fix)
+rm -rf ~/.ark_cache
+terraform plan
+# ✅ Success: No changes detected
+```
+
+**Other Symptoms**:
+- Intermittent authentication failures
+- Works on fresh systems but fails after first run
+- Different behavior between `terraform apply` and `terraform plan`
+- Errors mentioning "invalid token" or "authentication required"
+
+### Solution: In-Memory Profile Authentication
+
+**Implementation** (2025-10-26 - Commit: 9899527):
+
+The provider now creates in-memory `ArkProfile` objects to completely bypass filesystem-based profile loading and caching.
+
+**Key Components**:
+
+#### 1. ISPAuthContext Structure (internal/client/auth.go)
+
+```go
+// ISPAuthContext holds authentication state for re-use across operations
+// This prevents filesystem profile loading and keyring caching
+type ISPAuthContext struct {
+    ISPAuth     *auth.ArkISPAuth           // SDK auth instance
+    Profile     *models.ArkProfile         // In-memory profile (NOT persisted)
+    AuthProfile *authmodels.ArkAuthProfile // Auth configuration
+    Secret      *authmodels.ArkSecret      // Credentials
+}
+```
+
+**Why this works**:
+- Holds all authentication state in memory
+- Prevents SDK from falling back to `~/.ark/profiles/` loading
+- Allows re-authentication with same profile during token refresh
+
+#### 2. In-Memory Profile Creation
+
+```go
+// Create in-memory ArkProfile to bypass filesystem profile loading
+inMemoryProfile := &models.ArkProfile{
+    ProfileName:  "terraform-ephemeral", // Non-persisted name
+    AuthProfiles: map[string]*authmodels.ArkAuthProfile{
+        "isp": authProfile,
+    },
+}
+
+// Authenticate with explicit in-memory profile (NOT nil)
+// force=true: Always get a fresh token (no cache lookups)
+_, err := ispAuth.Authenticate(
+    inMemoryProfile,  // Explicit profile (prevents default profile loading)
+    authProfile,      // Auth method configuration
+    secret,           // Credentials
+    true,             // force=true (bypass ALL cache lookups)
+    false,            // refreshAuth=false (not a refresh operation)
+)
+```
+
+**Critical Parameters**:
+- **First parameter (`inMemoryProfile`)**: Must NOT be `nil`. Passing explicit profile prevents SDK from loading `~/.ark/profiles/`
+- **Fourth parameter (`force=true`)**: Bypasses all cache lookups, ensures fresh token
+- **Profile name (`terraform-ephemeral`)**: Non-standard name that won't conflict with user profiles
+
+#### 3. Token Refresh Callback (internal/client/certificates.go)
+
+```go
+// refreshSIAAuth refreshes the authentication token when it expires.
+// Called automatically by SDK when token approaches 15-min expiration.
+// CRITICAL: Re-authenticates with in-memory profile to bypass cache
+func (c *CertificatesClient) refreshSIAAuth(client *common.ArkClient) error {
+    // Re-authenticate with in-memory profile (force=true to bypass cache)
+    _, err := c.authCtx.ISPAuth.Authenticate(
+        c.authCtx.Profile,     // In-memory profile (NOT nil)
+        c.authCtx.AuthProfile, // Auth profile
+        c.authCtx.Secret,      // Secret
+        true,                  // force=true (bypass cache)
+        false,                 // refreshAuth=false
+    )
+    if err != nil {
+        return fmt.Errorf("failed to refresh authentication: %w", err)
+    }
+
+    // Refresh the client with new token
+    return isp.RefreshClient(client, c.authCtx.ISPAuth)
+}
+```
+
+**Why refresh callback matters**:
+- ARK SDK bearer tokens expire after 15 minutes
+- Refresh callback ensures long-running operations (create, update) continue working
+- Using in-memory profile in callback prevents falling back to cached tokens
+
+### Verification and Testing
+
+**Test Scenario**: Certificate CRUD without cache deletion
+
+```bash
+# Clean test environment
+cd /tmp/test-cache-bypass
+rm -rf .terraform terraform.tfstate*
+
+# Create test certificate
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+  -days 365 -nodes -subj "/CN=test/O=Testing/C=US"
+
+# Test configuration
+cat > main.tf << 'EOF'
+terraform {
+  required_providers {
+    cyberarksia = {
+      source  = "terraform.local/local/cyberark-sia"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "cyberarksia" {
+  username      = "your-service-account@cyberark.cloud.XXXX"
+  client_secret = "your-secret"
+}
+
+resource "cyberarksia_certificate" "test" {
+  cert_name = "cache-bypass-test"
+  cert_body = file("${path.module}/cert.pem")
+  cert_type = "PEM"
+}
+EOF
+
+# Initialize and test
+terraform init
+terraform apply -auto-approve
+# ✅ Expected: Certificate created successfully
+
+# Verify READ works without cache deletion
+terraform plan
+# ✅ Expected: No changes detected (proves READ works with fresh auth)
+
+# Test UPDATE
+terraform apply -auto-approve
+# ✅ Expected: No changes applied (resource unchanged)
+
+# Clean up
+terraform destroy -auto-approve
+# ✅ Expected: Certificate deleted successfully
+```
+
+**Success Criteria**:
+- ✅ No manual `rm -rf ~/.ark_cache` required
+- ✅ All CRUD operations complete successfully
+- ✅ No 401 Unauthorized errors
+- ✅ State refresh detects no drift
+
+**Test Results** (2025-10-26):
+```
+Certificate CREATE: ✅ Success (ID: 1761492255149647)
+Certificate READ:   ✅ Success (no drift detected)
+Certificate DELETE: ✅ Success (clean removal)
+Cache Bypass:       ✅ Verified (no manual cleanup needed)
+```
+
+### Architecture Benefits
+
+**Before** (Cache-Dependent):
+```
+Provider Init → Authenticate → Cache Token → ~/.ark_cache
+                                                ↓
+Resource CRUD → Load Token from Cache → 401 Error (stale token)
+                                                ↓
+Manual Fix:  rm -rf ~/.ark_cache → Re-run operation
+```
+
+**After** (In-Memory):
+```
+Provider Init → Authenticate (force=true) → In-Memory Profile
+                                                ↓
+Resource CRUD → Fresh Auth (bypass cache) → Success
+                                                ↓
+Token Refresh → Re-auth with In-Memory Profile → Success
+```
+
+**Key Advantages**:
+1. **Stateless authentication**: No filesystem dependencies
+2. **Terraform-friendly**: Each run gets fresh credentials
+3. **No manual cleanup**: Works reliably without user intervention
+4. **Concurrent runs**: No cache contention between parallel executions
+5. **Container-friendly**: No persistent cache directory needed
+
+### When to Apply This Pattern
+
+**Use in-memory profiles when**:
+- Building Terraform providers
+- Creating automation tools that run repeatedly
+- Running in containerized/ephemeral environments
+- Managing multiple tenants/accounts concurrently
+- Implementing CI/CD pipelines
+
+**Default SDK behavior is OK when**:
+- Building interactive CLI tools
+- Single-user desktop applications
+- Long-running services with stable credentials
+- Tools where persistent auth state is desired
+
+### References
+
+**ARK SDK Authentication**:
+- Package: `github.com/cyberark/ark-sdk-golang/pkg/auth`
+- Profile Model: `github.com/cyberark/ark-sdk-golang/pkg/models.ArkProfile`
+- Auth Method: `IdentityServiceUser` (OAuth 2.0 client credentials flow)
+
+**Authenticate() Signature**:
+```go
+func (a *ArkISPAuth) Authenticate(
+    profile *models.ArkProfile,           // Profile (nil loads default, explicit bypasses)
+    authProfile *authmodels.ArkAuthProfile, // Auth configuration
+    secret *authmodels.ArkSecret,          // Credentials
+    force bool,                             // true = bypass cache, false = use cache
+    refreshAuth bool,                       // true = refresh operation
+) (*authmodels.ArkAuthentication, error)
+```
+
+**Key Discovery**:
+- Passing `nil` for first parameter triggers default profile loading from `~/.ark/profiles/`
+- Passing explicit `ArkProfile` object bypasses filesystem entirely
+- `force=true` ensures fresh token on every call (critical for Terraform use case)
+
+### Related Issues and Commits
+
+- **Issue**: Certificate READ operations failing with 401 after CREATE success
+- **Root Cause**: ARK SDK loading stale tokens from `~/.ark_cache`
+- **Fix Commit**: `9899527` - "fix: Bypass ARK SDK filesystem cache with in-memory profiles"
+- **Date**: 2025-10-26
+- **Files Changed**: 5 (auth.go, sia_client.go, certificates.go, provider.go, resource_certificate.go)
+
+### Future Considerations
+
+**If ARK SDK evolves**:
+- Monitor SDK releases for improved caching controls
+- Consider contributing in-memory profile pattern to SDK examples
+- Watch for `context.Context` support in `Authenticate()` method
+
+**Provider Enhancements**:
+- Consider making profile name configurable (advanced use case)
+- Add debug logging for auth lifecycle (troubleshooting)
+- Document pattern in SDK integration guide
