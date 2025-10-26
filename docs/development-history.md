@@ -8,35 +8,77 @@
 
 ## Authentication & SDK Integration
 
-### ARK SDK v1.5.0 Integration Patterns (Phase 2)
+### In-Memory Profile Authentication (Phase 5 - 2025-10-26) ⭐ CURRENT
 
-**Decision**: Use official ARK SDK with token caching enabled
+**Decision**: Use in-memory `ArkProfile` objects to completely bypass filesystem-based profile loading and caching
+
+**Problem Solved**:
+- ARK SDK was loading profiles from `~/.ark/profiles/` even with caching disabled
+- Tokens cached in `~/.ark_cache/` caused 401 Unauthorized errors on subsequent operations
+- Required manual `rm -rf ~/.ark_cache` between Terraform runs
 
 **Implementation**:
 ```go
-ispAuth := auth.NewArkISPAuth(true) // Enable token caching
-profile := &authmodels.ArkAuthProfile{
-    Username:   fmt.Sprintf("%s@cyberark.cloud.%s", clientID, tenantSubdomain),
-    AuthMethod: authmodels.Identity,
-    // ...
+// Create ISPAuthContext to hold all authentication state
+type ISPAuthContext struct {
+    ISPAuth     *auth.ArkISPAuth           // SDK auth instance
+    Profile     *models.ArkProfile         // In-memory profile (NOT persisted)
+    AuthProfile *authmodels.ArkAuthProfile // Auth configuration
+    Secret      *authmodels.ArkSecret      // Credentials
 }
-_, err := ispAuth.Authenticate(nil, profile, secret, false, false)
+
+// Create in-memory profile (bypasses ~/.ark/profiles/)
+inMemoryProfile := &models.ArkProfile{
+    ProfileName:  "terraform-ephemeral", // Non-persisted name
+    AuthProfiles: map[string]*authmodels.ArkAuthProfile{
+        "isp": authProfile,
+    },
+}
+
+// Authenticate with explicit profile and force=true (bypass cache)
+ispAuth := auth.NewArkISPAuth(false) // DISABLE caching
+_, err := ispAuth.Authenticate(
+    inMemoryProfile,  // Explicit profile (NOT nil - prevents default loading)
+    authProfile,      // Auth method configuration
+    secret,           // Credentials
+    true,             // force=true (bypass ALL cache lookups)
+    false,            // refreshAuth=false
+)
 ```
 
-**Key Findings**:
-- **Context Limitation**: `Authenticate()` first parameter is `*ArkProfile` (optional), NOT `context.Context`
-  - Cannot cancel authentication mid-flight via context
-  - Documented limitation in code comments
-- **Token Caching**: SDK handles automatic refresh when caching enabled
-- **Token Lifecycle**: 15-minute bearer tokens, SDK refreshes automatically
+**Key Benefits**:
+- **Stateless**: No filesystem dependencies (container-friendly)
+- **Terraform-friendly**: Fresh credentials for each run
+- **No manual cleanup**: Eliminates `rm -rf ~/.ark_cache` workaround
+- **Concurrent-safe**: No cache contention between parallel executions
 
-**Provider Data Pattern** (Phase 2):
+**Provider Data Pattern** (Current):
 ```go
 type ProviderData struct {
-    ISPAuth *auth.ArkISPAuth  // Changed from interface{} for type safety
-    SIAAPI  *sia.ArkSIAAPI    // Changed from interface{} for type safety
+    AuthContext        *client.ISPAuthContext      // In-memory auth state
+    SIAAPI             *sia.ArkSIAAPI              // WorkspacesDB() and SecretsDB()
+    CertificatesClient *client.CertificatesClient  // Custom certificate client
 }
 ```
+
+**Critical Parameters**:
+- `NewArkISPAuth(false)`: Disables keyring caching (`CacheKeyring = nil`)
+- `Authenticate()` first parameter: Must be explicit `ArkProfile` (NOT nil)
+- `force=true`: Bypasses all cache lookups, ensures fresh token
+- Profile name `"terraform-ephemeral"`: Non-standard name avoids conflicts
+
+**Documentation**: See `docs/troubleshooting.md` (ARK SDK Authentication and Cache Management section)
+
+### ARK SDK v1.5.0 Integration Patterns (Phase 2 - HISTORICAL)
+
+**Original Decision**: Use official ARK SDK with token caching enabled ⚠️ **SUPERSEDED**
+
+**Key Findings** (Still Relevant):
+- **Context Limitation**: `Authenticate()` first parameter is `*ArkProfile` (optional), NOT `context.Context`
+  - Cannot cancel authentication mid-flight via context
+  - Passing `nil` triggers default profile loading from `~/.ark/profiles/`
+- **Token Lifecycle**: 15-minute bearer tokens, SDK handles automatic refresh
+- **ActiveProfile Storage**: SDK stores the profile passed to `Authenticate()` for later use
 
 **Type Safety Improvement** (Phase 2.5):
 - Removed `interface{}` usage in ProviderData
