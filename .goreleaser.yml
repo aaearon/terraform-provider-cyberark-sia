@@ -1,0 +1,91 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: terraform-provider-cyberark-sia
+    binary: terraform-provider-cyberark-sia_v{{ .Version }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: terraform-provider-cyberark-sia
+    format: zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - LICENSE*
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: 'Features'
+      regexp: '^feat:'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^fix:'
+      order: 1
+    - title: 'Security'
+      regexp: '^sec:'
+      order: 2
+    - title: 'Other'
+      order: 999
+
+release:
+  github:
+    owner: aaearon
+    name: terraform-provider-cyberark-sia
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Terraform Provider for CyberArk SIA {{ .Tag }}
+
+    ### Installation
+
+    Download the appropriate binary for your platform from the assets below.
+
+    For detailed installation instructions, see the [README](https://github.com/aaearon/terraform-provider-cyberark-sia#installation).
+
+  footer: |
+    ---
+
+    **Full Changelog**: https://github.com/aaearon/terraform-provider-cyberark-sia/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+snapshot:
+  name_template: '{{ incpatch .Version }}-next'
