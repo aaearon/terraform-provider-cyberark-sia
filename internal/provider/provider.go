@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
-	"github.com/cyberark/ark-sdk-golang/pkg/auth"
 	"github.com/cyberark/ark-sdk-golang/pkg/services/sia"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -36,9 +35,9 @@ type CyberArkSIAProviderModel struct {
 // ProviderData holds the ARK SDK instances shared with resources
 // This struct is passed to resources via resp.ResourceData in Configure()
 type ProviderData struct {
-	// ISPAuth handles authentication with CyberArk Identity Security Platform
-	// Fresh authentication for each provider run (no credential caching between runs)
-	ISPAuth *auth.ArkISPAuth
+	// AuthContext holds authentication state including in-memory profile
+	// This prevents filesystem profile loading and keyring caching
+	AuthContext *client.ISPAuthContext
 
 	// SIAAPI provides access to SIA WorkspacesDB() and SecretsDB() APIs
 	SIAAPI *sia.ArkSIAAPI
@@ -138,11 +137,10 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	// Log configuration (without sensitive data)
 	LogProviderConfig(ctx, &config)
 
-	// Initialize authentication
-	// Returns *auth.ArkISPAuth with fresh authentication for this provider run
+	// Initialize authentication with in-memory profile (bypasses ~/.ark_cache and ~/.ark/profiles/)
 	// Uses IdentityServiceUser method - SDK auto-resolves Identity URL from username if not provided
 	LogAuthStart(ctx)
-	ispAuth, err := client.NewISPAuth(ctx, &client.AuthConfig{
+	authCtx, err := client.NewISPAuth(ctx, &client.AuthConfig{
 		Username:     username,
 		ClientSecret: clientSecret,
 		IdentityURL:  identityURL, // Optional - SDK auto-resolves from username
@@ -156,7 +154,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	// Initialize SIA API client
 	// Returns *sia.ArkSIAAPI for WorkspacesDB() and SecretsDB() access
 	LogSIAClientInit(ctx)
-	siaAPI, err := client.NewSIAClient(ispAuth)
+	siaAPI, err := client.NewSIAClient(authCtx)
 	if err != nil {
 		resp.Diagnostics.Append(client.MapError(err, "SIA client initialization"))
 		return
@@ -165,8 +163,8 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 
 	// Create provider data for resource sharing
 	providerData := &ProviderData{
-		ISPAuth: ispAuth,
-		SIAAPI:  siaAPI,
+		AuthContext: authCtx,
+		SIAAPI:      siaAPI,
 	}
 
 	// Make provider data available to resources

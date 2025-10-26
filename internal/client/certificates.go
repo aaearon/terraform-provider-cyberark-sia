@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cyberark/ark-sdk-golang/pkg/auth"
 	"github.com/cyberark/ark-sdk-golang/pkg/common"
 	"github.com/cyberark/ark-sdk-golang/pkg/common/isp"
 	"github.com/mitchellh/mapstructure"
@@ -36,7 +35,7 @@ const (
 //
 // Reference: /pkg/services/sia/workspaces/db/ark_sia_workspaces_db_service.go
 type CertificatesClient struct {
-	ispAuth *auth.ArkISPAuth         // Provider's authentication object (shared with other services)
+	authCtx *ISPAuthContext          // Provider's authentication context (in-memory profile)
 	client  *isp.ArkISPServiceClient // SDK's authenticated HTTP client
 }
 
@@ -50,20 +49,20 @@ type CertificatesClient struct {
 //   - All required HTTP headers
 //
 // Parameters:
-//   - ispAuth: *auth.ArkISPAuth from provider configuration (already authenticated)
+//   - authCtx: *ISPAuthContext from provider configuration (in-memory profile)
 //
 // Returns:
 //   - *CertificatesClient: Initialized client ready for CRUD operations
 //   - error: If client initialization fails
-func NewCertificatesClient(ispAuth *auth.ArkISPAuth) (*CertificatesClient, error) {
+func NewCertificatesClient(authCtx *ISPAuthContext) (*CertificatesClient, error) {
 	certsClient := &CertificatesClient{
-		ispAuth: ispAuth,
+		authCtx: authCtx,
 	}
 
 	// Create ISP service client (SAME as WorkspacesDB line 45)
 	// This auto-constructs the base URL and configures authentication
 	client, err := isp.FromISPAuth(
-		ispAuth,                    // Reuse provider's auth
+		authCtx.ISPAuth,            // Use ISPAuth from context
 		"dpa",                      // Service name (constructs https://{subdomain}.dpa.{domain})
 		".",                        // Separator character
 		"",                         // Base path (empty for root API)
@@ -79,7 +78,7 @@ func NewCertificatesClient(ispAuth *auth.ArkISPAuth) (*CertificatesClient, error
 
 // refreshSIAAuth refreshes the authentication token when it expires.
 // Called automatically by SDK when token approaches 15-min expiration.
-// Follows WorkspacesDB pattern (lines 71-77).
+// CRITICAL: Re-authenticates with in-memory profile to bypass cache
 //
 // Parameters:
 //   - client: *common.ArkClient to refresh
@@ -87,7 +86,20 @@ func NewCertificatesClient(ispAuth *auth.ArkISPAuth) (*CertificatesClient, error
 // Returns:
 //   - error: If token refresh fails
 func (c *CertificatesClient) refreshSIAAuth(client *common.ArkClient) error {
-	return isp.RefreshClient(client, c.ispAuth)
+	// Re-authenticate with in-memory profile (force=true to bypass cache)
+	_, err := c.authCtx.ISPAuth.Authenticate(
+		c.authCtx.Profile,     // In-memory profile (NOT nil)
+		c.authCtx.AuthProfile, // Auth profile
+		c.authCtx.Secret,      // Secret
+		true,                  // force=true (bypass cache)
+		false,                 // refreshAuth=false
+	)
+	if err != nil {
+		return fmt.Errorf("failed to refresh authentication: %w", err)
+	}
+
+	// Refresh the client with new token
+	return isp.RefreshClient(client, c.authCtx.ISPAuth)
 }
 
 // Certificate represents a TLS/SSL certificate stored in SIA.

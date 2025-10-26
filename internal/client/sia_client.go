@@ -4,7 +4,6 @@ package client
 import (
 	"fmt"
 
-	"github.com/cyberark/ark-sdk-golang/pkg/auth"
 	"github.com/cyberark/ark-sdk-golang/pkg/services/sia"
 )
 
@@ -20,14 +19,14 @@ import (
 //	secret, err := siaAPI.SecretsDB().AddSecret(&secretsmodels.ArkSIADBAddSecret{...})
 //
 // See docs/sdk-integration.md for detailed SDK integration patterns and examples.
-func NewSIAClient(ispAuth *auth.ArkISPAuth) (*sia.ArkSIAAPI, error) {
-	if ispAuth == nil {
-		return nil, fmt.Errorf("ispAuth cannot be nil")
+func NewSIAClient(authCtx *ISPAuthContext) (*sia.ArkSIAAPI, error) {
+	if authCtx == nil || authCtx.ISPAuth == nil {
+		return nil, fmt.Errorf("auth context cannot be nil")
 	}
 
 	// Initialize SIA API client with authenticated ISP Auth
 	// This client provides WorkspacesDB() and SecretsDB() access for Phase 3+ resources
-	siaAPI, err := sia.NewArkSIAAPI(ispAuth)
+	siaAPI, err := sia.NewArkSIAAPI(authCtx.ISPAuth)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize SIA API client: %w", err)
 	}

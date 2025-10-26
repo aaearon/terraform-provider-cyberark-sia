@@ -7,6 +7,7 @@ import (
 
 	"github.com/cyberark/ark-sdk-golang/pkg/auth"
 	authmodels "github.com/cyberark/ark-sdk-golang/pkg/models/auth"
+	"github.com/cyberark/ark-sdk-golang/pkg/models"
 )
 
 // AuthConfig holds authentication configuration
@@ -16,10 +17,19 @@ type AuthConfig struct {
 	IdentityURL  string // Optional - SDK auto-resolves from username if empty
 }
 
+// ISPAuthContext holds authentication state for re-use across operations
+// This prevents filesystem profile loading and keyring caching
+type ISPAuthContext struct {
+	ISPAuth     *auth.ArkISPAuth
+	Profile     *models.ArkProfile
+	AuthProfile *authmodels.ArkAuthProfile
+	Secret      *authmodels.ArkSecret
+}
+
 // NewISPAuth creates a new ARK SDK authentication client using IdentityServiceUser method
-// Caching is DISABLED to ensure fresh authentication for each Terraform provider run
-// The SDK automatically extracts tenant information from the username and resolves the Identity URL
-func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, error) {
+// CRITICAL: Creates an in-memory profile to bypass filesystem profile loading and keyring caching
+// This prevents stale token issues that cause 401 errors on subsequent operations
+func NewISPAuth(ctx context.Context, config *AuthConfig) (*ISPAuthContext, error) {
 	if config == nil {
 		return nil, fmt.Errorf("auth config cannot be nil")
 	}
@@ -31,21 +41,18 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 	if config.ClientSecret == "" {
 		return nil, fmt.Errorf("client_secret is required")
 	}
-	// Note: IdentityURL is optional - SDK will resolve it from username if empty
 
 	// Initialize ARK SDK auth with caching DISABLED
-	// Each Terraform provider run should get fresh authentication (no credential persistence between runs)
 	ispAuth := auth.NewArkISPAuth(false)
 
-	// Create authentication profile using IdentityServiceUser method for service accounts
-	// This uses OAuth 2.0 client credentials flow (not interactive user auth)
-	profile := &authmodels.ArkAuthProfile{
-		Username:   config.Username, // Full username - SDK extracts tenant from @suffix
+	// Create authentication profile using IdentityServiceUser method
+	authProfile := &authmodels.ArkAuthProfile{
+		Username:   config.Username,
 		AuthMethod: authmodels.IdentityServiceUser,
 		AuthMethodSettings: &authmodels.IdentityServiceUserArkAuthMethodSettings{
-			IdentityURL:                      config.IdentityURL,          // Optional - SDK auto-resolves from username
-			IdentityTenantSubdomain:          "",                          // Empty - SDK extracts from username
-			IdentityAuthorizationApplication: "__idaptive_cybr_user_oidc", // SDK default OAuth app
+			IdentityURL:                      config.IdentityURL,
+			IdentityTenantSubdomain:          "",
+			IdentityAuthorizationApplication: "__idaptive_cybr_user_oidc",
 		},
 	}
 
@@ -54,16 +61,28 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 		Secret: config.ClientSecret,
 	}
 
-	// Authenticate and get initial token
-	// Parameters: profile (optional, nil for default), authProfile, secret, force, refreshAuth
-	// force=false: don't force new auth if token exists
-	// refreshAuth=false: don't attempt refresh (getting initial token)
-	// Note: ARK SDK v1.5.0 Authenticate() does not accept context.Context as first parameter
-	// The first parameter is an optional *ArkProfile (nil uses default profile)
-	_, err := ispAuth.Authenticate(nil, profile, secret, false, false)
+	// CRITICAL: Create in-memory ArkProfile to bypass filesystem profile loading
+	// Passing this explicit profile prevents the SDK from loading ~/.ark/profiles/ and ~/.ark_cache
+	inMemoryProfile := &models.ArkProfile{
+		ProfileName:  "terraform-ephemeral", // Non-persisted name
+		AuthProfiles: map[string]*authmodels.ArkAuthProfile{
+			"isp": authProfile,
+		},
+	}
+
+	// Authenticate with explicit in-memory profile (NOT nil)
+	// This bypasses the default profile loading mechanism
+	// force=true: Always get a fresh token (no cache lookups)
+	_, err := ispAuth.Authenticate(inMemoryProfile, authProfile, secret, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
-	return ispAuth.(*auth.ArkISPAuth), nil
+	// Return context with all auth state for re-use in refresh callbacks
+	return &ISPAuthContext{
+		ISPAuth:     ispAuth.(*auth.ArkISPAuth),
+		Profile:     inMemoryProfile,
+		AuthProfile: authProfile,
+		Secret:      secret,
+	}, nil
 }

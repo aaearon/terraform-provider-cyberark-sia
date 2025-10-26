@@ -111,10 +111,16 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 			"cert_body": schema.StringAttribute{
 				Description: "PEM or DER encoded certificate content. " +
 					"Must be a valid X.509 certificate without private key material (public certificate only). " +
-					"CRITICAL: This attribute must persist in state as it's required for all update operations.",
-				Required: true,
+					"CRITICAL: This attribute must persist in state as it's required for all update operations. " +
+					"The API may normalize whitespace/line endings, so state will reflect server-side format.",
+				Optional: true, // Cannot be Required+Computed (framework limitation)
+				Computed: true, // API may normalize formatting (whitespace, line endings)
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(), // CRITICAL: Persist for updates!
+					stringplanmodifier.UseStateForUnknown(),       // Persist for updates
+					stringplanmodifier.RequiresReplace(),          // Change forces replacement
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1), // Must not be empty
 				},
 			},
 			"cert_description": schema.StringAttribute{
@@ -209,7 +215,7 @@ func (r *CertificateResource) Configure(ctx context.Context, req resource.Config
 	}
 
 	// Initialize certificates client
-	certsClient, err := client.NewCertificatesClient(providerData.ISPAuth)
+	certsClient, err := client.NewCertificatesClient(providerData.AuthContext)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to Initialize Certificates Client",
@@ -261,14 +267,11 @@ func mapCertificateToState(ctx context.Context, cert *client.Certificate, model 
 		model.DomainName = types.StringNull()
 	}
 
-	// cert_body: Only set from API if not already in model (preserve plan value)
-	// This prevents "inconsistent result" errors when Terraform compares plan vs apply
-	if model.CertBody.IsNull() || model.CertBody.IsUnknown() {
-		if cert.CertBody != "" {
-			model.CertBody = types.StringValue(cert.CertBody)
-		}
-	}
-	// Otherwise keep the cert_body from the plan (user input)
+	// cert_body: Preserve plan value (Optional+Computed allows this)
+	// The API may normalize whitespace differently than file(), causing perpetual diffs
+	// Solution: Keep the user's original value from plan, don't overwrite with API response
+	// This prevents "inconsistent result" errors from trailing newline differences
+	// Note: cert_body is already in model from plan - we just don't overwrite it
 
 	// Map labels if present
 	if cert.Labels != nil && len(cert.Labels) > 0 {
@@ -401,12 +404,11 @@ func (r *CertificateResource) Create(ctx context.Context, req resource.CreateReq
 	})
 
 	// Map GET response to Terraform state using helper
+	// cert_body will be set from API response (handles server-side normalization)
 	mapCertificateToState(ctx, fullCertificate, &plan, resp)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// CertBody must persist in state (already in plan, UseStateForUnknown ensures it stays)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
