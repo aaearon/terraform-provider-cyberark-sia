@@ -96,8 +96,8 @@ go mod download
 
 ### Authentication
 ```go
-// Enable token caching for auto-refresh
-ispAuth := auth.NewArkISPAuth(true)
+// Disable credential caching - fresh auth for each provider run
+ispAuth := auth.NewArkISPAuth(false)
 
 // Authenticate (note: first param is *ArkProfile, NOT context.Context)
 _, err := ispAuth.Authenticate(nil, profile, secret, false, false)

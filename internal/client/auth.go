@@ -17,7 +17,7 @@ type AuthConfig struct {
 }
 
 // NewISPAuth creates a new ARK SDK authentication client using IdentityServiceUser method
-// Caching is enabled for automatic token refresh
+// Caching is DISABLED to ensure fresh authentication for each Terraform provider run
 // The SDK automatically extracts tenant information from the username and resolves the Identity URL
 func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, error) {
 	if config == nil {
@@ -33,8 +33,9 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*auth.ArkISPAuth, erro
 	}
 	// Note: IdentityURL is optional - SDK will resolve it from username if empty
 
-	// Initialize ARK SDK auth with caching enabled for automatic token refresh
-	ispAuth := auth.NewArkISPAuth(true)
+	// Initialize ARK SDK auth with caching DISABLED
+	// Each Terraform provider run should get fresh authentication (no credential persistence between runs)
+	ispAuth := auth.NewArkISPAuth(false)
 
 	// Create authentication profile using IdentityServiceUser method for service accounts
 	// This uses OAuth 2.0 client credentials flow (not interactive user auth)

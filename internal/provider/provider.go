@@ -37,13 +37,13 @@ type CyberArkSIAProviderModel struct {
 // This struct is passed to resources via resp.ResourceData in Configure()
 type ProviderData struct {
 	// ISPAuth handles authentication with CyberArk Identity Security Platform
-	// Caching is enabled for automatic token refresh
+	// Fresh authentication for each provider run (no credential caching between runs)
 	ISPAuth *auth.ArkISPAuth
 
 	// SIAAPI provides access to SIA WorkspacesDB() and SecretsDB() APIs
 	SIAAPI *sia.ArkSIAAPI
 
-	// CertificatesClient handles certificate CRUD operations (Phase 6 - User Story 4)
+	// CertificatesClient handles certificate CRUD operations
 	// Initialized on-demand by certificate resource Configure()
 	CertificatesClient *client.CertificatesClient
 }
@@ -139,7 +139,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	LogProviderConfig(ctx, &config)
 
 	// Initialize authentication
-	// Returns *auth.ArkISPAuth with caching enabled for automatic token refresh
+	// Returns *auth.ArkISPAuth with fresh authentication for this provider run
 	// Uses IdentityServiceUser method - SDK auto-resolves Identity URL from username if not provided
 	LogAuthStart(ctx)
 	ispAuth, err := client.NewISPAuth(ctx, &client.AuthConfig{
