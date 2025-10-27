@@ -1,0 +1,37 @@
+#!/bin/bash
+# Pre-commit hook for terraform-provider-cyberark-sia
+# Automatically formats Go code before committing
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Run go fmt on all Go files
+echo "  → Running go fmt..."
+FORMATTED_FILES=$(gofmt -l .)
+
+if [ -n "$FORMATTED_FILES" ]; then
+    echo "  → Formatting the following files:"
+    echo "$FORMATTED_FILES" | sed 's/^/      /'
+
+    # Format the files
+    gofmt -w .
+
+    # Add formatted files to staging
+    echo "$FORMATTED_FILES" | xargs git add
+
+    echo "  ✓ Files formatted and staged"
+else
+    echo "  ✓ All files already formatted"
+fi
+
+# Optional: Run go vet for quick static analysis
+echo "  → Running go vet..."
+if go vet ./... 2>&1 | grep -v "^#"; then
+    echo "  ⚠ go vet found issues (not blocking commit)"
+else
+    echo "  ✓ go vet passed"
+fi
+
+echo "✓ Pre-commit checks complete"
+exit 0
