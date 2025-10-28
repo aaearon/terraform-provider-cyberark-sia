@@ -552,7 +552,7 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 	}
 
 	// Step 3: Search for database in policy (drift detection)
-	target, workspaceType, found := findDatabaseInPolicyWithType(policy, databaseID)
+	target, _, found := findDatabaseInPolicyWithType(policy, databaseID)
 	if !found {
 		tflog.Warn(ctx, "Database not found in policy - resource deleted outside Terraform", map[string]interface{}{
 			"policy_id":   policyID,
@@ -563,8 +563,7 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	// Step 4: Platform drift detection (Gemini recommendation)
-	// Fetch database workspace to check if Platform has changed
+	// Step 4: Verify database workspace still exists
 	// Convert string to int for database fetch
 	databaseIDInt, err := strconv.Atoi(databaseID)
 	if err != nil {
@@ -573,7 +572,7 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	database, err := r.providerData.SIAAPI.WorkspacesDB().Database(&dbmodels.ArkSIADBGetDatabase{
+	_, err = r.providerData.SIAAPI.WorkspacesDB().Database(&dbmodels.ArkSIADBGetDatabase{
 		ID: databaseIDInt,
 	})
 	if err != nil {
@@ -586,19 +585,8 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	// Check if Platform changed (requires replacement)
-	expectedWorkspaceType := determineWorkspaceType(database.Platform)
-	if expectedWorkspaceType != workspaceType {
-		tflog.Warn(ctx, "Database platform changed - forcing replacement", map[string]interface{}{
-			"database_id":          databaseID,
-			"old_workspace_type":   workspaceType,
-			"new_workspace_type":   expectedWorkspaceType,
-			"current_platform":     database.Platform,
-		})
-		LogDriftDetected(ctx, "policy_database_assignment", data.ID.ValueString())
-		resp.State.RemoveResource(ctx) // Force replacement via Create
-		return
-	}
+	// Note: Platform drift detection removed - all databases use "FQDN/IP" target set
+	// regardless of cloud provider, so platform changes don't affect assignment validity
 
 	// Step 5: Update state with current configuration
 	data.PolicyID = types.StringValue(policyID)
@@ -1100,24 +1088,15 @@ func parseCompositeID(id string) (policyID, dbID string, err error) {
 	return parts[0], parts[1], nil
 }
 
-// determineWorkspaceType maps database Platform to policy workspace type
-// Platform values from SDK: AWS, AZURE, GCP, ON-PREMISE, ATLAS
-// Policy workspace types: AWS, AZURE, GCP, FQDN_IP, ATLAS
+// determineWorkspaceType returns the policy workspace type for database targets
+// ALL database workspaces use "FQDN/IP" target set regardless of cloud provider
+// The cloud_provider field is metadata only and doesn't affect policy target sets
+// This is validated by:
+// 1. SDK annotation in ark_uap_sia_db_access_policy.go: choices:"FQDN/IP"
+// 2. UI behavior: Azure databases successfully use "FQDN/IP" target set
+// 3. API validation: Only "FQDN/IP" key is allowed in targets dictionary
 func determineWorkspaceType(platform string) string {
-	switch strings.ToUpper(platform) {
-	case "AWS":
-		return "AWS"
-	case "AZURE":
-		return "AZURE"
-	case "GCP":
-		return "GCP"
-	case "ATLAS":
-		return "ATLAS"
-	case "ON-PREMISE", "":
-		return "FQDN/IP" // ON-PREMISE maps to FQDN/IP workspace type (with slash, not underscore!)
-	default:
-		return "FQDN/IP" // Default fallback
-	}
+	return "FQDN/IP"
 }
 
 // mapDatabaseTypeToInstanceType converts database_type to policy InstanceType

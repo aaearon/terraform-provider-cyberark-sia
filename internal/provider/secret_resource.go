@@ -550,14 +550,15 @@ func (r *secretResource) ValidateConfig(ctx context.Context, req resource.Valida
 	switch authType {
 	case "local", "domain":
 		// Username and password are required for local/domain authentication
-		if config.Username.IsNull() || config.Username.IsUnknown() {
+		// Skip validation if values are unknown (e.g., from variables during plan phase)
+		if config.Username.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("username"),
 				"Missing Required Field",
 				fmt.Sprintf("username is required when authentication_type=%s", authType),
 			)
 		}
-		if config.Password.IsNull() || config.Password.IsUnknown() {
+		if config.Password.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("password"),
 				"Missing Required Field",
@@ -583,14 +584,15 @@ func (r *secretResource) ValidateConfig(ctx context.Context, req resource.Valida
 
 	case "aws_iam":
 		// AWS IAM credentials are required
-		if config.AWSAccessKeyID.IsNull() || config.AWSAccessKeyID.IsUnknown() {
+		// Skip validation if values are unknown (e.g., from variables during plan phase)
+		if config.AWSAccessKeyID.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("aws_access_key_id"),
 				"Missing Required Field",
 				"aws_access_key_id is required when authentication_type=aws_iam",
 			)
 		}
-		if config.AWSSecretAccessKey.IsNull() || config.AWSSecretAccessKey.IsUnknown() {
+		if config.AWSSecretAccessKey.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("aws_secret_access_key"),
 				"Missing Required Field",

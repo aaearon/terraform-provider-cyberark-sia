@@ -242,6 +242,74 @@ tflog.Info(ctx, "Operation succeeded", map[string]interface{}{
 
 ## Recent Changes
 
+### Policy Database Assignment Bug Fix - Azure Database Support (2025-10-27)
+
+**Critical Fix**: Fixed policy database assignment to correctly handle ALL cloud providers (Azure, AWS, GCP, on-premise).
+
+**Root Cause**: The provider incorrectly assumed different cloud providers use different policy target sets (`"AWS"`, `"AZURE"`, `"GCP"`, etc.). The actual API behavior is that **ALL database workspaces use the `"FQDN/IP"` target set**, regardless of the `cloud_provider` attribute.
+
+**Error Before Fix**:
+```
+Error: The only allowed key in the targets dictionary is "FQDN/IP".
+```
+
+**Evidence**: User-provided curl request from SIA UI showed Azure PostgreSQL database successfully assigned to policy using `"FQDN/IP"` target set:
+```json
+{
+  "targets": {
+    "FQDN/IP": {
+      "instances": [{
+        "instanceName": "azure-postgres-test",
+        "instanceType": "Postgres",
+        "authenticationMethod": "db_auth"
+      }]
+    }
+  }
+}
+```
+
+**Files Modified**:
+- `internal/provider/policy_database_assignment_resource.go:1110` - Fixed `determineWorkspaceType()` to always return `"FQDN/IP"`
+- `internal/provider/policy_database_assignment_resource.go:566-589` - Removed platform drift detection (no longer needed)
+- `docs/resources/policy_database_assignment.md` - Updated documentation to reflect correct behavior
+- `examples/testing/TESTING-GUIDE.md` - Added cloud provider testing section
+
+**Before** (Incorrect):
+```go
+func determineWorkspaceType(platform string) string {
+    switch strings.ToUpper(platform) {
+    case "AWS": return "AWS"
+    case "AZURE": return "AZURE"  // ← WRONG!
+    case "GCP": return "GCP"
+    // ...
+    }
+}
+```
+
+**After** (Correct):
+```go
+func determineWorkspaceType(platform string) string {
+    // ALL database workspaces use "FQDN/IP" target set
+    // regardless of cloud provider (AWS/Azure/GCP/on-premise)
+    // The cloud_provider field is metadata only
+    return "FQDN/IP"
+}
+```
+
+**Validation**: Full integration test with Azure PostgreSQL Flexible Server confirmed fix:
+- Created Azure PostgreSQL B1ms (~$0.01 for test)
+- Created SIA certificate, secret, database workspace
+- **Successfully assigned to "Terraform-Test-Policy"** ✅
+- Policy assignment ID: `80b9f727-116d-4e6a-b682-f52fa8c25766:193512`
+- Test results: `/tmp/sia-azure-test-20251027-185657/TEST-RESULTS.md`
+
+**Key Learning**: The `cloud_provider` attribute on database workspaces is **metadata only** and does not affect policy target set selection. This applies to ALL cloud providers:
+- `cloud_provider: "aws"` → uses `"FQDN/IP"` target set
+- `cloud_provider: "azure"` → uses `"FQDN/IP"` target set
+- `cloud_provider: "gcp"` → uses `"FQDN/IP"` target set
+- `cloud_provider: "on_premise"` → uses `"FQDN/IP"` target set
+- `cloud_provider: "atlas"` → uses `"FQDN/IP"` target set
+
 ### Policy Database Assignment Resource Complete (2025-10-27)
 
 **New Resource**: `cyberarksia_policy_database_assignment` - Manages assignment of database workspaces to existing SIA access policies.

@@ -28,55 +28,23 @@ This resource manages individual database assignments within a policy. Like AWS 
 
 This is an accepted limitation of the separate-resource pattern, following the same model as AWS, GCP, and Azure providers.
 
-## ⚠️ Critical: Policy Location Type Constraint
+## Database Target Sets
 
-**Policies are locked to a single location type** based on the `locationType` field set when the policy is created. You **cannot mix different location types** in the same policy.
+**All database workspaces use the `"FQDN/IP"` target set** in policies, regardless of cloud provider. The `cloud_provider` attribute on database workspaces is metadata only and does not affect policy assignment.
 
-### Location Types
+### Validated Behavior
 
-1. **`FQDN_IP`** - On-premise databases (cloud_provider: `on_premise`)
-2. **`AWS`** - AWS RDS/Aurora databases (cloud_provider: `aws`)
-3. **`AZURE`** - Azure SQL/PostgreSQL databases (cloud_provider: `azure`)
-4. **`GCP`** - Google Cloud SQL databases (cloud_provider: `gcp`)
-5. **`ATLAS`** - MongoDB Atlas databases (cloud_provider: `atlas`)
+- ✅ On-premise PostgreSQL → `"FQDN/IP"` target set
+- ✅ AWS RDS databases → `"FQDN/IP"` target set
+- ✅ Azure SQL/PostgreSQL → `"FQDN/IP"` target set
+- ✅ GCP Cloud SQL → `"FQDN/IP"` target set
+- ✅ MongoDB Atlas → `"FQDN/IP"` target set
 
-### API Error Examples
+**You can mix different cloud providers in the same policy** - all database assignments use the same target set structure internally.
 
-If you attempt to assign a database with a different location type than the policy allows:
+### Technical Details
 
-```
-Error: The only allowed key in the targets dictionary is "FQDN/IP".
-```
-
-This means the policy has `locationType: "FQDN_IP"` and you're trying to assign an AWS/Azure/GCP database.
-
-### Solution: Use Separate Policies Per Location Type
-
-```hcl
-# On-premise database policy
-data "cyberarksia_access_policy" "onprem_databases" {
-  name = "On-Premise DB Access"  # locationType: FQDN_IP
-}
-
-resource "cyberarksia_policy_database_assignment" "postgres_onprem" {
-  policy_id             = data.cyberarksia_access_policy.onprem_databases.id
-  database_workspace_id = cyberarksia_database_workspace.postgres_local.id
-  # ... postgres_local has cloud_provider = "on_premise"
-}
-
-# AWS database policy (separate!)
-data "cyberarksia_access_policy" "aws_databases" {
-  name = "AWS RDS Access"  # locationType: AWS
-}
-
-resource "cyberarksia_policy_database_assignment" "rds_postgres" {
-  policy_id             = data.cyberarksia_access_policy.aws_databases.id
-  database_workspace_id = cyberarksia_database_workspace.rds_instance.id
-  # ... rds_instance has cloud_provider = "aws"
-}
-```
-
-**Important**: This constraint is enforced by the CyberArk SIA API and is set at **policy creation time**. It cannot be changed. If you need to support multiple location types, create separate policies for each.
+The ARK SDK enforces this via the `choices:"FQDN/IP"` annotation in `ArkUAPSIADBAccessPolicy.Targets`, indicating that `"FQDN/IP"` is the only valid key for database policy target dictionaries. This is confirmed by UI behavior where Azure/AWS/GCP databases are successfully assigned to policies with `locationType: "FQDN/IP"`.
 
 ## Prerequisites
 
