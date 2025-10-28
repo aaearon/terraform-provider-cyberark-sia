@@ -77,8 +77,3 @@ test-terraform/
 
 # Ignore compiled binaries
 terraform-provider-cyberark-sia
-
-# Development artifacts
-specs/
-specs-archive/
-.specify/

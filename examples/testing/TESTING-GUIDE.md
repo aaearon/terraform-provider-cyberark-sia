@@ -42,11 +42,12 @@ If templates or procedures are outdated:
 
 ## Resources Tested
 
-This test validates all four CyberArk SIA Terraform provider resources:
+This test validates all CyberArk SIA Terraform provider resources:
 1. **Certificate** - TLS/mTLS certificates
 2. **Secret** - Database credentials
 3. **Database Workspace** - Database connection configurations
-4. **Policy Database Assignment** - Assign databases to access policies
+4. **Database Policy** - Access policy metadata and conditions (NEW)
+5. **Policy Database Assignment** - Assign databases to access policies
 
 ---
 

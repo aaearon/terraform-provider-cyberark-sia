@@ -625,6 +625,18 @@ See `docs/sdk-integration.md` for complete field mapping table and unexposed SDK
 - ✅ Access Policy Data Source - Lookup policies by ID or name
 - ✅ Policy Database Assignment Resource - Manage database assignments to policies (6 authentication methods)
 
+**In Progress** (Feature 002-sia-policy-lifecycle):
+- 🚧 Database Policy Resource - Policy metadata and access conditions (NEW)
+- 🚧 Database Policy Principal Assignment Resource - Assign principals (users/groups/roles) to policies (NEW)
+
+**Key Implementation Patterns**:
+- **Composite IDs**:
+  - Principal assignments: 3-part format `policy-id:principal-id:principal-type` (handles duplicate IDs across types)
+  - Database assignments: 2-part format `policy-id:database-id` (existing)
+- **Read-Modify-Write**: All assignment resources use read-modify-write pattern to preserve UI-managed and other Terraform-managed elements
+- **Location Type Constraint**: Database policies ONLY support "FQDN/IP" location type regardless of cloud provider (AWS/Azure/GCP/on-premise)
+- **API Constraint**: UpdatePolicy() accepts only ONE workspace type in Targets map per call
+
 **Future Enhancements** (pending user demand):
 - Active Directory domain controller integration (6 fields available in SDK)
 - CyberArk PAM secret integration
