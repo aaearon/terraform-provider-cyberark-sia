@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
+	uapsiacommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/common/models"
 	uapsiadbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/db/models"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -20,8 +20,8 @@ type DatabasePolicyModel struct {
 
 	// Required metadata
 	Name                     types.String `tfsdk:"name"`                        // 1-200 chars, unique
-	Status                   types.String `tfsdk:"status"`                      // "Active"|"Suspended"
-	DelegationClassification types.String `tfsdk:"delegation_classification"`   // "Restricted"|"Unrestricted"
+	Status                   types.String `tfsdk:"status"`                      // "active"|"suspended"
+	DelegationClassification types.String `tfsdk:"delegation_classification"`   // "restricted"|"unrestricted"
 
 	// Optional metadata
 	Description types.String `tfsdk:"description"` // max 200 chars
@@ -33,12 +33,18 @@ type DatabasePolicyModel struct {
 	// Optional tags (max 20)
 	PolicyTags types.List `tfsdk:"policy_tags"` // []string
 
+	// Inline assignments (required by API - at least 1 of each)
+	// Note: Singular tfsdk names match familiar Terraform patterns (aws_security_group ingress/egress)
+	TargetDatabase []InlineDatabaseAssignmentModel `tfsdk:"target_database"`
+	Principal      []InlinePrincipalModel          `tfsdk:"principal"`
+
 	// Conditions (nested block)
 	Conditions *ConditionsModel `tfsdk:"conditions"`
 
 	// Computed metadata
-	CreatedBy *ChangeInfoModel `tfsdk:"created_by"`
-	UpdatedOn *ChangeInfoModel `tfsdk:"updated_on"`
+	CreatedBy    *ChangeInfoModel `tfsdk:"created_by"`
+	UpdatedOn    *ChangeInfoModel `tfsdk:"updated_on"`
+	LastModified types.String     `tfsdk:"last_modified"`
 }
 
 // TimeFrameModel represents policy validity period
@@ -56,7 +62,7 @@ type ConditionsModel struct {
 
 // AccessWindowModel represents time-based access restrictions
 type AccessWindowModel struct {
-	DaysOfTheWeek types.List   `tfsdk:"days_of_the_week"` // []int, 0=Sunday through 6=Saturday
+	DaysOfTheWeek types.Set    `tfsdk:"days_of_the_week"` // Set of int, 0=Sunday through 6=Saturday (order doesn't matter)
 	FromHour      types.String `tfsdk:"from_hour"`        // "HH:MM"
 	ToHour        types.String `tfsdk:"to_hour"`          // "HH:MM"
 }
@@ -67,10 +73,33 @@ type ChangeInfoModel struct {
 	Timestamp types.String `tfsdk:"timestamp"` // ISO 8601
 }
 
+// InlineDatabaseAssignmentModel represents an inline target database assignment
+type InlineDatabaseAssignmentModel struct {
+	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"`
+	AuthenticationMethod types.String `tfsdk:"authentication_method"`
+
+	// Profile blocks (mutually exclusive based on authentication_method)
+	DBAuthProfile         *DBAuthProfileModel         `tfsdk:"db_auth_profile"`
+	LDAPAuthProfile       *LDAPAuthProfileModel       `tfsdk:"ldap_auth_profile"`
+	OracleAuthProfile     *OracleAuthProfileModel     `tfsdk:"oracle_auth_profile"`
+	MongoAuthProfile      *MongoAuthProfileModel      `tfsdk:"mongo_auth_profile"`
+	SQLServerAuthProfile  *SQLServerAuthProfileModel  `tfsdk:"sqlserver_auth_profile"`
+	RDSIAMUserAuthProfile *RDSIAMUserAuthProfileModel `tfsdk:"rds_iam_user_auth_profile"`
+}
+
+// InlinePrincipalModel represents an inline principal assignment
+type InlinePrincipalModel struct {
+	PrincipalID         types.String `tfsdk:"principal_id"`
+	PrincipalType       types.String `tfsdk:"principal_type"`
+	PrincipalName       types.String `tfsdk:"principal_name"`
+	SourceDirectoryName types.String `tfsdk:"source_directory_name"`
+	SourceDirectoryID   types.String `tfsdk:"source_directory_id"`
+}
+
 // ToSDK converts Terraform state model to ARK SDK policy struct
 func (m *DatabasePolicyModel) ToSDK() *uapsiadbmodels.ArkUAPSIADBAccessPolicy {
 	policy := &uapsiadbmodels.ArkUAPSIADBAccessPolicy{
-		ArkUAPSIACommonAccessPolicy: uapsiadbmodels.ArkUAPSIACommonAccessPolicy{
+		ArkUAPSIACommonAccessPolicy: uapsiacommonmodels.ArkUAPSIACommonAccessPolicy{
 			ArkUAPCommonAccessPolicy: uapcommonmodels.ArkUAPCommonAccessPolicy{
 				Metadata: uapcommonmodels.ArkUAPMetadata{
 					PolicyID:    m.PolicyID.ValueString(),
@@ -169,8 +198,8 @@ func (m *DatabasePolicyModel) FromSDK(ctx context.Context, policy *uapsiadbmodel
 }
 
 // convertConditionsToSDK converts Terraform conditions to SDK conditions
-func convertConditionsToSDK(c *ConditionsModel) uapsiadbmodels.ArkUAPSIACommonConditions {
-	conditions := uapsiadbmodels.ArkUAPSIACommonConditions{
+func convertConditionsToSDK(c *ConditionsModel) uapsiacommonmodels.ArkUAPSIACommonConditions {
+	conditions := uapsiacommonmodels.ArkUAPSIACommonConditions{
 		ArkUAPConditions: uapcommonmodels.ArkUAPConditions{
 			MaxSessionDuration: int(c.MaxSessionDuration.ValueInt64()),
 		},
@@ -181,10 +210,11 @@ func convertConditionsToSDK(c *ConditionsModel) uapsiadbmodels.ArkUAPSIACommonCo
 	if c.AccessWindow != nil {
 		var days []int
 		if !c.AccessWindow.DaysOfTheWeek.IsNull() && !c.AccessWindow.DaysOfTheWeek.IsUnknown() {
+			// Convert Set to []int (Set automatically handles ordering)
 			c.AccessWindow.DaysOfTheWeek.ElementsAs(context.Background(), &days, false)
 		}
 
-		conditions.AccessWindow = uapcommonmodels.ArkUAPAccessWindow{
+		conditions.AccessWindow = uapcommonmodels.ArkUAPTimeCondition{
 			DaysOfTheWeek: days,
 			FromHour:      c.AccessWindow.FromHour.ValueString(),
 			ToHour:        c.AccessWindow.ToHour.ValueString(),
@@ -195,7 +225,7 @@ func convertConditionsToSDK(c *ConditionsModel) uapsiadbmodels.ArkUAPSIACommonCo
 }
 
 // convertConditionsFromSDK converts SDK conditions to Terraform conditions
-func convertConditionsFromSDK(ctx context.Context, c *uapsiadbmodels.ArkUAPSIACommonConditions) *ConditionsModel {
+func convertConditionsFromSDK(ctx context.Context, c *uapsiacommonmodels.ArkUAPSIACommonConditions) *ConditionsModel {
 	if c == nil {
 		return nil
 	}
@@ -212,10 +242,11 @@ func convertConditionsFromSDK(ctx context.Context, c *uapsiadbmodels.ArkUAPSIACo
 			dayValues[i] = types.Int64Value(int64(day))
 		}
 
-		daysList, _ := types.ListValue(types.Int64Type, dayValues)
+		// Use SetValue instead of ListValue - order doesn't matter
+		daysSet, _ := types.SetValue(types.Int64Type, dayValues)
 
 		conditions.AccessWindow = &AccessWindowModel{
-			DaysOfTheWeek: daysList,
+			DaysOfTheWeek: daysSet,
 			FromHour:      types.StringValue(c.AccessWindow.FromHour),
 			ToHour:        types.StringValue(c.AccessWindow.ToHour),
 		}
