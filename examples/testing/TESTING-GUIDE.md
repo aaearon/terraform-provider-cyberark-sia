@@ -410,7 +410,21 @@ Testing with cloud-managed databases (AWS RDS, Azure PostgreSQL, GCP Cloud SQL) 
 
 ### Azure PostgreSQL Testing
 
-**Reference Implementation**: `/tmp/sia-azure-test-20251027-185657/` (2025-10-27)
+**Canonical Test Template**: `examples/testing/azure-postgresql/`
+
+This directory contains the validated Azure PostgreSQL CRUD test configuration from 2025-10-27.
+Use this as the reference implementation for all future cloud provider testing.
+
+#### Quick Start
+
+```bash
+cd examples/testing/azure-postgresql
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your credentials
+terraform init && terraform apply
+# Verify success, then clean up
+terraform destroy
+```
 
 #### Prerequisites
 1. Azure CLI authentication: `az login`
