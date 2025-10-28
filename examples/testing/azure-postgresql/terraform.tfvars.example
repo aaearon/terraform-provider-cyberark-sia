@@ -1,0 +1,14 @@
+# Terraform variable values for Azure + SIA integration test
+# Copy this file to terraform.tfvars and fill in your credentials
+
+# Azure configuration
+azure_subscription_id = "YOUR_AZURE_SUBSCRIPTION_ID"  # Get with: az account show --query id -o tsv
+azure_region          = "westus2"  # Change if needed (check az account list-locations)
+
+# PostgreSQL admin credentials
+postgres_admin_username = "siaadmin"
+postgres_admin_password = "GENERATE_SECURE_PASSWORD"  # Generate with: openssl rand -base64 24
+
+# CyberArk SIA credentials (from project root .env)
+sia_username      = "your-username@cyberark.cloud.XXXXX"
+sia_client_secret = "YOUR_CLIENT_SECRET"
