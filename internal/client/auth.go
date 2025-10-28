@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/cyberark/ark-sdk-golang/pkg/auth"
-	authmodels "github.com/cyberark/ark-sdk-golang/pkg/models/auth"
 	"github.com/cyberark/ark-sdk-golang/pkg/models"
+	authmodels "github.com/cyberark/ark-sdk-golang/pkg/models/auth"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -71,7 +71,7 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*ISPAuthContext, error
 	// CRITICAL: Create in-memory ArkProfile to bypass filesystem profile loading
 	// Passing this explicit profile prevents the SDK from loading ~/.ark/profiles/ and ~/.ark_cache
 	inMemoryProfile := &models.ArkProfile{
-		ProfileName:  "terraform-ephemeral", // Non-persisted name
+		ProfileName: "terraform-ephemeral", // Non-persisted name
 		AuthProfiles: map[string]*authmodels.ArkAuthProfile{
 			"isp": authProfile,
 		},

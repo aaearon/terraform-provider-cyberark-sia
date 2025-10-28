@@ -1,0 +1,50 @@
+# ============================================================================
+# SIA Provider Configuration
+# ============================================================================
+# Copy values from project root .env file
+
+sia_username      = "your-service-account@cyberark.cloud.XXXXX"
+sia_client_secret = "your-client-secret-here"
+
+# ============================================================================
+# Azure Configuration
+# ============================================================================
+
+azure_subscription_id = "your-azure-subscription-id"
+azure_region          = "westus2" # Change if needed based on subscription restrictions
+
+# ============================================================================
+# PostgreSQL Configuration
+# ============================================================================
+
+postgres_admin_username = "pgadmin"
+postgres_admin_password = "ChangeMe123!SecureP@ss" # Must be strong password
+
+# ============================================================================
+# Test Principal Configuration (Tim Schindler)
+# ============================================================================
+
+# To get Tim's principal_id UUID:
+# 1. Log into SIA UI
+# 2. Navigate to Identity & Access > Users
+# 3. Find "tim.schindler@cyberark.cloud.40562"
+# 4. Copy the UUID from the user details
+
+test_principal_id    = "c2c7bcc6-9560-44e0-8dff-5be221cd37ee" # Replace with actual UUID from SIA
+test_principal_email = "tim.schindler@cyberark.cloud.40562"
+
+# CyberArk Cloud Directory ID (usually constant)
+cyberark_cloud_directory_id = "09B9A9B0-6CE8-465F-AB03-65766D33B05E"
+
+# ============================================================================
+# Service Account Principal
+# ============================================================================
+
+# UUID of the sia_username service account
+# To get this:
+# 1. Log into SIA UI
+# 2. Navigate to Identity & Access > Users
+# 3. Find your service account email
+# 4. Copy the UUID
+
+service_account_principal_id = "your-service-account-uuid-here"

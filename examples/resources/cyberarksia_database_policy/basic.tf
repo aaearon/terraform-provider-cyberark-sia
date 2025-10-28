@@ -3,7 +3,7 @@
 
 resource "cyberarksia_database_policy" "basic" {
   name                       = "Basic-Database-Policy"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
 
   conditions {

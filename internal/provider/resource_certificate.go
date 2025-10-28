@@ -116,8 +116,8 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional: true, // Cannot be Required+Computed (framework limitation)
 				Computed: true, // API may normalize formatting (whitespace, line endings)
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),       // Persist for updates
-					stringplanmodifier.RequiresReplace(),          // Change forces replacement
+					stringplanmodifier.UseStateForUnknown(), // Persist for updates
+					stringplanmodifier.RequiresReplace(),    // Change forces replacement
 				},
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1), // Must not be empty

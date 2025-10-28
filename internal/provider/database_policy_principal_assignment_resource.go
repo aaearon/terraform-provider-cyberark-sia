@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -59,8 +58,11 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Schema(ctx context.Context, 
 				},
 			},
 			"principal_id": schema.StringAttribute{
-				MarkdownDescription: "Principal identifier (max 40 characters). For USER/GROUP: typically email or username. For ROLE: role name.",
+				MarkdownDescription: "Principal identifier in UUID format (e.g., `c2c7bcc6-9560-44e0-8dff-5be221cd37ee`). This is the unique identifier returned by the SIA API.",
 				Required:            true,
+				Validators: []validator.String{
+					validators.UUID(),
+				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -76,8 +78,11 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Schema(ctx context.Context, 
 				},
 			},
 			"principal_name": schema.StringAttribute{
-				MarkdownDescription: "Display name for the principal (max 512 characters).",
+				MarkdownDescription: "Principal name in email format (e.g., `user@example.com` or `tim.schindler@cyberark.cloud.40562`).",
 				Required:            true,
+				Validators: []validator.String{
+					validators.EmailLike(),
+				},
 			},
 			"source_directory_name": schema.StringAttribute{
 				MarkdownDescription: "Source identity directory name (max 50 characters). **Required** for USER and GROUP types. Examples: `AzureAD`, `LDAP`, `Okta`.",
@@ -133,7 +138,7 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Create(ctx context.Context, 
 		PolicyID: policyID,
 	})
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "fetch policy for principal assignment"))
 		return
 	}
 
@@ -160,11 +165,12 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Create(ctx context.Context, 
 		BaseDelay:  client.BaseDelay,
 		MaxDelay:   client.MaxDelay,
 	}, func() error {
-		return r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		_, err := r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		return err
 	})
 
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "assign principal to policy"))
 		return
 	}
 
@@ -201,7 +207,7 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Read(ctx context.Context, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "fetch policy for read"))
 		return
 	}
 
@@ -252,7 +258,7 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Update(ctx context.Context, 
 		PolicyID: policyID,
 	})
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "fetch policy for update"))
 		return
 	}
 
@@ -280,11 +286,12 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Update(ctx context.Context, 
 		BaseDelay:  client.BaseDelay,
 		MaxDelay:   client.MaxDelay,
 	}, func() error {
-		return r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		_, err := r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		return err
 	})
 
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "update principal assignment"))
 		return
 	}
 
@@ -320,7 +327,7 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Delete(ctx context.Context, 
 		if client.IsNotFoundError(err) {
 			return // Already deleted
 		}
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "update principal assignment"))
 		return
 	}
 
@@ -348,11 +355,12 @@ func (r *DatabasePolicyPrincipalAssignmentResource) Delete(ctx context.Context, 
 		BaseDelay:  client.BaseDelay,
 		MaxDelay:   client.MaxDelay,
 	}, func() error {
-		return r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		_, err := r.providerData.UAPClient.Db().UpdatePolicy(policy)
+		return err
 	})
 
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "remove principal from policy"))
 		return
 	}
 
@@ -376,7 +384,7 @@ func (r *DatabasePolicyPrincipalAssignmentResource) ImportState(ctx context.Cont
 		PolicyID: policyID,
 	})
 	if err != nil {
-		resp.Diagnostics.Append(client.MapError(err)...)
+		resp.Diagnostics.Append(client.MapError(err, "operation"))
 		return
 	}
 

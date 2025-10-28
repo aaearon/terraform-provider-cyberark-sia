@@ -42,6 +42,9 @@ const (
 
 	// Secret DELETE endpoint (from SDK source)
 	secretDeleteURL = "/api/adb/secretsmgmt/secrets/%s"
+
+	// Policy DELETE endpoint (from SDK source)
+	policyDeleteURL = "/api/policies/%s"
 )
 
 // DeleteDatabaseWorkspaceDirect bypasses SDK's buggy DeleteDatabase() method
@@ -73,10 +76,10 @@ func DeleteDatabaseWorkspaceDirect(ctx context.Context, authCtx *ISPAuthContext,
 	// Create temporary ISP service client (same pattern as CertificatesClient)
 	client, err := isp.FromISPAuth(
 		authCtx.ISPAuth,
-		"dpa",  // Service name (constructs https://{subdomain}.dpa.{domain})
-		".",    // Separator
-		"",     // Base path
-		nil,    // No refresh callback needed for one-time operation
+		"dpa", // Service name (constructs https://{subdomain}.dpa.{domain})
+		".",   // Separator
+		"",    // Base path
+		nil,   // No refresh callback needed for one-time operation
 	)
 	if err != nil {
 		tflog.Error(ctx, "Failed to create ISP client for DELETE workaround", map[string]interface{}{
@@ -160,10 +163,10 @@ func DeleteSecretDirect(ctx context.Context, authCtx *ISPAuthContext, secretID s
 	// Create temporary ISP service client (same pattern as CertificatesClient)
 	client, err := isp.FromISPAuth(
 		authCtx.ISPAuth,
-		"dpa",  // Service name (constructs https://{subdomain}.dpa.{domain})
-		".",    // Separator
-		"",     // Base path
-		nil,    // No refresh callback needed for one-time operation
+		"dpa", // Service name (constructs https://{subdomain}.dpa.{domain})
+		".",   // Separator
+		"",    // Base path
+		nil,   // No refresh callback needed for one-time operation
 	)
 	if err != nil {
 		tflog.Error(ctx, "Failed to create ISP client for DELETE workaround", map[string]interface{}{
@@ -213,6 +216,95 @@ func DeleteSecretDirect(ctx context.Context, authCtx *ISPAuthContext, secretID s
 
 	tflog.Debug(ctx, "DELETE workaround successful", map[string]interface{}{
 		"secret_id": secretID,
+	})
+
+	return nil
+}
+
+// DeleteDatabasePolicyDirect bypasses SDK's buggy DeletePolicy() method
+// and makes HTTP DELETE request directly with empty body workaround.
+//
+// This function replicates the SDK's delete logic but passes map[string]string{}
+// instead of nil to avoid the panic.
+//
+// API Endpoint: DELETE /api/policies/{id}
+// Success Response: HTTP 204 No Content
+// Error Responses:
+//   - 404 Not Found: Policy already deleted (treated as success)
+//
+// Parameters:
+//   - ctx: Context for request cancellation
+//   - authCtx: ISPAuthContext for authentication
+//   - policyID: Policy ID (UUID string)
+//
+// Returns:
+//   - error: nil on success (including 404), error on failure
+func DeleteDatabasePolicyDirect(ctx context.Context, authCtx *ISPAuthContext, policyID string) error {
+	tflog.Debug(ctx, "Executing DELETE workaround (ARK SDK bug bypass)", map[string]interface{}{
+		"resource_type": "database_policy",
+		"policy_id":     policyID,
+		"workaround":    "empty_map_body",
+	})
+
+	// Create temporary ISP service client for UAP (policies use different service than SIA)
+	// UAP policies use "uap" service: https://{subdomain}.uap.{domain}
+	// SIA resources (database_workspace, secret) use "dpa" service: https://{subdomain}.dpa.{domain}
+	client, err := isp.FromISPAuth(
+		authCtx.ISPAuth,
+		"uap", // Service name for UAP policies (NOT "dpa")
+		".",   // Separator
+		"",    // Base path
+		nil,   // No refresh callback needed for one-time operation
+	)
+	if err != nil {
+		tflog.Error(ctx, "Failed to create ISP client for DELETE workaround", map[string]interface{}{
+			"policy_id": policyID,
+			"error":     err.Error(),
+		})
+		return fmt.Errorf("failed to create ISP client for DELETE: %w", err)
+	}
+
+	// Construct endpoint URL
+	endpoint := fmt.Sprintf(policyDeleteURL, policyID)
+
+	// Execute DELETE with empty map workaround (NOT nil!)
+	// This prevents the SDK panic by ensuring bodyBytes is initialized
+	response, err := client.Delete(ctx, endpoint, map[string]string{})
+	if err != nil {
+		tflog.Error(ctx, "DELETE workaround request failed", map[string]interface{}{
+			"policy_id": policyID,
+			"error":     err.Error(),
+		})
+		return fmt.Errorf("failed to delete policy %s: %w", policyID, err)
+	}
+	defer response.Body.Close()
+
+	tflog.Debug(ctx, "DELETE workaround response received", map[string]interface{}{
+		"policy_id":   policyID,
+		"status_code": response.StatusCode,
+	})
+
+	// Handle HTTP status codes
+	// UAP DELETE returns 200 OK with empty body (differs from database/secret DELETE which return 204)
+	if response.StatusCode == http.StatusNotFound {
+		tflog.Debug(ctx, "Policy already deleted (404)", map[string]interface{}{
+			"policy_id": policyID,
+		})
+		// Policy already deleted - treat as success
+		return nil
+	}
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		tflog.Error(ctx, "DELETE workaround failed with unexpected status", map[string]interface{}{
+			"policy_id":   policyID,
+			"status_code": response.StatusCode,
+		})
+		return fmt.Errorf("failed to delete policy %s - [%d] - [%s]",
+			policyID, response.StatusCode, common.SerializeResponseToJSON(response.Body))
+	}
+
+	tflog.Debug(ctx, "DELETE workaround successful", map[string]interface{}{
+		"policy_id": policyID,
 	})
 
 	return nil

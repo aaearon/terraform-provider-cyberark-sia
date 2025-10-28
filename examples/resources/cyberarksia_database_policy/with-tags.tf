@@ -3,7 +3,7 @@
 resource "cyberarksia_database_policy" "tagged" {
   name                       = "Production-Database-Policy"
   description                = "Policy for production database access"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Restricted"
   time_zone                  = "GMT"
 
@@ -42,7 +42,7 @@ variable "team" {
 resource "cyberarksia_database_policy" "dynamic_tags" {
   name                       = "${var.environment}-${var.team}-policy"
   description                = "Access policy for ${var.team} team in ${var.environment}"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
 
   policy_tags = [

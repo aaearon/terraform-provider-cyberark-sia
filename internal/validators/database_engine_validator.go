@@ -41,14 +41,14 @@ func (v databaseEngineValidator) ValidateString(ctx context.Context, req validat
 	value := req.ConfigValue.ValueString()
 
 	tflog.Trace(ctx, "Validating database engine type", map[string]interface{}{
-		"value":                 value,
+		"value":                    value,
 		"valid_engine_types_count": len(dbmodels.DatabaseEngineTypes),
 	})
 
 	// Check if value exists in SDK's list
 	if !slices.Contains(dbmodels.DatabaseEngineTypes, value) {
 		tflog.Warn(ctx, "Database engine validation failed", map[string]interface{}{
-			"value":                 value,
+			"value":                    value,
 			"valid_engine_types_count": len(dbmodels.DatabaseEngineTypes),
 		})
 		resp.Diagnostics.AddAttributeError(

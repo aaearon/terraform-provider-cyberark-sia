@@ -4,6 +4,87 @@
 
 This guide is the **single source of truth** for CRUD testing of the CyberArk SIA Terraform provider.
 
+**Last Updated**: 2025-10-28 (Added comprehensive Azure PostgreSQL CRUD workflow + Critical fixes)
+
+---
+
+## ⚠️ CRITICAL WARNINGS - Read Before Testing
+
+### 1. NEVER Use `timestamp()` on Azure Resources
+
+**Problem**: Using `timestamp()` in Azure resource tags causes Terraform to recompute the value on every apply, triggering unnecessary resource updates that can take 1+ minute per resource.
+
+```hcl
+# ❌ BAD - Causes unnecessary updates on every apply
+resource "azurerm_postgresql_flexible_server" "test" {
+  tags = {
+    created_at = timestamp()  # DON'T DO THIS!
+  }
+}
+
+# ✅ GOOD - Static values only
+resource "azurerm_postgresql_flexible_server" "test" {
+  tags = {
+    created_at  = "2025-10-28"  # Static date
+    environment = "test"
+  }
+}
+```
+
+**Impact**: Each apply with `timestamp()` in tags:
+- Triggers ~1 minute PostgreSQL tag update
+- Adds 1-2 minutes total to every `terraform apply`
+- Multiplies testing time by 2-3x
+
+**Solution**: Use static strings for Azure resource tags. Only use `timestamp()` on **SIA resources** where it doesn't trigger cloud provider API calls.
+
+### 2. CyberArk Cloud Directory Users Are `USER` Type, Not `ROLE`
+
+**Problem**: CyberArk Cloud Directory users (format: `user@cyberark.cloud.XXXXX`) must use `principal_type = "USER"`, NOT `"ROLE"`.
+
+```hcl
+# ❌ BAD - ROLE is incorrect for Cloud Directory users
+resource "cyberarksia_database_policy_principal_assignment" "example" {
+  principal_id   = "tim@cyberark.cloud.40562"
+  principal_type = "ROLE"  # WRONG!
+}
+
+# ✅ GOOD - USER is correct for Cloud Directory users
+resource "cyberarksia_database_policy_principal_assignment" "example" {
+  principal_id   = "tim@cyberark.cloud.40562"
+  principal_type = "USER"  # CORRECT!
+}
+```
+
+**When to use each type**:
+- `"USER"` - CyberArk Cloud Directory users (`user@cyberark.cloud.XXXXX`)
+- `"GROUP"` - Active Directory groups, Azure AD groups
+- `"ROLE"` - CyberArk roles, service roles (NOT Cloud Directory users)
+
+### 3. Database Policy `time_frame` is Optional
+
+**Behavior**: If `time_frame` block is omitted, the policy **never expires** (valid indefinitely).
+
+```hcl
+# ✅ Policy never expires
+resource "cyberarksia_database_policy" "permanent" {
+  name   = "Never-Expires-Policy"
+  status = "active"
+  # No time_frame block = policy valid forever
+}
+
+# ✅ Policy expires on Dec 31, 2026
+resource "cyberarksia_database_policy" "temporary" {
+  name   = "Temporary-Policy"
+  status = "active"
+
+  time_frame {
+    from_time = "2025-10-28T00:00:00Z"
+    to_time   = "2026-12-31T23:59:59Z"
+  }
+}
+```
+
 ---
 
 ## About This Guide
@@ -46,17 +127,29 @@ This test validates all CyberArk SIA Terraform provider resources:
 1. **Certificate** - TLS/mTLS certificates
 2. **Secret** - Database credentials
 3. **Database Workspace** - Database connection configurations
-4. **Database Policy** - Access policy metadata and conditions (NEW)
-5. **Policy Database Assignment** - Assign databases to access policies
+4. **Database Policy** - Access policy metadata and conditions
+5. **Database Policy Principal Assignment** - Assign users/groups/roles to policies
+6. **Policy Database Assignment** - Assign databases to access policies
 
 ---
 
 ## Prerequisites
 
+### Basic Testing (On-Premise/Mock Resources)
 - ✅ CyberArk SIA tenant with UAP service provisioned
-- ✅ Valid credentials (username + client_secret)
-- ✅ Existing access policy named "Terraform-Test-Policy"
-- ✅ Provider built and installed
+- ✅ Valid credentials (username + client_secret) - stored in project root `.env` file
+- ✅ Provider built and installed (`go build -v && go install`)
+
+### Cloud Provider Testing (Azure/AWS/GCP)
+- ✅ Azure CLI authenticated (`az login`) - for Azure PostgreSQL testing
+- ✅ Valid Azure subscription with PostgreSQL Flexible Server permissions
+- ✅ AWS CLI configured (`aws configure`) - for AWS RDS testing (optional)
+- ✅ GCP CLI authenticated (`gcloud auth login`) - for GCP Cloud SQL testing (optional)
+
+### Policy Management Testing
+- ✅ Test principal email addresses (for USER assignments)
+- ✅ Azure AD directory ID (for USER/GROUP assignments)
+- ✅ Service account credentials (for automated testing)
 
 ---
 
@@ -117,6 +210,588 @@ terraform apply -auto-approve
 
 # DELETE - Clean up all resources
 terraform destroy -auto-approve
+```
+
+---
+
+## Complete CRUD Test with Azure PostgreSQL
+
+### Overview
+
+This is the **comprehensive testing workflow** for all 6 SIA provider resources with a real Azure PostgreSQL flexible database. This workflow validates the complete lifecycle including infrastructure provisioning, policy management, and principal assignments.
+
+**Test Scope**: ALL 6 resources + Azure infrastructure
+**Duration**: 20-30 minutes
+**Cost**: < $0.01 USD (Azure B1ms for ~15 minutes)
+
+### Resources Validated
+1. Azure PostgreSQL Flexible Server (B1ms)
+2. `cyberarksia_certificate` - Azure SSL certificate
+3. `cyberarksia_secret` - Database admin credentials
+4. `cyberarksia_database_workspace` - Azure PostgreSQL configuration
+5. `cyberarksia_database_policy` - Access policy with conditions
+6. `cyberarksia_database_policy_principal_assignment` - User assignments
+7. `cyberarksia_policy_database_assignment` - Database to policy assignment
+
+### Phase 1: Setup (2 minutes)
+
+```bash
+# 1. Create timestamped working directory
+export TEST_DIR="/tmp/sia-crud-validation-$(date +%Y%m%d-%H%M%S)"
+mkdir -p $TEST_DIR
+cd $TEST_DIR
+
+# 2. Copy Azure PostgreSQL template
+cp -r ~/terraform-provider-cyberark-sia/examples/testing/azure-postgresql/* .
+
+# 3. Create terraform.tfvars from .env file
+cat > terraform.tfvars <<EOF
+# From project root .env file
+sia_username              = "$(grep CYBERARK_USERNAME ~/terraform-provider-cyberark-sia/.env | cut -d'=' -f2)"
+sia_client_secret         = "$(grep CYBERARK_CLIENT_SECRET ~/terraform-provider-cyberark-sia/.env | cut -d'=' -f2)"
+
+# Azure settings
+azure_subscription_id     = "YOUR_AZURE_SUBSCRIPTION_ID"
+azure_region              = "westus2"
+
+# PostgreSQL settings
+postgres_admin_username   = "pgadmin"
+postgres_admin_password   = "ChangeMe123!SecureP@ss"
+
+# Test principals (UPDATE THESE)
+test_principal_email      = "tim.schindler@cyberark.cloud.40562"
+azure_ad_directory_id     = "YOUR_AZURE_AD_DIRECTORY_ID"
+azure_ad_directory_name   = "AzureAD-Test"
+EOF
+
+# 4. Build and install provider
+cd ~/terraform-provider-cyberark-sia
+go build -v && go install
+
+# 5. Initialize Terraform
+cd $TEST_DIR
+terraform init
+```
+
+**Validation**:
+- [ ] Working directory created with timestamp
+- [ ] Azure template files copied successfully
+- [ ] `terraform.tfvars` created with credentials from `.env`
+- [ ] Provider built without errors
+- [ ] Terraform initialized successfully
+
+### Phase 2: CREATE - Azure Infrastructure (5-10 minutes)
+
+```bash
+# Create Azure resources first
+terraform apply -target=random_string.suffix -auto-approve
+terraform apply -target=azurerm_resource_group.sia_test -auto-approve
+terraform apply -target=azurerm_postgresql_flexible_server.sia_test -auto-approve
+terraform apply -target=azurerm_postgresql_flexible_server_firewall_rule.allow_azure_services -auto-approve
+terraform apply -target=azurerm_postgresql_flexible_server_firewall_rule.allow_all -auto-approve
+terraform apply -target=azurerm_postgresql_flexible_server_database.testdb -auto-approve
+```
+
+**Validation**:
+- [ ] Resource group created
+- [ ] PostgreSQL server provisioned (B1ms, v16, 32GB)
+- [ ] Firewall rules configured (Azure services + all IPs)
+- [ ] Test database created
+- [ ] Server FQDN available: `terraform output azure_postgres_fqdn`
+- [ ] Public access enabled
+
+**Common Issues**:
+- **LocationIsOfferRestricted**: Change `azure_region` to "westus2" in terraform.tfvars
+- **Slow provisioning**: PostgreSQL creation takes 5-10 minutes (normal)
+
+### Phase 3: CREATE - SIA Certificate (< 1 minute)
+
+```bash
+terraform apply -target=cyberarksia_certificate.azure_cert -auto-approve
+```
+
+**Validation**:
+- [ ] Certificate ID is numeric string
+- [ ] `expiration_date` is ISO 8601 timestamp
+- [ ] `metadata.issuer` contains "Microsoft RSA Root Certificate Authority 2017"
+- [ ] `metadata.subject` populated correctly
+- [ ] Labels saved: `environment=test`, `purpose=sia-azure-integration`
+
+### Phase 4: CREATE - SIA Secret (< 1 minute)
+
+```bash
+terraform apply -target=cyberarksia_secret.admin -auto-approve
+```
+
+**Validation**:
+- [ ] Secret ID is UUID format
+- [ ] `created_at` timestamp populated
+- [ ] `authentication_type` = "local"
+- [ ] Username matches `postgres_admin_username` from tfvars
+- [ ] Tags saved: `environment=test`, `managed_by=terraform`
+
+### Phase 5: CREATE - SIA Database Workspace (< 1 minute)
+
+```bash
+terraform apply -target=cyberarksia_database_workspace.azure_postgres -auto-approve
+```
+
+**Validation**:
+- [ ] Database ID is numeric
+- [ ] `secret_id` matches created secret (from Phase 4)
+- [ ] `certificate_id` matches created certificate (from Phase 3)
+- [ ] `database_type` = "postgres-azure-managed"
+- [ ] `cloud_provider` = "azure"
+- [ ] `address` matches Azure PostgreSQL FQDN
+- [ ] `port` = 5432
+- [ ] `region` = "westus2"
+- [ ] Tags saved correctly
+
+### Phase 6: CREATE - SIA Database Policy with Inline Assignments (< 1 minute)
+
+**IMPORTANT**: The SIA API requires at least ONE target database AND ONE principal when creating a policy. Use inline `target_database` and `principal` blocks to meet this requirement.
+
+**Example Configuration** (`crud-test-policy.tf`):
+```hcl
+resource "cyberarksia_database_policy" "test" {
+  name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  description                = "Comprehensive CRUD test policy for Azure PostgreSQL"
+  status                     = "active"
+  delegation_classification  = "unrestricted"
+  time_zone                  = "GMT"
+
+  conditions {
+    max_session_duration = 4
+    idle_time            = 10
+
+    access_window {
+      days_of_the_week = [1, 2, 3, 4, 5]  # Monday-Friday
+      from_hour        = "09:00"
+      to_hour          = "17:00"
+    }
+  }
+
+  # ============================================================================
+  # INLINE TARGET DATABASE - Required (at least 1)
+  # ============================================================================
+  # Azure PostgreSQL database assigned inline
+  # Note: Singular block name matches AWS/GCP patterns (ingress/egress)
+
+  target_database {
+    database_workspace_id = cyberarksia_database_workspace.azure_postgres.id
+    authentication_method = "db_auth"
+
+    db_auth_profile {
+      roles = ["pg_read_all_settings"]
+    }
+  }
+
+  # ============================================================================
+  # INLINE PRINCIPAL - Required (at least 1)
+  # ============================================================================
+  # tim.schindler@cyberark.cloud.40562 assigned inline
+  # Note: Singular block name matches AWS/GCP patterns
+
+  principal {
+    principal_id          = "c2c7bcc6-9560-44e0-8dff-5be221cd37ee"  # UUID from SIA
+    principal_type        = "USER"
+    principal_name        = "tim.schindler@cyberark.cloud.40562"
+    source_directory_name = "CyberArk Cloud Directory"
+    source_directory_id   = "09B9A9B0-6CE8-465F-AB03-65766D33B05E"
+  }
+
+  policy_tags = ["test:crud", "environment:test", "managed-by:terraform"]
+
+  depends_on = [cyberarksia_database_workspace.azure_postgres]
+}
+```
+
+**Create Policy**:
+```bash
+terraform apply -target=cyberarksia_database_policy.test -auto-approve
+```
+
+**Validation**:
+- [ ] Policy ID is UUID format
+- [ ] Name: "CRUD-Test-Policy-[timestamp]"
+- [ ] Status: "active"
+- [ ] `delegation_classification` = "unrestricted"
+- [ ] `time_zone` = "GMT"
+- [ ] `conditions.max_session_duration` = 4 hours
+- [ ] `conditions.idle_time` = 10 minutes
+- [ ] `conditions.access_window` configured (Monday-Friday, 9am-5pm)
+- [ ] **Inline target_database block** with Azure PostgreSQL database ID
+- [ ] **Inline principal block** with tim.schindler user details
+- [ ] `created_by` block populated (service account)
+- [ ] `updated_on` timestamp present
+- [ ] Policy appears in SIA UI with 1 target and 1 principal
+
+**Verify in SIA UI**:
+1. Navigate to policy: "CRUD-Test-Policy-[timestamp]"
+2. Check "Assigned To" section → Should show tim.schindler@cyberark.cloud.40562
+3. Check "Targets" section → Should show Azure PostgreSQL database
+4. Verify authentication method = "db_auth" with roles = ["pg_read_all_settings"]
+
+### Phase 7: (OPTIONAL) CREATE - Additional Principal via Assignment Resource (< 1 minute)
+
+**Pattern**: This demonstrates the HYBRID pattern where the initial principal is inline (Phase 6), and additional principals are managed via separate assignment resources.
+
+**Note**: To use this pattern, add `lifecycle { ignore_changes = [principal] }` to the policy resource to prevent drift detection.
+
+**Example Configuration** (`crud-test-principal-assignment.tf`):
+```hcl
+# Policy resource from Phase 6 should include:
+resource "cyberarksia_database_policy" "test" {
+  # ... (policy configuration from Phase 6)
+
+  lifecycle {
+    ignore_changes = [principal]  # Allow assignment resources to manage principals
+  }
+}
+
+# Additional principal via assignment resource
+resource "cyberarksia_database_policy_principal_assignment" "additional_user" {
+  policy_id             = cyberarksia_database_policy.test.policy_id
+  principal_id          = "another-uuid-here"
+  principal_type        = "USER"
+  principal_name        = "additional.user@example.com"
+  source_directory_name = "CyberArk Cloud Directory"
+  source_directory_id   = "09B9A9B0-6CE8-465F-AB03-65766D33B05E"
+}
+```
+
+**Create Additional Principal** (if using hybrid pattern):
+```bash
+terraform apply -target=cyberarksia_database_policy_principal_assignment.additional_user -auto-approve
+```
+
+**Validation** (if using hybrid pattern):
+- [ ] Additional principal created (composite ID format: `policy-id:principal-id:USER`)
+- [ ] Uses `principal_type = "USER"` for CyberArk Cloud Directory users
+- [ ] `source_directory_id` and `source_directory_name` populated
+- [ ] Additional principal appears in SIA UI "Assigned To" section (total: 2 principals)
+- [ ] No drift detected on policy resource (lifecycle.ignore_changes working)
+
+### Phase 8: Inline Assignments Only - No Separate Database Assignment
+
+**Note**: In the inline assignment pattern (Phase 6), the database is already assigned via the `target_database` block. No separate `cyberarksia_policy_database_assignment` resource is needed.
+
+**If using hybrid pattern** (separate assignment resources for databases):
+```hcl
+# Policy resource must include lifecycle block
+resource "cyberarksia_database_policy" "test" {
+  # ... config
+
+  lifecycle {
+    ignore_changes = [principal, target_database]  # Delegate to assignment resources
+  }
+}
+
+# Separate database assignment
+resource "cyberarksia_policy_database_assignment" "additional_db" {
+  policy_id             = cyberarksia_database_policy.test.policy_id
+  database_workspace_id = cyberarksia_database_workspace.another_db.id
+  authentication_method = "db_auth"
+
+  db_auth_profile {
+    roles = ["pg_read_all_data"]
+  }
+}
+```
+
+**Validation**:
+- [ ] Policy targets include inline Azure PostgreSQL database
+- [ ] If using hybrid: Additional database assignment created with composite ID
+- [ ] All databases appear in SIA UI "Targets" section
+- [ ] Uses "FQDN/IP" target set (confirmed for Azure/AWS/GCP/on-premise)
+
+### Phase 9: READ - State Refresh (< 1 minute)
+
+```bash
+# Refresh state from API
+terraform refresh
+
+# Verify no changes detected
+terraform plan
+```
+
+**Expected Output**: `No changes. Your infrastructure matches the configuration.`
+
+**Validation**:
+- [ ] `terraform plan` shows 0 to add, 0 to change, 0 to destroy
+- [ ] All computed fields populated correctly
+- [ ] No drift detected between state and API
+- [ ] All outputs display correctly: `terraform output`
+
+### Phase 10: READ - Verify Complete Dependency Chain
+
+```bash
+# Review comprehensive outputs
+terraform output validation_summary
+```
+
+**Validation**:
+- [ ] Azure infrastructure: Server, database, firewall rules
+- [ ] Certificate: ID, expiration, metadata
+- [ ] Secret: ID, authentication type, timestamps
+- [ ] Database workspace: Links to certificate + secret
+- [ ] Policy: ID, status, conditions, timestamps
+- [ ] Principal assignments: 2 users with directory info
+- [ ] Database assignment: Policy-database link
+
+**Check SIA UI**:
+1. Navigate to policy: "CRUD-Test-Policy-[timestamp]"
+2. Verify "Assigned To" section shows 2 principals
+3. Verify "Targets" section shows Azure PostgreSQL database
+4. Verify conditions match configuration
+
+### Phase 11: UPDATE - Modify All Resources (2-3 minutes)
+
+Edit the Terraform configuration to test UPDATE operations:
+
+**Certificate Updates**:
+```hcl
+labels = {
+  environment = "test"
+  purpose     = "sia-azure-integration"
+  updated     = "true"  # NEW
+  updated_at  = formatdate("YYYY-MM-DD", timestamp())  # NEW
+}
+```
+
+**Secret Updates**:
+```hcl
+tags = {
+  environment = "test"
+  managed_by  = "terraform"
+  updated     = "true"  # NEW
+}
+```
+
+**Database Workspace Updates**:
+```hcl
+tags = {
+  environment = "test"
+  purpose     = "crud-validation"
+  updated     = "true"  # NEW
+}
+```
+
+**Database Policy Updates**:
+```hcl
+description                = "Updated CRUD test policy - Azure PostgreSQL"  # CHANGED
+conditions {
+  max_session_duration = 8   # CHANGED from 4
+  idle_time            = 30  # CHANGED from 10
+
+  access_window {
+    days_of_the_week = [1, 2, 3, 4, 5]
+    from_hour        = "08:00"  # CHANGED from 09:00
+    to_hour          = "18:00"  # CHANGED from 17:00
+  }
+}
+```
+
+**Principal Assignment Updates**:
+```hcl
+principal_name = "Test User - UPDATED NAME"  # CHANGED
+```
+
+**Database Assignment Updates**:
+```hcl
+db_auth_profile {
+  roles = ["pg_read_all_settings", "pg_read_all_data"]  # ADDED role
+}
+```
+
+Apply updates:
+```bash
+terraform apply
+```
+
+**Expected Output**: `Plan: 0 to add, 6 to change, 0 to destroy`
+
+**Validation**:
+- [ ] All 6 resource updates applied successfully
+- [ ] Certificate labels updated
+- [ ] Secret tags updated
+- [ ] Database workspace tags updated
+- [ ] Policy description and conditions changed
+- [ ] Principal name updated in SIA UI
+- [ ] Database assignment roles updated
+- [ ] No forced replacements (in-place updates only)
+- [ ] `terraform plan` shows no further changes
+
+### Phase 12: IMPORT - Test Import Functionality (3-5 minutes)
+
+Test import for each resource type:
+
+```bash
+# Get resource IDs from state
+CERT_ID=$(terraform output -raw certificate_id)
+SECRET_ID=$(terraform output -raw secret_id)
+DB_ID=$(terraform output -raw database_workspace_id)
+POLICY_ID=$(terraform output -raw policy_id)
+PRINCIPAL_SERVICE_ID=$(terraform state show cyberarksia_database_policy_principal_assignment.service_account | grep "^id " | awk '{print $3}' | tr -d '"')
+PRINCIPAL_USER_ID=$(terraform state show cyberarksia_database_policy_principal_assignment.test_user | grep "^id " | awk '{print $3}' | tr -d '"')
+ASSIGNMENT_ID=$(terraform state show cyberarksia_policy_database_assignment.azure_postgres | grep "^id " | awk '{print $3}' | tr -d '"')
+
+# Remove resources from state
+terraform state rm cyberarksia_certificate.azure_cert
+terraform state rm cyberarksia_secret.admin
+terraform state rm cyberarksia_database_workspace.azure_postgres
+terraform state rm cyberarksia_database_policy.test
+terraform state rm cyberarksia_database_policy_principal_assignment.service_account
+terraform state rm cyberarksia_database_policy_principal_assignment.test_user
+terraform state rm cyberarksia_policy_database_assignment.azure_postgres
+
+# Import each resource
+terraform import cyberarksia_certificate.azure_cert "$CERT_ID"
+terraform import cyberarksia_secret.admin "$SECRET_ID"
+terraform import cyberarksia_database_workspace.azure_postgres "$DB_ID"
+terraform import cyberarksia_database_policy.test "$POLICY_ID"
+terraform import cyberarksia_database_policy_principal_assignment.service_account "$PRINCIPAL_SERVICE_ID"
+terraform import cyberarksia_database_policy_principal_assignment.test_user "$PRINCIPAL_USER_ID"
+terraform import cyberarksia_policy_database_assignment.azure_postgres "$ASSIGNMENT_ID"
+
+# Verify no changes after import
+terraform plan
+```
+
+**Expected Output**: `No changes. Your infrastructure matches the configuration.`
+
+**Validation**:
+- [ ] All 7 imports succeeded
+- [ ] Certificate: Imported with numeric ID
+- [ ] Secret: Imported with UUID
+- [ ] Database workspace: Imported with numeric ID
+- [ ] Policy: Imported with UUID
+- [ ] Principal assignments: Imported with 3-part composite IDs
+- [ ] Database assignment: Imported with 2-part composite ID
+- [ ] All attributes populated correctly after import
+- [ ] No changes detected in `terraform plan`
+
+### Phase 13: DELETE - Cleanup ⚠️ USER APPROVAL REQUIRED
+
+**STOP**: Before proceeding, confirm you want to DELETE all test resources.
+
+Delete in reverse dependency order:
+
+```bash
+# Delete assignment resources first
+terraform destroy -target=cyberarksia_policy_database_assignment.azure_postgres -auto-approve
+terraform destroy -target=cyberarksia_database_policy_principal_assignment.test_user -auto-approve
+terraform destroy -target=cyberarksia_database_policy_principal_assignment.service_account -auto-approve
+
+# Delete policy
+terraform destroy -target=cyberarksia_database_policy.test -auto-approve
+
+# Delete database workspace
+terraform destroy -target=cyberarksia_database_workspace.azure_postgres -auto-approve
+
+# Delete secret and certificate
+terraform destroy -target=cyberarksia_secret.admin -auto-approve
+terraform destroy -target=cyberarksia_certificate.azure_cert -auto-approve
+
+# Delete Azure infrastructure
+terraform destroy -auto-approve
+```
+
+**Validation**:
+- [ ] All SIA assignments removed from policy
+- [ ] Policy deleted from SIA UI
+- [ ] Database workspace deleted
+- [ ] Secret deleted
+- [ ] Certificate deleted
+- [ ] Azure PostgreSQL server deleted
+- [ ] Azure resource group deleted
+- [ ] No orphaned resources in SIA UI
+- [ ] No orphaned Azure resources
+- [ ] State is clean: `terraform state list` returns empty
+
+**Cost Verification**:
+```bash
+# Verify Azure resources are deleted
+az postgres flexible-server list --query "[?name=='psql-sia-test-*'].name"
+# Should return: []
+```
+
+### Success Criteria
+
+- ✅ All 6 SIA resources created successfully
+- ✅ Azure PostgreSQL B1ms server provisioned and accessible
+- ✅ Complete dependency chain validated (cert → secret → database → policy → principals → assignment)
+- ✅ No schema validation errors
+- ✅ No warnings about unknown attributes
+- ✅ All computed fields populated correctly (timestamps, IDs, metadata)
+- ✅ UPDATE operations work for all 6 resources (in-place, no forced replacements)
+- ✅ IMPORT works with correct ID formats (numeric, UUID, composite)
+- ✅ DELETE cleans up without errors (reverse dependency order)
+- ✅ SIA UI reflects all changes correctly throughout lifecycle
+- ✅ Policy assignment uses "FQDN/IP" target set (Azure cloud_provider confirmed)
+- ✅ Principal assignments support multiple users with directory metadata
+- ✅ Read-modify-write pattern preserves other principals/targets during updates
+- ✅ Total cost < $0.01 USD
+
+### Test Results Documentation
+
+Save test results for future reference:
+
+```bash
+# Create test results file
+cat > TEST-RESULTS-$(date +%Y%m%d-%H%M%S).md <<'EOF'
+# Azure PostgreSQL CRUD Test Results
+
+**Test Date**: $(date)
+**Test Directory**: $TEST_DIR
+**Duration**: [FILL IN] minutes
+**Cost**: $[FILL IN] USD
+
+## Resources Created
+- Azure PostgreSQL Flexible Server: [SERVER_NAME]
+- Certificate ID: [CERT_ID]
+- Secret ID: [SECRET_ID]
+- Database Workspace ID: [DB_ID]
+- Policy ID: [POLICY_ID]
+- Principal Assignments: 2 (service account + test user)
+- Database Assignment ID: [ASSIGNMENT_ID]
+
+## Test Phases
+- [x] Phase 1: Setup
+- [x] Phase 2: Azure Infrastructure
+- [x] Phase 3: Certificate
+- [x] Phase 4: Secret
+- [x] Phase 5: Database Workspace
+- [x] Phase 6: Policy
+- [x] Phase 7: Principal Assignments
+- [x] Phase 8: Database Assignment
+- [x] Phase 9: READ - State Refresh
+- [x] Phase 10: READ - Verify Dependencies
+- [x] Phase 11: UPDATE - All Resources
+- [x] Phase 12: IMPORT - All Resources
+- [x] Phase 13: DELETE - Cleanup
+
+## Validation Results
+- All resources created successfully: YES/NO
+- No drift detected: YES/NO
+- UPDATE operations successful: YES/NO
+- IMPORT operations successful: YES/NO
+- DELETE operations successful: YES/NO
+- SIA UI matches state: YES/NO
+
+## Issues Encountered
+[FILL IN]
+
+## Notes
+[FILL IN]
+EOF
+```
+
+### Cleanup
+
+```bash
+# Remove test directory (optional - keep for review)
+cd ~ && rm -rf $TEST_DIR
 ```
 
 ---
@@ -356,18 +1031,27 @@ After setup, your test directory should contain:
 - `examples/testing/crud-test-provider.tf`
 - `examples/testing/crud-test-main.tf`
 - `examples/testing/crud-test-outputs.tf`
+- `examples/testing/azure-postgresql-with-policy/` - Complete policy workflow (recommended)
 
-### 2. Use Timestamped Working Directories
+### 2. Use Context-Efficient Testing Workflows
+**IMPORTANT**: Use automation scripts to minimize LLM context consumption.
+
 ```bash
-# Good - includes timestamp
-mkdir -p /tmp/sia-crud-validation-$(date +%Y%m%d-%H%M%S)
-
-# Also good - standard name
-mkdir -p /tmp/sia-crud-validation
+# Run tests from project directory, not /tmp!
+cd ~/terraform-provider-cyberark-sia/examples/testing/azure-postgresql-with-policy
+./setup.sh   # All terraform output → /tmp/ logs (98% context savings!)
 ```
 
+**See `examples/testing/CONTEXT-OPTIMIZATION.md` for detailed patterns and best practices.**
+
+Key principles:
+- ✅ Test configurations live in project (`examples/testing/`)
+- ✅ Only logs go to `/tmp/` (not test configs)
+- ✅ Use automation scripts for efficient logging
+- ✅ Extract only relevant information (summaries, errors)
+
 ### 3. Never Modify Templates Directly
-Templates in `examples/testing/` are canonical references. Copy to working directory first.
+Templates in `examples/testing/` are canonical references. Copy to working directory first (or run in place).
 
 ### 4. Always Rebuild After Code Changes
 ```bash
@@ -377,7 +1061,7 @@ go build -v && go install
 
 ### 5. Reinitialize After Provider Updates
 ```bash
-cd /tmp/sia-crud-validation
+# In your test directory
 rm -rf .terraform .terraform.lock.hcl
 terraform init
 ```
@@ -395,6 +1079,8 @@ terraform output validation_summary
 
 Testing with cloud-managed databases (AWS RDS, Azure PostgreSQL, GCP Cloud SQL) requires additional setup for cloud provider authentication and resource provisioning.
 
+**RECOMMENDED WORKFLOW**: See [Complete CRUD Test with Azure PostgreSQL](#complete-crud-test-with-azure-postgresql) section above for the comprehensive 13-phase testing workflow that covers ALL 6 resources with a real Azure database.
+
 ### Key Finding: Database Target Sets
 
 **CRITICAL**: ALL database workspaces use `"FQDN/IP"` target set in policies, **regardless of cloud_provider attribute**.
@@ -411,12 +1097,15 @@ Testing with cloud-managed databases (AWS RDS, Azure PostgreSQL, GCP Cloud SQL) 
 
 ### Azure PostgreSQL Testing
 
-**Canonical Test Template**: `examples/testing/azure-postgresql/`
+**Canonical Test Templates**:
+1. **Basic CRUD**: `examples/testing/azure-postgresql/` - Database workspace onboarding only
+2. **Complete Policy Workflow**: `examples/testing/azure-postgresql-with-policy/` - Database workspace + policy + principal assignments (NEW!)
 
-This directory contains the validated Azure PostgreSQL CRUD test configuration from 2025-10-27.
-Use this as the reference implementation for all future cloud provider testing.
+#### Option 1: Basic Database Workspace CRUD Test
 
-#### Quick Start
+**Directory**: `examples/testing/azure-postgresql/`
+
+This configuration validates Azure PostgreSQL database workspace creation and assignment to an existing policy.
 
 ```bash
 cd examples/testing/azure-postgresql
@@ -426,6 +1115,33 @@ terraform init && terraform apply
 # Verify success, then clean up
 terraform destroy
 ```
+
+#### Option 2: Complete Policy Workflow (Recommended for Full Testing)
+
+**Directory**: `examples/testing/azure-postgresql-with-policy/`
+
+This configuration creates a complete testing environment including:
+- Azure PostgreSQL Flexible Server (B1ms)
+- SIA secret and database workspace (**certificate validation disabled**)
+- **Database policy** (with inline service account principal + database target)
+- **Principal assignment** (Tim Schindler via separate resource)
+
+**Quick Start**:
+```bash
+cd ~/terraform-provider-cyberark-sia/examples/testing/azure-postgresql-with-policy
+cp terraform.tfvars.example terraform.tfvars
+vim terraform.tfvars  # Fill in credentials and principal UUIDs
+./setup.sh  # Automated setup with context-efficient logging!
+```
+
+**Features**:
+- ✅ Automated setup/cleanup scripts (98% context savings!)
+- ✅ Creates database policy (not just assigns to existing)
+- ✅ Manages principal assignments
+- ✅ No `timestamp()` functions (avoids unnecessary updates)
+- ✅ All logs to `/tmp/` (see `CONTEXT-OPTIMIZATION.md`)
+
+See `examples/testing/azure-postgresql-with-policy/QUICK-START.md` for detailed instructions.
 
 #### Prerequisites
 1. Azure CLI authentication: `az login`
@@ -584,10 +1300,344 @@ resource "cyberarksia_certificate" "azure_cert" {
 
 ---
 
+## Database Policy Management Testing
+
+### cyberarksia_database_policy Resource
+
+**Template**: [`crud-test-policy.tf`](./crud-test-policy.tf)
+
+**Testing Workflow** (15-20 minutes):
+
+1. **CREATE** - Create policy with conditions
+   ```bash
+   terraform apply
+   # Verify: Policy appears in SIA UI with correct metadata and conditions
+   ```
+
+2. **READ** - Validate state matches API
+   ```bash
+   terraform refresh
+   terraform plan
+   # Expected: No changes detected
+   ```
+
+3. **UPDATE** - Modify policy attributes
+   ```bash
+   # Edit: Change description, status (Active ↔ Suspended), conditions
+   terraform apply
+   # Verify: Changes reflected in SIA UI
+   ```
+
+4. **DELETE** - Remove policy
+   ```bash
+   terraform destroy
+   # Verify: Policy removed from SIA UI (cascade deletes principals/targets)
+   ```
+
+**Validation Summary Outputs**:
+- `policy_metadata` - Policy ID, name, status
+- `policy_conditions` - Session duration, idle time, access window
+- `computed_fields` - Created by, updated on timestamps
+
+### cyberarksia_database_policy_principal_assignment Resource
+
+**Template**: [`crud-test-principal-assignment.tf`](./crud-test-principal-assignment.tf)
+
+**Prerequisites**:
+1. Existing policy (created via `cyberarksia_database_policy` or SIA UI)
+2. Valid identity directory (Azure AD, LDAP) with test principals
+3. Principal IDs for USER/GROUP types
+4. Directory name and ID for USER/GROUP assignments
+
+**Testing Workflow** (10-15 minutes):
+
+1. **CREATE** - Assign principals to policy
+   ```bash
+   terraform apply
+   # Verify: Principals appear in policy's "Assigned To" section in SIA UI
+   # Test: USER (with directory), GROUP (with directory), ROLE (no directory)
+   ```
+
+2. **READ** - Validate state matches API
+   ```bash
+   terraform refresh
+   terraform plan
+   # Expected: No changes detected
+   # Verify: Composite ID format: policy-id:principal-id:principal-type
+   ```
+
+3. **UPDATE** - Modify principal name (in-place)
+   ```bash
+   # Edit: Change principal_name
+   terraform apply
+   # Verify: Updated name appears in SIA UI
+   # Note: policy_id, principal_id, principal_type are ForceNew
+   ```
+
+4. **DELETE** - Remove principal assignment
+   ```bash
+   terraform destroy
+   # Verify: Principal removed from policy in SIA UI
+   # Verify: Other principals remain (read-modify-write pattern)
+   ```
+
+**Composite ID Testing**:
+```bash
+# Test 3-part format for all principal types
+terraform import cyberarksia_database_policy_principal_assignment.user_test \
+  "policy-id:user@example.com:USER"
+
+terraform import cyberarksia_database_policy_principal_assignment.group_test \
+  "policy-id:group@example.com:GROUP"
+
+terraform import cyberarksia_database_policy_principal_assignment.role_test \
+  "policy-id:role-name:ROLE"
+```
+
+**Validation Tests**:
+- ✅ USER/GROUP require `source_directory_name` + `source_directory_id`
+- ✅ ROLE works without directory fields
+- ✅ Duplicate principal detection (same ID + type on policy fails)
+- ✅ Read-modify-write preserves other principals
+- ✅ Principal type validation (USER, GROUP, ROLE only)
+
+**Validation Summary Outputs**:
+- `assignment_ids` - Composite IDs for all principals
+- `principal_types` - Count by type (USER, GROUP, ROLE)
+- `directory_sources` - Azure AD, LDAP counts
+
+### Integration Testing: Full Policy Lifecycle
+
+**RECOMMENDED**: Use the [Complete CRUD Test with Azure PostgreSQL](#complete-crud-test-with-azure-postgresql) workflow above, which includes:
+- Database policy creation with conditions
+- Principal assignments (service account + test user)
+- Database assignments (Azure PostgreSQL)
+- Full UPDATE/IMPORT/DELETE testing
+- Real-world Azure integration
+
+**Alternative: Template-Based Testing** (without cloud resources):
+
+**Template**: [`crud-test-full-lifecycle.tf`](./crud-test-full-lifecycle.tf) *(to be created)*
+
+**Comprehensive workflow** (20-30 minutes):
+
+```bash
+# 1. Create policy with metadata and conditions
+terraform apply -target=cyberarksia_database_policy.test
+
+# 2. Assign principals (users, groups, roles)
+terraform apply -target=cyberarksia_database_policy_principal_assignment.users
+terraform apply -target=cyberarksia_database_policy_principal_assignment.groups
+terraform apply -target=cyberarksia_database_policy_principal_assignment.roles
+
+# 3. Assign database workspaces to policy
+terraform apply -target=cyberarksia_database_policy_assignment.databases
+
+# 4. Verify complete access chain
+# - Policy exists with correct conditions
+# - Principals assigned (check SIA UI "Assigned To")
+# - Databases assigned (check SIA UI "Targets")
+# - Test database access via SIA portal
+
+# 5. Update policy conditions (preserve principals/targets)
+# Edit: Change max_session_duration, idle_time, access_window
+terraform apply
+
+# 6. Add/remove principals independently
+terraform apply -target=cyberarksia_database_policy_principal_assignment.new_user
+
+# 7. Suspend policy (should block access)
+# Edit: status = "suspended"
+terraform apply
+# Verify: Access blocked in SIA portal
+
+# 8. Reactivate policy
+# Edit: status = "active"
+terraform apply
+# Verify: Access restored in SIA portal
+
+# 9. Full cleanup
+terraform destroy -auto-approve
+```
+
+**Success Criteria**:
+- ✅ Policy CRUD operations work independently
+- ✅ Principal assignments work independently
+- ✅ Database assignments work independently
+- ✅ Update policy preserves principals and targets (read-modify-write)
+- ✅ Policy status changes (Active ↔ Suspended) affect access
+- ✅ Policy deletion cascades to principals and targets
+- ✅ Import works for all resource types
+
+---
+
+## Production-Ready Testing Checklist
+
+Use this checklist before committing resource changes or releasing new provider versions.
+
+### Pre-Test Preparation
+
+**Environment**:
+- [ ] `.env` file exists with valid `CYBERARK_USERNAME` and `CYBERARK_CLIENT_SECRET`
+- [ ] Azure CLI authenticated: `az login && az account show`
+- [ ] Provider built and installed: `cd ~/terraform-provider-cyberark-sia && go build -v && go install`
+- [ ] Clean working directory: `/tmp/sia-crud-validation-$(date +%Y%m%d-%H%M%S)`
+
+**Credentials**:
+- [ ] SIA service account username (from `.env`)
+- [ ] SIA client secret (from `.env`)
+- [ ] Test principal email addresses (for USER assignments)
+- [ ] Azure AD directory ID (for directory-based principals)
+- [ ] Azure subscription ID (for cloud testing)
+
+**Prerequisites Verified**:
+- [ ] UAP service provisioned on tenant: `curl -s "https://platform-discovery.cyberark.cloud/api/v2/services/subdomain/{tenant}" | jq '.jit'`
+- [ ] Azure region allowed: `westus2` recommended (check subscription restrictions)
+- [ ] PostgreSQL admin credentials prepared (strong password required)
+
+### During Test Validation
+
+**CREATE Phase**:
+- [ ] All resources created without errors
+- [ ] No schema validation warnings
+- [ ] All computed fields populated (IDs, timestamps, metadata)
+- [ ] SIA UI shows all resources correctly
+- [ ] Azure infrastructure provisioned (if testing with cloud resources)
+
+**READ Phase**:
+- [ ] `terraform refresh` succeeds without changes
+- [ ] `terraform plan` shows "No changes"
+- [ ] All outputs display expected values
+- [ ] State file matches API responses
+- [ ] No drift detected
+
+**UPDATE Phase**:
+- [ ] All UPDATE operations successful (in-place, no forced replacements)
+- [ ] Changes reflected in SIA UI
+- [ ] `terraform plan` after updates shows no further changes
+- [ ] Read-modify-write preserves other resources (principals, targets)
+- [ ] Timestamps updated (`last_modified`, `updated_on`)
+
+**IMPORT Phase**:
+- [ ] All imports succeed with correct ID formats:
+  - Certificate: numeric ID
+  - Secret: UUID
+  - Database workspace: numeric ID
+  - Policy: UUID
+  - Principal assignment: 3-part composite (`policy:principal:type`)
+  - Database assignment: 2-part composite (`policy:database`)
+- [ ] `terraform plan` after import shows no changes
+- [ ] All attributes populated correctly
+
+**DELETE Phase** (requires user approval):
+- [ ] Delete in reverse dependency order
+- [ ] All resources removed from SIA UI
+- [ ] No orphaned resources
+- [ ] Azure resources deleted (if applicable)
+- [ ] State is clean: `terraform state list` returns empty
+- [ ] Cost verification: Azure resources confirmed deleted
+
+### Post-Test Verification
+
+**SIA UI Checks**:
+- [ ] No orphaned certificates
+- [ ] No orphaned secrets
+- [ ] No orphaned database workspaces
+- [ ] No orphaned policies
+- [ ] No orphaned principal assignments
+- [ ] No orphaned database assignments
+
+**Azure Cost Verification** (if applicable):
+- [ ] Resource group deleted: `az group list --query "[?name contains 'sia-test']"`
+- [ ] PostgreSQL server deleted: `az postgres flexible-server list --query "[?name contains 'sia-test']"`
+- [ ] Total test cost < $0.01 USD
+- [ ] No ongoing charges
+
+**Documentation**:
+- [ ] Test results saved to `TEST-RESULTS-$(date).md`
+- [ ] Any issues documented with reproduction steps
+- [ ] Success criteria met (see checklist in Azure CRUD workflow)
+- [ ] Working directory preserved for review (or cleaned up)
+
+### Resource-Specific Validation
+
+**Certificate Resource**:
+- [ ] `expiration_date` is valid ISO 8601 timestamp
+- [ ] `metadata` object complete (issuer, subject, valid_from, valid_to, serial_number)
+- [ ] Labels/tags saved correctly
+- [ ] No warnings about unknown attributes
+
+**Secret Resource**:
+- [ ] `created_at` timestamp populated
+- [ ] `authentication_type` matches input (local, domain, aws_iam)
+- [ ] Password marked as sensitive in state
+- [ ] Username stored correctly
+
+**Database Workspace Resource**:
+- [ ] `secret_id` required and links correctly
+- [ ] `certificate_id` optional but links correctly if provided
+- [ ] `database_type` validated (60+ engine types supported)
+- [ ] `cloud_provider` metadata saved correctly
+- [ ] `address` and `port` correct
+
+**Database Policy Resource**:
+- [ ] `policy_id` is UUID
+- [ ] `created_by` block populated
+- [ ] `updated_on` timestamp present
+- [ ] Conditions saved correctly (`max_session_duration`, `idle_time`, `access_window`)
+- [ ] Policy appears in SIA UI with correct metadata
+
+**Database Policy Principal Assignment Resource**:
+- [ ] Composite ID format: `policy-id:principal-id:type` (3 parts)
+- [ ] USER/GROUP require `source_directory_name` + `source_directory_id`
+- [ ] ROLE works without directory fields
+- [ ] Duplicate principal detection works
+- [ ] Read-modify-write preserves other principals
+
+**Policy Database Assignment Resource**:
+- [ ] Composite ID format: `policy-id:database-id` (2 parts)
+- [ ] `authentication_method` validated (6 methods supported)
+- [ ] Profile type matches authentication method
+- [ ] Uses "FQDN/IP" target set regardless of `cloud_provider`
+- [ ] Read-modify-write preserves other database assignments
+
+### Troubleshooting Reference
+
+**Common Issues**:
+1. **Provider binary not found**: `go build -v && go install`
+2. **Schema validation failed**: `rm -rf .terraform .terraform.lock.hcl && terraform init`
+3. **UAP service not available**: Verify tenant provisioning, may need to contact CyberArk support
+4. **Azure location restricted**: Change `azure_region` to "westus2"
+5. **Terraform state drift**: Run `terraform refresh` then `terraform plan`
+
+**Error Patterns**:
+- **"Policy not found"**: Verify policy name or create new test policy
+- **"Certificate in use"**: Remove database workspace reference before deleting certificate
+- **"Invalid composite ID"**: Check ID format (2-part vs 3-part, correct delimiters)
+- **"Directory required for USER/GROUP"**: Add `source_directory_name` and `source_directory_id`
+
+### Success Criteria Summary
+
+For a test to be considered successful, ALL of the following must be true:
+- ✅ All resources created without errors
+- ✅ No schema validation warnings
+- ✅ All computed fields populated correctly
+- ✅ UPDATE operations work (in-place, no forced replacements)
+- ✅ IMPORT works with correct ID formats
+- ✅ DELETE cleans up without errors
+- ✅ SIA UI reflects all changes correctly
+- ✅ State matches API throughout lifecycle
+- ✅ No orphaned resources after cleanup
+- ✅ Azure costs < $0.01 USD (if applicable)
+
+---
+
 ## See Also
 
 - [`CLAUDE.md`](../../CLAUDE.md) - Development guidelines (references this guide)
 - [`docs/testing-framework.md`](../../docs/testing-framework.md) - Conceptual testing framework
-- [`docs/resources/policy_database_assignment.md`](../../docs/resources/policy_database_assignment.md) - Policy assignment documentation
+- [`docs/resources/policy_database_assignment.md`](../../docs/resources/policy_database_assignment.md) - Policy database assignment documentation
+- [`docs/resources/database_policy.md`](../../docs/resources/database_policy.md) - Database policy documentation
+- [`docs/resources/database_policy_principal_assignment.md`](../../docs/resources/database_policy_principal_assignment.md) - Principal assignment documentation
 - [`examples/resources/`](../resources/) - Per-resource usage examples
 - `/tmp/sia-azure-test-20251027-185657/TEST-RESULTS.md` - Azure PostgreSQL test results (2025-10-27)

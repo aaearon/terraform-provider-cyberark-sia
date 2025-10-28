@@ -50,7 +50,7 @@ The ARK SDK enforces this via the `choices:"FQDN/IP"` annotation in `ArkUAPSIADB
 
 Before using this resource, you must have:
 
-1. **Existing SIA Access Policy**: Create policies via the CyberArk Identity UI or API
+1. **Existing SIA Access Policy**: Create policies via the `cyberarksia_database_policy` resource, the CyberArk Identity UI, or API
 2. **Database Workspace**: Use the `cyberarksia_database_workspace` resource
 3. **Secret Resource**: Database workspaces require secrets for authentication
 4. **Sufficient IAM Permissions**: Service account must have policy modification permissions

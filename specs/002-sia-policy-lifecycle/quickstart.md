@@ -30,7 +30,7 @@ Create a policy with metadata and access conditions:
 resource "cyberarksia_database_policy" "db_admins" {
   name                       = "Database-Admins"
   description                = "Admin access to production databases"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
 
   conditions {
@@ -125,22 +125,72 @@ resource "cyberarksia_database_policy_assignment" "prod_mysql" {
 
 ## Step 4: Import Existing Policies
 
-Import policies created in SIA UI:
+Import policies created in SIA UI. **Important**: Import order matters to ensure proper state dependencies.
 
-### Import Policy
+### Import Workflow (Recommended Order)
+
+**Step 1: Import the Policy First**
 ```bash
+# Find policy ID using data source or SIA UI
 terraform import cyberarksia_database_policy.existing_policy <policy-id>
+
+# Verify import
+terraform plan
+# Should show no changes if configuration matches
 ```
 
-### Import Principal Assignment
+**Step 2: Import Principal Assignments**
 ```bash
-terraform import cyberarksia_database_policy_principal_assignment.alice <policy-id>:<principal-id>:<principal-type>
+# Import each principal assignment (3-part composite ID)
+terraform import cyberarksia_database_policy_principal_assignment.alice \
+  "<policy-id>:<principal-id>:USER"
+
+terraform import cyberarksia_database_policy_principal_assignment.admins \
+  "<policy-id>:<group-id>:GROUP"
+
+terraform import cyberarksia_database_policy_principal_assignment.db_role \
+  "<policy-id>:<role-name>:ROLE"
 ```
 
-### Import Database Assignment
+**Step 3: Import Database Assignments**
 ```bash
-terraform import cyberarksia_database_policy_assignment.prod_db <policy-id>:<database-id>
+# Import each database assignment (2-part composite ID)
+terraform import cyberarksia_database_policy_assignment.prod_db \
+  "<policy-id>:<database-workspace-id>"
 ```
+
+### Finding Import IDs
+
+**Policy ID**: Use the `cyberarksia_access_policy` data source:
+```hcl
+data "cyberarksia_access_policy" "existing" {
+  name = "Production Database Access"
+}
+
+output "policy_id" {
+  value = data.cyberarksia_access_policy.existing.id
+}
+```
+
+**Principal ID & Type**: Check SIA UI → Policy → "Assigned To" tab
+- USER: email address (e.g., `alice@example.com`)
+- GROUP: group name (e.g., `db-admins`)
+- ROLE: role name (e.g., `DatabaseAdministrator`)
+
+**Database Workspace ID**: From Terraform state:
+```bash
+terraform state show cyberarksia_database_workspace.production
+# Look for "id" attribute
+```
+
+### Import Validation Checklist
+
+After importing all resources:
+- [ ] Run `terraform plan` - should show no changes
+- [ ] All policy attributes match configuration
+- [ ] All principals appear in state
+- [ ] All database assignments appear in state
+- [ ] Computed fields populated (created_by, updated_on, last_modified)
 
 ---
 
@@ -154,7 +204,7 @@ terraform import cyberarksia_database_policy_assignment.prod_db <policy-id>:<dat
 # security-team/main.tf
 resource "cyberarksia_database_policy" "prod_access" {
   name   = "Production-Access"
-  status = "Active"
+  status = "active"
 
   conditions {
     max_session_duration = 4
@@ -229,7 +279,7 @@ resource "cyberarksia_database_policy_assignment" "team_b_db" {
 ```hcl
 resource "cyberarksia_database_policy" "maintenance" {
   name   = "Maintenance-Access"
-  status = "Suspended"  # Disable without deleting
+  status = "suspended"  # Disable without deleting
   # ...
 }
 ```

@@ -6,9 +6,73 @@
 
 ---
 
+## Policy Management & Access Control
+
+### Database Policy Management - Modular Assignment Pattern (2025-10-28) ⭐ CURRENT
+
+**Feature**: Database Policy Lifecycle Management (002-sia-policy-lifecycle)
+
+**Scope**: Three resources implementing modular assignment pattern:
+- `cyberarksia_database_policy` - Policy metadata and access conditions (NEW)
+- `cyberarksia_database_policy_principal_assignment` - Assign users/groups/roles to policies (NEW)
+- `cyberarksia_policy_database_assignment` - Assign database workspaces to policies (consistency updates)
+
+**Implementation Timeline**: ~6 hours across 9 phases (T001-T069, 69 tasks)
+- Phases 1-4: Core implementation (T001-T043) - Validators, models, resources, documentation
+- Phases 5-8: Validation & documentation (T044-T059) - Consistency updates, import workflows
+- Phase 9: Polish & quality (T060-T069) - Code formatting, testing, final validation
+
+**Key Architectural Decisions**:
+
+1. **Modular Assignment Pattern** (vs inline or hybrid)
+   - **Choice**: Separate resources for policy, principals, and database assignments
+   - **Rationale**: Enables distributed team workflows (security team manages policies/principals, app teams manage databases independently)
+   - **Pattern**: Follows `aws_security_group_rule` model (separate assignment resources vs monolithic policy)
+
+2. **Read-Modify-Write for Assignments**
+   - **Pattern**: Fetch full policy → Modify only managed element → Preserve all others → Write back
+   - **Critical API Constraint**: UpdatePolicy() accepts only ONE workspace type in Targets map per call
+   - **Implementation**: Lines 343-356 in `database_policy_resource.go` explicitly preserve principals and targets
+
+3. **Composite ID Formats**
+   - Principal assignments: 3-part `policy-id:principal-id:principal-type` (handles duplicate IDs across types)
+   - Database assignments: 2-part `policy-id:database-id` (existing pattern)
+
+4. **Location Type Constraint**
+   - **Finding**: ALL database workspaces use "FQDN/IP" target set regardless of cloud provider (AWS/Azure/GCP/on-premise)
+   - **Validation**: ARK SDK enforces via `choices:"FQDN/IP"` annotation
+   - **Impact**: `cloud_provider` field is metadata only
+
+5. **ForceNew Attributes**
+   - Policy resource: None (policy ID is unique identifier, all user-configurable attributes support in-place updates)
+   - Principal assignment: `policy_id`, `principal_id`, `principal_type` (changing these means a different assignment)
+   - Database assignment: `policy_id`, `database_workspace_id` (existing)
+
+6. **Validation Strategy** (FR-034, FR-036)
+   - **API-only validation** for business rules: time_frame, access_window, name length, tag count
+   - **Client-side validation** only for provider constructs: composite IDs, enum values (Status, PrincipalType, LocationType)
+
+**Implementation Highlights**:
+- **Code**: 3 validators, 2 models, 2 new resources, 1 consistency update (~1200 lines)
+- **Documentation**: 2 new resource docs, updated 1 existing (~1500 lines)
+- **Examples**: 11 HCL examples across 3 resources, 2 CRUD test templates
+- **Testing**: Full CRUD validation per `examples/testing/TESTING-GUIDE.md`
+
+**Known Limitations** (documented, not bugs):
+- Multi-workspace conflicts: Same as `aws_security_group_rule` - last write wins
+- Mitigation: Manage all assignments for a policy in single workspace
+
+**Completion Status**: 69/69 tasks complete (100%)
+- Build: ✅ Compiles successfully
+- Tests: ✅ All validator tests passing
+- Documentation: ✅ LLM-friendly per FR-012/FR-013
+- Import: ✅ All resources support terraform import
+
+---
+
 ## Authentication & SDK Integration
 
-### In-Memory Profile Authentication (Phase 5 - 2025-10-26) ⭐ CURRENT
+### In-Memory Profile Authentication (Phase 5 - 2025-10-26)
 
 **Decision**: Use in-memory `ArkProfile` objects to completely bypass filesystem-based profile loading and caching
 

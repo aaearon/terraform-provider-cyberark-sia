@@ -87,16 +87,16 @@
 - [X] T031 [US2] Implement ImportState() method for database_policy_principal_assignment_resource.go (parse 3-part composite ID "policy-id:principal-id:principal-type", validate format, fetch policy, locate principal, populate state)
 - [X] T032 [US2] Add conditional validation for USER/GROUP principal types (require source_directory_name and source_directory_id, optional for ROLE)
 - [X] T033 [US2] Register principal_assignment resource in provider.go Resources() method
-- [ ] T034 [US2] Add principal assignment logging functions to logging.go (logPrincipalAssignmentCreate, logPrincipalAssignmentRead, logPrincipalAssignmentUpdate, logPrincipalAssignmentDelete)
-- [ ] T035 [P] [US2] Create docs/resources/database_policy_principal_assignment.md (LLM-friendly docs per FR-023: composite ID format, conditional validation rules, read-modify-write pattern, relationships)
-- [ ] T036 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/user-azuread.tf (USER principal with AzureAD directory)
-- [ ] T037 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/user-ldap.tf (USER principal with LDAP directory)
-- [ ] T038 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/group-azuread.tf (GROUP principal)
-- [ ] T039 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/role.tf (ROLE principal without directory)
-- [ ] T040 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/multiple-principals.tf (multiple assignments to same policy)
-- [ ] T041 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/complete.tf (all principal types together)
-- [ ] T042 [US2] Update examples/testing/TESTING-GUIDE.md with principal_assignment CRUD testing section (3-part composite ID import validation)
-- [ ] T043 [US2] Create examples/testing/crud-test-principal-assignment.tf template (CREATE: USER+GROUP+ROLE → READ: verify all types → UPDATE: modify principal_name → DELETE: verify selective removal)
+- [X] T034 [US2] Add principal assignment logging functions to logging.go (logPrincipalAssignmentCreate, logPrincipalAssignmentRead, logPrincipalAssignmentUpdate, logPrincipalAssignmentDelete)
+- [X] T035 [P] [US2] Create docs/resources/database_policy_principal_assignment.md (LLM-friendly docs per FR-023: composite ID format, conditional validation rules, read-modify-write pattern, relationships)
+- [X] T036 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/user-azuread.tf (USER principal with AzureAD directory)
+- [X] T037 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/user-ldap.tf (USER principal with LDAP directory)
+- [X] T038 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/group-azuread.tf (GROUP principal)
+- [X] T039 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/role.tf (ROLE principal without directory)
+- [X] T040 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/multiple-principals.tf (multiple assignments to same policy)
+- [X] T041 [P] [US2] Create examples/resources/cyberarksia_database_policy_principal_assignment/complete.tf (all principal types together)
+- [X] T042 [US2] Update examples/testing/TESTING-GUIDE.md with principal_assignment CRUD testing section (3-part composite ID import validation)
+- [X] T043 [US2] Create examples/testing/crud-test-principal-assignment.tf template (CREATE: USER+GROUP+ROLE → READ: verify all types → UPDATE: modify principal_name → DELETE: verify selective removal)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - users can create policies (US1) and assign principals to them (US2). Principals are ready for database assignments.
 
@@ -110,11 +110,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Update policy_database_assignment_resource.go documentation comments (consistency updates: clarify location_type is always "FQDN/IP", document relationship with new database_policy resource)
-- [ ] T045 [US3] Verify policy_database_assignment_resource.go uses location_type "FQDN/IP" consistently (no code changes expected, validation only per plan.md line 335-336)
-- [ ] T046 [P] [US3] Update docs/resources/policy_database_assignment.md (rename from cyberarksia_policy_database_assignment to cyberarksia_database_policy_assignment for consistency, clarify location_type constraint, document relationship with database_policy resource)
-- [ ] T047 [P] [US3] Update examples/resources/cyberarksia_database_policy_assignment/ examples (update resource name references for consistency, add cross-references to database_policy resource)
-- [ ] T048 [US3] Verify examples/testing/TESTING-GUIDE.md database_assignment section (ensure 2-part composite ID "policy-id:database-id" is documented, no changes expected per plan.md)
+- [X] T044 [US3] Update policy_database_assignment_resource.go documentation comments (consistency updates: clarify location_type is always "FQDN/IP", document relationship with new database_policy resource)
+- [X] T045 [US3] Verify policy_database_assignment_resource.go uses location_type "FQDN/IP" consistently (no code changes expected, validation only per plan.md line 335-336)
+- [X] T046 [P] [US3] Update docs/resources/policy_database_assignment.md (rename from cyberarksia_policy_database_assignment to cyberarksia_database_policy_assignment for consistency, clarify location_type constraint, document relationship with database_policy resource)
+- [X] T047 [P] [US3] Update examples/resources/cyberarksia_database_policy_assignment/ examples (update resource name references for consistency, add cross-references to database_policy resource)
+- [X] T048 [US3] Verify examples/testing/TESTING-GUIDE.md database_assignment section (ensure 2-part composite ID "policy-id:database-id" is documented, no changes expected per plan.md)
 
 **Checkpoint**: At this point, all three user stories work independently AND together - users can create policies (US1), assign principals (US2), and assign databases (US3). Complete access control chain is functional.
 
@@ -128,9 +128,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Verify Update() method in database_policy_resource.go preserves principals and targets (read-modify-write validation: fetch policy with ALL principals/targets, modify only metadata/conditions, call UpdatePolicy with full policy)
-- [ ] T050 [US4] Add test scenario to examples/testing/crud-test-policy.tf (UPDATE section: change description, status, idle_time, verify principals/targets unchanged)
-- [ ] T051 [US4] Update docs/resources/database_policy.md with update behavior details (in-place vs ForceNew attributes, preservation guarantees for assignments)
+- [X] T049 [US4] Verify Update() method in database_policy_resource.go preserves principals and targets (read-modify-write validation: fetch policy with ALL principals/targets, modify only metadata/conditions, call UpdatePolicy with full policy)
+- [X] T050 [US4] Add test scenario to examples/testing/crud-test-policy.tf (UPDATE section: change description, status, idle_time, verify principals/targets unchanged)
+- [X] T051 [US4] Update docs/resources/database_policy.md with update behavior details (in-place vs ForceNew attributes, preservation guarantees for assignments)
 
 **Checkpoint**: Policy metadata updates work without affecting principal or database assignments. All CRUD operations on policies are complete.
 
@@ -144,9 +144,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T052 [US5] Verify Delete() method in database_policy_resource.go handles cascade delete behavior (API automatically removes principals and targets, document in code comments)
-- [ ] T053 [US5] Add cascade delete documentation to docs/resources/database_policy.md (explain API behavior when deleting policies with active assignments per FR-007)
-- [ ] T054 [US5] Add delete test scenario to examples/testing/crud-test-policy.tf (DELETE section: verify policy removal, document cascade delete behavior)
+- [X] T052 [US5] Verify Delete() method in database_policy_resource.go handles cascade delete behavior (API automatically removes principals and targets, document in code comments)
+- [X] T053 [US5] Add cascade delete documentation to docs/resources/database_policy.md (explain API behavior when deleting policies with active assignments per FR-007)
+- [X] T054 [US5] Add delete test scenario to examples/testing/crud-test-policy.tf (DELETE section: verify policy removal, document cascade delete behavior)
 
 **Checkpoint**: Policy deletion works correctly with cascade behavior. Full policy lifecycle management is complete.
 
@@ -160,11 +160,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T055 [US6] Verify ImportState() methods preserve all computed fields (policy: created_by, updated_on; assignments: last_modified)
-- [ ] T056 [US6] Add import examples to docs/resources/database_policy.md (terraform import commands with policy ID format)
-- [ ] T057 [US6] Add import examples to docs/resources/database_policy_principal_assignment.md (terraform import with 3-part composite ID format, validation error examples)
-- [ ] T058 [US6] Add import examples to docs/resources/policy_database_assignment.md (terraform import with 2-part composite ID format)
-- [ ] T059 [US6] Update quickstart.md Step 4 with detailed import workflows (import order: policy first, then principals, then databases)
+- [X] T055 [US6] Verify ImportState() methods preserve all computed fields (policy: created_by, updated_on; assignments: last_modified)
+- [X] T056 [US6] Add import examples to docs/resources/database_policy.md (terraform import commands with policy ID format)
+- [X] T057 [US6] Add import examples to docs/resources/database_policy_principal_assignment.md (terraform import with 3-part composite ID format, validation error examples)
+- [X] T058 [US6] Add import examples to docs/resources/policy_database_assignment.md (terraform import with 2-part composite ID format)
+- [X] T059 [US6] Update quickstart.md Step 4 with detailed import workflows (import order: policy first, then principals, then databases)
 
 **Checkpoint**: All resources support import. Users can migrate existing SIA infrastructure to Terraform management.
 
@@ -174,16 +174,16 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T060 [P] Run go fmt ./... and gofmt -w . (code formatting)
-- [ ] T061 [P] Run golangci-lint run (linting)
-- [ ] T062 [P] Run go test ./internal/validators/... -v (validator unit tests)
-- [ ] T063 [P] Verify all policy resource attributes have godoc comments (code documentation)
-- [ ] T064 Update development-history.md in docs/ (add entry for database policy management feature with implementation timeline)
-- [ ] T065 Validate quickstart.md walkthrough (manual testing: follow all steps, verify functionality)
-- [ ] T066 [P] Run go build -v (final build validation)
-- [ ] T067 Review all resource documentation for LLM-friendliness per FR-012/FR-013 (attribute tables complete, constraints documented, examples working)
-- [ ] T068 [P] Verify MapError pattern usage per FR-031 (grep for MapError in all CRUD methods: database_policy_resource.go, database_policy_principal_assignment_resource.go; confirm all API errors use client.MapError())
-- [ ] T069 [P] Verify retry logic usage per FR-033 (grep for RetryWithBackoff in all CRUD methods; confirm all API calls wrapped with retry: AddPolicy, UpdatePolicy, DeletePolicy, Policy calls)
+- [X] T060 [P] Run go fmt ./... and gofmt -w . (code formatting)
+- [X] T061 [P] Run golangci-lint run (linting)
+- [X] T062 [P] Run go test ./internal/validators/... -v (validator unit tests)
+- [X] T063 [P] Verify all policy resource attributes have godoc comments (code documentation)
+- [X] T064 Update development-history.md in docs/ (add entry for database policy management feature with implementation timeline)
+- [X] T065 Validate quickstart.md walkthrough (manual testing: follow all steps, verify functionality)
+- [X] T066 [P] Run go build -v (final build validation)
+- [X] T067 Review all resource documentation for LLM-friendliness per FR-012/FR-013 (attribute tables complete, constraints documented, examples working)
+- [X] T068 [P] Verify MapError pattern usage per FR-031 (grep for MapError in all CRUD methods: database_policy_resource.go, database_policy_principal_assignment_resource.go; confirm all API errors use client.MapError())
+- [X] T069 [P] Verify retry logic usage per FR-033 (grep for RetryWithBackoff in all CRUD methods; confirm all API calls wrapped with retry: AddPolicy, UpdatePolicy, DeletePolicy, Policy calls)
 
 ---
 

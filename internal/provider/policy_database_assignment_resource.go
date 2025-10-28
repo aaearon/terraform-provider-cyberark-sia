@@ -46,6 +46,8 @@ func (r *PolicyDatabaseAssignmentResource) Schema(ctx context.Context, req resou
 		MarkdownDescription: "Manages the assignment of a database workspace to an existing SIA access policy. " +
 			"This resource follows the AWS Security Group Rule pattern - manage individual database assignments " +
 			"to a policy rather than managing the entire policy.\n\n" +
+			"Policies can be created using the `cyberarksia_database_policy` resource or managed through the SIA UI. " +
+			"Use the `cyberarksia_access_policy` data source to reference existing policies.\n\n" +
 			"**IMPORTANT**: Multiple assignments to the same policy within a single Terraform workspace are supported. " +
 			"However, managing the same policy from multiple Terraform workspaces can cause conflicts. " +
 			"See the resource documentation for best practices.",
@@ -234,18 +236,18 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 
 	// DEBUG: Log fetched policy structure
 	tflog.Debug(ctx, "Fetched policy structure", map[string]interface{}{
-		"policy_id":           policy.Metadata.PolicyID,
-		"policy_name":         policy.Metadata.Name,
-		"targets_count":       len(policy.Targets),
-		"principals_count":    len(policy.Principals),
-		"delegation_class":    policy.DelegationClassification,
+		"policy_id":        policy.Metadata.PolicyID,
+		"policy_name":      policy.Metadata.Name,
+		"targets_count":    len(policy.Targets),
+		"principals_count": len(policy.Principals),
+		"delegation_class": policy.DelegationClassification,
 	})
 
 	// Log each workspace type and instance count
 	for wsType, targets := range policy.Targets {
 		tflog.Debug(ctx, "Workspace type in policy", map[string]interface{}{
-			"workspace_type":   wsType,
-			"instances_count":  len(targets.Instances),
+			"workspace_type":  wsType,
+			"instances_count": len(targets.Instances),
 		})
 	}
 
@@ -1035,10 +1037,10 @@ func (r *PolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resou
 	policy.Targets[workspaceType] = targets
 
 	tflog.Debug(ctx, "Removed database from policy targets", map[string]interface{}{
-		"policy_id":         policyID,
-		"database_id":       databaseID,
-		"workspace_type":    workspaceType,
-		"remaining_count":   len(newInstances),
+		"policy_id":       policyID,
+		"database_id":     databaseID,
+		"workspace_type":  workspaceType,
+		"remaining_count": len(newInstances),
 	})
 
 	// Step 4: Write policy back (API only accepts ONE workspace type at a time)

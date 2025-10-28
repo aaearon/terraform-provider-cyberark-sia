@@ -43,12 +43,13 @@ resource "azurerm_resource_group" "sia_test" {
   name     = "rg-sia-test-${random_string.suffix.result}"
   location = var.azure_region
 
+  # STATIC tags only - NO timestamp() to avoid unnecessary updates!
   tags = {
     environment = "test"
     purpose     = "sia-provider-validation"
     managed_by  = "terraform"
     auto_delete = "true"
-    created_at  = timestamp()
+    created_on  = "2025-10-28"
   }
 }
 

@@ -20,7 +20,7 @@ Manages a CyberArk SIA database access policy including metadata and access cond
 ```terraform
 resource "cyberarksia_database_policy" "basic" {
   name                       = "Basic-Database-Policy"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
 
   conditions {
@@ -36,7 +36,7 @@ resource "cyberarksia_database_policy" "basic" {
 resource "cyberarksia_database_policy" "business_hours" {
   name                       = "Weekday-Business-Hours"
   description                = "Database access limited to business hours"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
   time_zone                  = "America/New_York"
 
@@ -59,7 +59,7 @@ resource "cyberarksia_database_policy" "business_hours" {
 resource "cyberarksia_database_policy" "project" {
   name                       = "Q1-Migration-Project"
   description                = "Temporary access for Q1 database migration"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Restricted"
   time_zone                  = "GMT"
 
@@ -201,7 +201,7 @@ Principals (users/groups/roles) are assigned to policies using the `cyberarksia_
 ```terraform
 resource "cyberarksia_database_policy" "admins" {
   name   = "Database-Admins"
-  status = "Active"
+  status = "active"
 
   conditions {
     max_session_duration = 8
@@ -293,7 +293,7 @@ variable "maintenance_mode" {
 
 resource "cyberarksia_database_policy" "app" {
   name   = "Application-Database-Access"
-  status = var.maintenance_mode ? "Suspended" : "Active"
+  status = var.maintenance_mode ? "suspended" : "active"
 
   conditions {
     max_session_duration = 4
@@ -312,7 +312,7 @@ variable "environment" {
 
 resource "cyberarksia_database_policy" "env" {
   name                       = "${var.environment}-database-policy"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = var.environment == "production" ? "Restricted" : "Unrestricted"
 
   policy_tags = [

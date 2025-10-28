@@ -8,8 +8,8 @@ import (
 // PolicyDatabaseAssignmentModel describes the resource data model for Terraform state
 type PolicyDatabaseAssignmentModel struct {
 	// Required inputs (ForceNew)
-	PolicyID            types.String `tfsdk:"policy_id"`
-	DatabaseWorkspaceID types.String `tfsdk:"database_workspace_id"`
+	PolicyID             types.String `tfsdk:"policy_id"`
+	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"`
 	AuthenticationMethod types.String `tfsdk:"authentication_method"`
 
 	// Profile blocks (mutually exclusive)

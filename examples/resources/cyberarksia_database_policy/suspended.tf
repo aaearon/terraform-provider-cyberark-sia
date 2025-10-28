@@ -4,7 +4,7 @@
 resource "cyberarksia_database_policy" "suspended" {
   name                       = "Temporarily-Disabled-Policy"
   description                = "Policy temporarily suspended for maintenance"
-  status                     = "Suspended" # Access denied while suspended
+  status                     = "suspended" # Access denied while suspended
   delegation_classification  = "Unrestricted"
 
   conditions {
@@ -22,7 +22,7 @@ variable "policy_enabled" {
 
 resource "cyberarksia_database_policy" "toggleable" {
   name                       = "Toggleable-Access-Policy"
-  status                     = var.policy_enabled ? "Active" : "Suspended"
+  status                     = "suspended"
   delegation_classification  = "Unrestricted"
 
   conditions {

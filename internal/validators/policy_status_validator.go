@@ -8,17 +8,17 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// policyStatusValidator validates that policy status is "Active" or "Suspended" only
+// policyStatusValidator validates that policy status is "active" or "suspended" only
 type policyStatusValidator struct{}
 
 // Description returns a plain text description of the validator's behavior
 func (v policyStatusValidator) Description(ctx context.Context) string {
-	return "Value must be 'Active' or 'Suspended'"
+	return "Value must be 'active' or 'suspended'"
 }
 
 // MarkdownDescription returns a markdown formatted description of the validator's behavior
 func (v policyStatusValidator) MarkdownDescription(ctx context.Context) string {
-	return "Value must be `Active` or `Suspended`"
+	return "Value must be `active` or `suspended`"
 }
 
 // ValidateString validates the status value
@@ -29,20 +29,20 @@ func (v policyStatusValidator) ValidateString(ctx context.Context, req validator
 	}
 
 	value := req.ConfigValue.ValueString()
-	validStatuses := []string{"Active", "Suspended"}
+	validStatuses := []string{"active", "suspended"}
 
 	if !slices.Contains(validStatuses, value) {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid Policy Status",
-			fmt.Sprintf("Value %q is not valid. Must be 'Active' or 'Suspended'. "+
-				"Note: 'Expired', 'Validating', and 'Error' are server-managed statuses "+
+			fmt.Sprintf("Value %q is not valid. Must be 'active' or 'suspended'. "+
+				"Note: 'expired', 'validating', and 'error' are server-managed statuses "+
 				"and cannot be set by users.", value),
 		)
 	}
 }
 
-// PolicyStatus returns a validator that ensures policy status is "Active" or "Suspended"
+// PolicyStatus returns a validator that ensures policy status is "active" or "suspended"
 func PolicyStatus() validator.String {
 	return policyStatusValidator{}
 }

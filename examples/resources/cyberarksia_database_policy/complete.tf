@@ -4,7 +4,7 @@
 resource "cyberarksia_database_policy" "complete" {
   name                       = "Complete-Example-Policy"
   description                = "Comprehensive example showing all policy attributes"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Restricted"
   time_zone                  = "America/New_York"
 
@@ -42,7 +42,7 @@ resource "cyberarksia_database_policy" "complete" {
 resource "cyberarksia_database_policy" "twentyfourseven" {
   name                       = "Always-Available-Policy"
   description                = "24/7 database access for on-call teams"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
 
   policy_tags = [
@@ -66,7 +66,7 @@ resource "cyberarksia_database_policy" "twentyfourseven" {
 resource "cyberarksia_database_policy" "project" {
   name                       = "Q1-Migration-Project"
   description                = "Temporary access for Q1 database migration"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Restricted"
 
   time_frame {

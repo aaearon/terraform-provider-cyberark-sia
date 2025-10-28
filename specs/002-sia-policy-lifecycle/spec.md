@@ -7,6 +7,55 @@
 
 **Architecture**: This specification defines a modular assignment pattern where principals and targets are managed via separate assignment resources for maximum composability and team workflow flexibility.
 
+## ⚠️ CRITICAL IMPLEMENTATION NOTE: Inline Assignments Required
+
+**Date Added**: 2025-10-28
+**Reason**: SIA API constraint discovered during implementation
+
+The **SIA API enforces a critical constraint**: Policies CANNOT be created without at least **one principal AND one target database**. This differs from the originally envisioned modular-only pattern.
+
+**Impact on Implementation**:
+
+The `cyberarksia_database_policy` resource MUST support **inline assignments** using singular, repeatable blocks matching familiar Terraform patterns (AWS `ingress`/`egress`, GCP `disk`/`network_interface`):
+
+```hcl
+resource "cyberarksia_database_policy" "example" {
+  name   = "Production Access"
+  status = "active"
+
+  # Required: At least 1 target_database block
+  target_database {
+    database_workspace_id  = cyberarksia_database_workspace.postgres.id
+    authentication_method  = "db_auth"
+    db_auth_profile { roles = ["reader"] }
+  }
+
+  # Required: At least 1 principal block
+  principal {
+    principal_id   = "abc-123"
+    principal_type = "USER"
+    principal_name = "user@example.com"
+  }
+
+  conditions {
+    max_session_duration = 8
+  }
+}
+```
+
+**Why Singular Block Names** (`target_database`, `principal`):
+- Matches AWS Security Group pattern: `ingress {}`, `egress {}` (not `ingreses {}`)
+- Follows GCP Compute Instance pattern: `disk {}`, `network_interface {}`
+- Familiar to Terraform users from popular providers
+- Repeatable blocks feel more natural with singular names
+
+**Relationship to Separate Assignment Resources**:
+- Inline blocks handle **initial policy creation** (API requirement)
+- Separate `cyberarksia_database_policy_principal_assignment` and `cyberarksia_policy_database_assignment` resources manage **additional assignments**
+- Teams can use `lifecycle { ignore_changes = [principal, target_database] }` if managing all assignments externally
+
+This hybrid approach satisfies both the API constraint AND the composability goals of the modular pattern.
+
 ## Clarifications
 
 ### Session 2025-10-28

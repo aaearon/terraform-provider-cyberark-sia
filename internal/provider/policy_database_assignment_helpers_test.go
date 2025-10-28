@@ -9,10 +9,10 @@ import (
 // Test composite ID building
 func TestBuildCompositeID(t *testing.T) {
 	tests := []struct {
-		name       string
-		policyID   string
-		dbID       string
-		want       string
+		name     string
+		policyID string
+		dbID     string
+		want     string
 	}{
 		{
 			name:     "standard UUIDs",
@@ -41,11 +41,11 @@ func TestBuildCompositeID(t *testing.T) {
 // Test composite ID parsing
 func TestParseCompositeID(t *testing.T) {
 	tests := []struct {
-		name          string
-		id            string
-		wantPolicyID  string
-		wantDBID      string
-		wantErr       bool
+		name         string
+		id           string
+		wantPolicyID string
+		wantDBID     string
+		wantErr      bool
 	}{
 		{
 			name:         "valid composite ID",

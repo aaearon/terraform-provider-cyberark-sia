@@ -1,6 +1,10 @@
 # CRUD Test Template for cyberarksia_database_policy
 # This template validates CREATE → READ → UPDATE → DELETE workflow
 
+# ⚠️ IMPORTANT: This template requires existing database workspace and user details
+# The SIA API requires AT LEAST 1 target database AND 1 principal when creating policies
+# Update the inline assignments below with your actual resource IDs
+
 terraform {
   required_providers {
     cyberarksia = {
@@ -11,19 +15,49 @@ terraform {
 }
 
 # ============================================================================
-# STEP 1: CREATE - Create a minimal policy
+# STEP 1: CREATE - Create a policy with minimal inline assignments
 # ============================================================================
+# API REQUIREMENT: Must have at least 1 target_database and 1 principal block
 
 resource "cyberarksia_database_policy" "test" {
   name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
   description                = "CRUD validation test policy"
-  status                     = "Active"
-  delegation_classification  = "Unrestricted"
+  status                     = "active"
+  delegation_classification  = "unrestricted"
   time_zone                  = "GMT"
 
   conditions {
     max_session_duration = 4
     idle_time            = 10
+  }
+
+  # ============================================================================
+  # INLINE TARGET DATABASE - Required (at least 1)
+  # ============================================================================
+  # TODO: Update with your actual database workspace ID
+  # Example: database_workspace_id = cyberarksia_database_workspace.test.id
+
+  target_database {
+    database_workspace_id = "YOUR_DATABASE_WORKSPACE_ID_HERE"  # REQUIRED: Update this
+    authentication_method = "db_auth"
+
+    db_auth_profile {
+      roles = ["pg_read_all_settings"]
+    }
+  }
+
+  # ============================================================================
+  # INLINE PRINCIPAL - Required (at least 1)
+  # ============================================================================
+  # TODO: Update with your actual user details from SIA
+  # Find these values in SIA UI → Identity & Access → Users
+
+  principal {
+    principal_id          = "YOUR_PRINCIPAL_UUID_HERE"         # REQUIRED: Update this
+    principal_type        = "USER"
+    principal_name        = "your.email@example.com"           # REQUIRED: Update this
+    source_directory_name = "CyberArk Cloud Directory"         # Update if using different directory
+    source_directory_id   = "YOUR_DIRECTORY_ID_HERE"           # REQUIRED: Update this
   }
 }
 
@@ -53,8 +87,8 @@ output "create_validation" {
 # [ ] policy_id is UUID format
 # [ ] name matches input
 # [ ] description matches input
-# [ ] status is "Active"
-# [ ] delegation_classification is "Unrestricted"
+# [ ] status is "active"
+# [ ] delegation_classification is "unrestricted"
 # [ ] time_zone is "GMT"
 # [ ] max_session_duration is 4
 # [ ] idle_time is 10
@@ -66,7 +100,7 @@ output "create_validation" {
 # ============================================================================
 # To test UPDATE, modify the resource block above:
 # 1. Change description to "Updated CRUD test policy"
-# 2. Change status to "Suspended"
+# 2. Change status to "suspended"
 # 3. Change max_session_duration to 8
 # 4. Change idle_time to 30
 # 5. Add access_window block (uncomment below)
@@ -77,8 +111,8 @@ output "create_validation" {
 resource "cyberarksia_database_policy" "test" {
   name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
   description                = "Updated CRUD test policy"  # CHANGED
-  status                     = "Suspended"                 # CHANGED
-  delegation_classification  = "Unrestricted"
+  status                     = "suspended"                 # CHANGED
+  delegation_classification  = "unrestricted"
   time_zone                  = "GMT"
 
   conditions {
@@ -110,13 +144,21 @@ output "update_validation" {
 # VALIDATION CHECKLIST - UPDATE
 # ============================================================================
 # [ ] description changed to "Updated CRUD test policy"
-# [ ] status changed to "Suspended"
+# [ ] status changed to "suspended"
 # [ ] max_session_duration changed to 8
 # [ ] idle_time changed to 30
 # [ ] access_window block populated (if added)
 # [ ] policy_id remains unchanged
 # [ ] name remains unchanged (ForceNew if changed)
 # [ ] updated_on timestamp changed
+#
+# IMPORTANT: Preservation of Principals and Targets
+# If this policy has principals (via cyberarksia_database_policy_principal_assignment)
+# or database assignments (via cyberarksia_policy_database_assignment), verify:
+# [ ] Principal assignments remain intact after policy update (check SIA UI "Assigned To")
+# [ ] Database assignments remain intact after policy update (check SIA UI "Targets")
+#
+# The Update() method uses read-modify-write pattern to preserve these relationships.
 
 # ============================================================================
 # STEP 4: IMPORT - Test import functionality
@@ -138,6 +180,17 @@ output "update_validation" {
 # ============================================================================
 # Run: terraform destroy -auto-approve
 # Verify: Policy removed from SIA UI
+#
+# CASCADE DELETE BEHAVIOR:
+# The SIA API automatically removes all principals and database assignments when
+# a policy is deleted. If you have cyberarksia_database_policy_principal_assignment
+# or cyberarksia_policy_database_assignment resources in state, they will show as
+# "deleted" on the next terraform refresh.
+#
+# BEST PRACTICE: Delete assignment resources first, then the policy:
+#   terraform destroy -target=cyberarksia_database_policy_principal_assignment.*
+#   terraform destroy -target=cyberarksia_policy_database_assignment.*
+#   terraform destroy -target=cyberarksia_database_policy.test
 
 # ============================================================================
 # VALIDATION CHECKLIST - DELETE
@@ -145,6 +198,9 @@ output "update_validation" {
 # [ ] terraform destroy succeeds
 # [ ] Policy no longer appears in SIA UI
 # [ ] No orphaned resources remain
+# [ ] All principals removed (check SIA UI "Users" section - no orphaned assignments)
+# [ ] All database assignments removed (check SIA UI policy targets)
+# [ ] Assignment resources in state show as "deleted" on next refresh
 
 # ============================================================================
 # ADVANCED TESTING - Policy with all features
@@ -155,8 +211,8 @@ output "update_validation" {
 resource "cyberarksia_database_policy" "complete" {
   name                       = "Complete-Test-Policy-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
   description                = "Complete test with all attributes"
-  status                     = "Active"
-  delegation_classification  = "Restricted"
+  status                     = "active"
+  delegation_classification  = "restricted"
   time_zone                  = "America/New_York"
 
   time_frame {

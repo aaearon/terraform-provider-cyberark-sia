@@ -4,7 +4,7 @@
 resource "cyberarksia_database_policy" "with_conditions" {
   name                       = "Weekday-Business-Hours-Policy"
   description                = "Database access limited to business hours"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
   time_zone                  = "GMT"
 
@@ -24,7 +24,7 @@ resource "cyberarksia_database_policy" "with_conditions" {
 resource "cyberarksia_database_policy" "us_eastern" {
   name                       = "US-Eastern-Business-Hours"
   description                = "Access during US Eastern business hours"
-  status                     = "Active"
+  status                     = "active"
   delegation_classification  = "Unrestricted"
   time_zone                  = "America/New_York"
 

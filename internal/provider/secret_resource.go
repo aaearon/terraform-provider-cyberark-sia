@@ -147,9 +147,9 @@ func (r *secretResource) Schema(ctx context.Context, req resource.SchemaRequest,
 
 			// Optional metadata
 			"tags": schema.MapAttribute{
-				Description:  "Key-value tags for organizing and categorizing secrets. Maps to Tags in SDK.",
-				ElementType:  types.StringType,
-				Optional:     true,
+				Description: "Key-value tags for organizing and categorizing secrets. Maps to Tags in SDK.",
+				ElementType: types.StringType,
+				Optional:    true,
 			},
 
 			// Computed attributes
