@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	customtypes "github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/types"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
 	uapsiacommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/common/models"
 	uapsiadbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/db/models"
@@ -62,9 +63,9 @@ type ConditionsModel struct {
 
 // AccessWindowModel represents time-based access restrictions
 type AccessWindowModel struct {
-	DaysOfTheWeek types.Set    `tfsdk:"days_of_the_week"` // Set of int, 0=Sunday through 6=Saturday (order doesn't matter)
-	FromHour      types.String `tfsdk:"from_hour"`        // "HH:MM"
-	ToHour        types.String `tfsdk:"to_hour"`          // "HH:MM"
+	DaysOfTheWeek customtypes.DaysOfWeekValue `tfsdk:"days_of_the_week"` // List of int, 0=Sunday through 6=Saturday (order doesn't matter - semantic equality handles this)
+	FromHour      types.String                `tfsdk:"from_hour"`        // "HH:MM"
+	ToHour        types.String                `tfsdk:"to_hour"`          // "HH:MM"
 }
 
 // ChangeInfoModel represents user and timestamp for policy changes
@@ -210,8 +211,9 @@ func convertConditionsToSDK(c *ConditionsModel) uapsiacommonmodels.ArkUAPSIAComm
 	if c.AccessWindow != nil {
 		var days []int
 		if !c.AccessWindow.DaysOfTheWeek.IsNull() && !c.AccessWindow.DaysOfTheWeek.IsUnknown() {
-			// Convert Set to []int (Set automatically handles ordering)
-			c.AccessWindow.DaysOfTheWeek.ElementsAs(context.Background(), &days, false)
+			// DaysOfWeekValue.ListValue.ElementsAs() extracts the underlying []int
+			// Note: No need to sort - DaysOfWeekValue.ListSemanticEquals() handles order-independent comparison
+			c.AccessWindow.DaysOfTheWeek.ListValue.ElementsAs(context.Background(), &days, false)
 		}
 
 		conditions.AccessWindow = uapcommonmodels.ArkUAPTimeCondition{
@@ -237,16 +239,23 @@ func convertConditionsFromSDK(ctx context.Context, c *uapsiacommonmodels.ArkUAPS
 
 	// Convert access window if present
 	if len(c.AccessWindow.DaysOfTheWeek) > 0 || c.AccessWindow.FromHour != "" || c.AccessWindow.ToHour != "" {
+		// Convert days to attr.Value slice
+		// Note: No need to sort - DaysOfWeekValue.ListSemanticEquals() handles order-independent comparison
 		dayValues := make([]attr.Value, len(c.AccessWindow.DaysOfTheWeek))
 		for i, day := range c.AccessWindow.DaysOfTheWeek {
 			dayValues[i] = types.Int64Value(int64(day))
 		}
 
-		// Use SetValue instead of ListValue - order doesn't matter
-		daysSet, _ := types.SetValue(types.Int64Type, dayValues)
+		// Create base ListValue
+		daysList, _ := types.ListValue(types.Int64Type, dayValues)
+
+		// Wrap in DaysOfWeekValue for semantic equality
+		daysOfWeekValue := customtypes.DaysOfWeekValue{
+			ListValue: daysList,
+		}
 
 		conditions.AccessWindow = &AccessWindowModel{
-			DaysOfTheWeek: daysSet,
+			DaysOfTheWeek: daysOfWeekValue,
 			FromHour:      types.StringValue(c.AccessWindow.FromHour),
 			ToHour:        types.StringValue(c.AccessWindow.ToHour),
 		}

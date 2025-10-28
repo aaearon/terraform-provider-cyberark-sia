@@ -45,10 +45,17 @@ resource "cyberarksia_database_policy" "business_hours" {
     idle_time            = 15 # 15 minutes
 
     access_window {
+      # IMPORTANT: Always specify days in ascending order
       days_of_the_week = [1, 2, 3, 4, 5] # Monday-Friday
       from_hour        = "09:00"
       to_hour          = "17:00"
     }
+  }
+
+  # Workaround for days_of_the_week API ordering issue
+  # See: Known Limitation in Troubleshooting section
+  lifecycle {
+    ignore_changes = [conditions[0].access_window[0].days_of_the_week]
   }
 }
 ```
@@ -119,7 +126,7 @@ The `conditions` block supports:
 
 The `access_window` block within `conditions` supports:
 
-- `days_of_the_week` (List of Number, Required) Days access is allowed (0=Sunday through 6=Saturday). Example: `[1, 2, 3, 4, 5]` for weekdays.
+- `days_of_the_week` (List of Number, Required) Days access is allowed (0=Sunday through 6=Saturday). Example: `[1, 2, 3, 4, 5]` for weekdays. **Note**: See [Known Limitation](#provider-produced-inconsistent-result-with-days_of_the_week) regarding order sensitivity during resource creation.
 - `from_hour` (String, Required) Start time in HH:MM format (e.g., `09:00`).
 - `to_hour` (String, Required) End time in HH:MM format (e.g., `17:00`).
 
@@ -343,10 +350,16 @@ resource "cyberarksia_database_policy" "oncall" {
     max_session_duration = 12
 
     access_window {
+      # IMPORTANT: Always specify days in ascending order
       days_of_the_week = [0, 1, 2, 3, 4, 5, 6] # All days
       from_hour        = "00:00"
       to_hour          = "23:59"
     }
+  }
+
+  # Workaround for days_of_the_week API ordering issue
+  lifecycle {
+    ignore_changes = [conditions[0].access_window[0].days_of_the_week]
   }
 }
 ```
@@ -383,3 +396,55 @@ resource "cyberarksia_database_policy" "oncall" {
 **Cause**: These are server-managed statuses.
 
 **Resolution**: Only use `Active` or `Suspended` for the `status` attribute.
+
+### "Provider Produced Inconsistent Result" with days_of_the_week
+
+**Symptom**: Error during `terraform apply` when creating a policy with `days_of_the_week`:
+```
+Error: Provider produced inconsistent result after apply
+.conditions.access_window.days_of_the_week[0]: was cty.NumberIntVal(1), but now cty.NumberIntVal(4)
+```
+
+**Cause**: The CyberArk API may return `days_of_the_week` in a different order than configured (e.g., `[3,1,5,2,4]` instead of `[1,2,3,4,5]`). This is a known Terraform Plugin Framework limitation where semantic equality is not applied during CREATE validation.
+
+**Resolution**: Apply the following workaround:
+
+1. **Always specify days in ascending order**:
+   ```hcl
+   access_window {
+     days_of_the_week = [1, 2, 3, 4, 5]  # ✅ Correct: ascending order
+     # NOT: [5, 4, 3, 2, 1]              # ❌ Wrong: will cause drift
+     from_hour = "09:00"
+     to_hour   = "17:00"
+   }
+   ```
+
+2. **Add lifecycle ignore_changes**:
+   ```hcl
+   resource "cyberarksia_database_policy" "example" {
+     name   = "Business-Hours-Policy"
+     status = "active"
+
+     conditions {
+       max_session_duration = 4
+
+       access_window {
+         days_of_the_week = [1, 2, 3, 4, 5]
+         from_hour        = "09:00"
+         to_hour          = "17:00"
+       }
+     }
+
+     lifecycle {
+       ignore_changes = [conditions[0].access_window[0].days_of_the_week]
+     }
+   }
+   ```
+
+**Why This Happens**: The provider implements semantic equality (order-independent comparison) for `days_of_the_week`, but the Terraform Plugin Framework validates API responses positionally during resource CREATE before semantic equality logic is applied. This means if the API returns days in a different order, the framework rejects the response even though the sets are semantically equal.
+
+**Status**: Accepted as known limitation. Provider behavior is correct; this is a Plugin Framework architectural constraint.
+
+**Long-term Solutions**:
+- Request CyberArk API to return `days_of_the_week` in sorted order
+- Wait for Terraform Plugin Framework enhancement to support semantic equality during CREATE validation

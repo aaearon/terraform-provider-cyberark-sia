@@ -85,6 +85,47 @@ resource "cyberarksia_database_policy" "temporary" {
 }
 ```
 
+### 4. Known Limitation: `days_of_the_week` Order Sensitivity
+
+**Problem**: CyberArk API may return `days_of_the_week` in different order than configured, causing "Provider produced inconsistent result" errors during resource CREATE.
+
+```hcl
+# ❌ BAD - May cause drift errors
+resource "cyberarksia_database_policy" "example" {
+  conditions {
+    access_window {
+      days_of_the_week = [5, 4, 3, 2, 1]  # Descending order may fail
+      from_hour        = "09:00"
+      to_hour          = "17:00"
+    }
+  }
+}
+
+# ✅ GOOD - Always use ascending order + lifecycle block
+resource "cyberarksia_database_policy" "example" {
+  conditions {
+    access_window {
+      days_of_the_week = [1, 2, 3, 4, 5]  # MUST be ascending order
+      from_hour        = "09:00"
+      to_hour          = "17:00"
+    }
+  }
+
+  # Required workaround for API ordering behavior
+  lifecycle {
+    ignore_changes = [conditions[0].access_window[0].days_of_the_week]
+  }
+}
+```
+
+**Why This Happens**: This is a Terraform Plugin Framework limitation where semantic equality is not applied during CREATE validation. If the API returns days in different order (e.g., `[3,1,5,2,4]` instead of `[1,2,3,4,5]`), the framework rejects the response positionally.
+
+**Required Workaround**:
+1. Always specify `days_of_the_week` in ascending order
+2. Add `lifecycle { ignore_changes }` block to all policies with `access_window`
+
+**Reference**: See `docs/resources/database_policy.md` Troubleshooting section for full details.
+
 ---
 
 ## About This Guide
