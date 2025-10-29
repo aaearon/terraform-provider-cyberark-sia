@@ -18,6 +18,7 @@ import (
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/models"
+	"github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/helpers"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/validators"
 	dbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/sia/workspaces/db/models"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
@@ -305,7 +306,7 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 		})
 
 		// IDEMPOTENT: Adopt existing configuration
-		data.ID = types.StringValue(buildCompositeID(policyID, databaseID))
+		data.ID = types.StringValue(helpers.BuildCompositeID(policyID, databaseID))
 		data.LastModified = types.StringValue(time.Now().UTC().Format(time.RFC3339))
 
 		// Update state with existing configuration
@@ -373,7 +374,7 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 	}
 
 	// Step 7: Store composite ID and timestamp
-	data.ID = types.StringValue(buildCompositeID(policyID, databaseID))
+	data.ID = types.StringValue(helpers.BuildCompositeID(policyID, databaseID))
 	data.LastModified = types.StringValue(time.Now().UTC().Format(time.RFC3339))
 
 	// Save data into Terraform state
@@ -394,7 +395,7 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 	LogOperationStart(ctx, "read", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -483,7 +484,7 @@ func (r *PolicyDatabaseAssignmentResource) Update(ctx context.Context, req resou
 	LogOperationStart(ctx, "update", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -589,7 +590,7 @@ func (r *PolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resou
 	LogOperationStart(ctx, "delete", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -678,19 +679,6 @@ func (r *PolicyDatabaseAssignmentResource) ImportState(ctx context.Context, req 
 
 // Helper functions (Tasks 13-14)
 
-// buildCompositeID creates a composite ID from policy ID and database ID
-func buildCompositeID(policyID, dbID string) string {
-	return fmt.Sprintf("%s:%s", policyID, dbID)
-}
-
-// parseCompositeID splits a composite ID into policy ID and database ID
-func parseCompositeID(id string) (policyID, dbID string, err error) {
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", "", fmt.Errorf("invalid composite ID format: expected 'policy-id:database-id', got '%s'", id)
-	}
-	return parts[0], parts[1], nil
-}
 
 // determineWorkspaceType returns the policy workspace type for database targets
 // ALL database workspaces use "FQDN/IP" target set regardless of cloud provider
