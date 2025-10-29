@@ -113,51 +113,24 @@ func TestAccCertificate_import(t *testing.T) {
 }
 
 // Helper functions for test configurations
-// TODO: Implement when Phase 3 (CREATE/READ) is complete
-
-// testAccCertificateConfig_basic generates HCL for basic certificate creation
-// Used by: TestAccCertificate_delete, TestAccCertificate_import
-func testAccCertificateConfig_basic(certName string) string {
-	// TODO: Implement in Phase 3
-	// Should include:
-	// - cert_name parameter
-	// - cert_body with valid PEM certificate (use test certificate from fixtures)
-	// - cert_description
-	// - domain_name
-	// - labels
-	return "# TODO: Implement in Phase 3 - Certificate CREATE/READ"
-}
-
-// testAccCertificateConfig_withDatabaseWorkspace generates HCL for certificate + database workspace
-// Used by: TestAccCertificate_deleteInUse
-func testAccCertificateConfig_withDatabaseWorkspace(certName, dbName string) string {
-	// TODO: Implement in Phase 3 + Phase 4 (database workspace enhancement)
-	// Should include:
-	// - Certificate resource
-	// - Database workspace resource with certificate_id reference
-	return "# TODO: Implement in Phase 3/4 - Certificate + Database Workspace"
-}
-
-// testAccCertificateConfig_deleteCertificateOnly generates HCL with only database workspace (certificate removed)
-// Used by: TestAccCertificate_deleteInUse
-func testAccCertificateConfig_deleteCertificateOnly(dbName string) string {
-	// TODO: Implement in Phase 3 + Phase 4
-	// Should include:
-	// - Only database workspace (certificate resource removed)
-	// - This triggers certificate deletion while database still references it
-	return "# TODO: Implement in Phase 3/4 - Database Workspace without Certificate"
-}
-
-// testAccCheckCertificateExists verifies certificate exists in SIA via API
-// Used by: Custom acceptance test checks (when needed)
-// TODO: Implement in Phase 3
-//func testAccCheckCertificateExists(resourceName string) resource.TestCheckFunc {
-//	return func(s *terraform.State) error {
-//		// TODO: Implement in Phase 3
-//		// Should:
-//		// 1. Extract certificate ID from resource state
-//		// 2. Call GetCertificate() via client
+// NOTE: Comprehensive acceptance tests for certificates are tracked separately.
+// Current implementation focuses on CRUD testing framework in examples/testing/TESTING-GUIDE.md
+// For acceptance test implementation, see examples/testing/ templates.
 //		// 3. Return error if certificate doesn't exist
 //		return nil
 //	}
 //}
+
+// Test configuration stubs (tests are skipped - these are placeholders)
+func testAccCertificateConfig_basic(certName string) string {
+	return ""
+}
+
+func testAccCertificateConfig_withDatabaseWorkspace(certName, dbName string) string {
+	return ""
+}
+
+func testAccCertificateConfig_deleteCertificateOnly(dbName string) string {
+	return ""
+}
+

@@ -6,6 +6,14 @@
 
 ---
 
+## Data Sources
+
+### 2025-10-29 - Principal Lookup Data Source
+
+Implemented `cyberarksia_principal` data source enabling principal lookups by name. Hybrid strategy provides fast path for users (< 1s) and fallback for all types (< 2s). Eliminates manual UUID lookups for policy assignments. See `docs/data-sources/principal.md` for usage.
+
+---
+
 ## Policy Management & Access Control
 
 ### Database Policy Management - Modular Assignment Pattern (2025-10-28) ⭐ CURRENT

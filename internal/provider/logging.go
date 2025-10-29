@@ -56,6 +56,16 @@ func LogUAPClientSuccess(ctx context.Context) {
 	tflog.Info(ctx, "Successfully initialized UAP API client")
 }
 
+// LogIdentityClientInit logs Identity API client initialization
+func LogIdentityClientInit(ctx context.Context) {
+	tflog.Debug(ctx, "Initializing Identity API client")
+}
+
+// LogIdentityClientSuccess logs successful Identity API client creation
+func LogIdentityClientSuccess(ctx context.Context) {
+	tflog.Info(ctx, "Successfully initialized Identity API client")
+}
+
 // LogOperationStart logs the start of an API operation
 func LogOperationStart(ctx context.Context, operation string, resourceType string) {
 	tflog.Debug(ctx, "Starting operation", map[string]interface{}{

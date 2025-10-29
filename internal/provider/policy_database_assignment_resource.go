@@ -18,6 +18,7 @@ import (
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/models"
+	"github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/helpers"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/validators"
 	dbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/sia/workspaces/db/models"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
@@ -305,7 +306,7 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 		})
 
 		// IDEMPOTENT: Adopt existing configuration
-		data.ID = types.StringValue(buildCompositeID(policyID, databaseID))
+		data.ID = types.StringValue(helpers.BuildCompositeID(policyID, databaseID))
 		data.LastModified = types.StringValue(time.Now().UTC().Format(time.RFC3339))
 
 		// Update state with existing configuration
@@ -322,151 +323,14 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 		AuthenticationMethod: authMethod,
 	}
 
-	// Set the appropriate profile based on authentication method
-	switch authMethod {
-	case "db_auth":
-		if data.DBAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "db_auth_profile block is required when authentication_method is 'db_auth'")
-			return
-		}
-		var roles []string
-		resp.Diagnostics.Append(data.DBAuthProfile.Roles.ElementsAs(ctx, &roles, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		instanceTarget.DBAuthProfile = &uapsiadbmodels.ArkUAPSIADBDBAuthProfile{Roles: roles}
-
-	case "ldap_auth":
-		if data.LDAPAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "ldap_auth_profile block is required when authentication_method is 'ldap_auth'")
-			return
-		}
-		var assignGroups []string
-		resp.Diagnostics.Append(data.LDAPAuthProfile.AssignGroups.ElementsAs(ctx, &assignGroups, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		instanceTarget.LDAPAuthProfile = &uapsiadbmodels.ArkUAPSIADBLDAPAuthProfile{AssignGroups: assignGroups}
-
-	case "oracle_auth":
-		if data.OracleAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "oracle_auth_profile block is required when authentication_method is 'oracle_auth'")
-			return
-		}
-		var roles []string
-		resp.Diagnostics.Append(data.OracleAuthProfile.Roles.ElementsAs(ctx, &roles, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		instanceTarget.OracleAuthProfile = &uapsiadbmodels.ArkUAPSIADBOracleAuthProfile{
-			Roles:       roles,
-			DbaRole:     data.OracleAuthProfile.DbaRole.ValueBool(),
-			SysdbaRole:  data.OracleAuthProfile.SysdbaRole.ValueBool(),
-			SysoperRole: data.OracleAuthProfile.SysoperRole.ValueBool(),
-		}
-
-	case "mongo_auth":
-		if data.MongoAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "mongo_auth_profile block is required when authentication_method is 'mongo_auth'")
-			return
-		}
-		mongoProfile := &uapsiadbmodels.ArkUAPSIADBMongoAuthProfile{}
-
-		// Global builtin roles
-		if !data.MongoAuthProfile.GlobalBuiltinRoles.IsNull() {
-			var globalRoles []string
-			resp.Diagnostics.Append(data.MongoAuthProfile.GlobalBuiltinRoles.ElementsAs(ctx, &globalRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.GlobalBuiltinRoles = globalRoles
-		}
-
-		// Database builtin roles
-		if !data.MongoAuthProfile.DatabaseBuiltinRoles.IsNull() {
-			dbBuiltinRoles := make(map[string][]string)
-			resp.Diagnostics.Append(data.MongoAuthProfile.DatabaseBuiltinRoles.ElementsAs(ctx, &dbBuiltinRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.DatabaseBuiltinRoles = dbBuiltinRoles
-		}
-
-		// Database custom roles
-		if !data.MongoAuthProfile.DatabaseCustomRoles.IsNull() {
-			dbCustomRoles := make(map[string][]string)
-			resp.Diagnostics.Append(data.MongoAuthProfile.DatabaseCustomRoles.ElementsAs(ctx, &dbCustomRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.DatabaseCustomRoles = dbCustomRoles
-		}
-
-		instanceTarget.MongoAuthProfile = mongoProfile
-
-	case "sqlserver_auth":
-		if data.SQLServerAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "sqlserver_auth_profile block is required when authentication_method is 'sqlserver_auth'")
-			return
-		}
-		sqlProfile := &uapsiadbmodels.ArkUAPSIADBSqlServerAuthProfile{}
-
-		// Global builtin roles
-		if !data.SQLServerAuthProfile.GlobalBuiltinRoles.IsNull() {
-			var globalBuiltin []string
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.GlobalBuiltinRoles.ElementsAs(ctx, &globalBuiltin, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.GlobalBuiltinRoles = globalBuiltin
-		}
-
-		// Global custom roles
-		if !data.SQLServerAuthProfile.GlobalCustomRoles.IsNull() {
-			var globalCustom []string
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.GlobalCustomRoles.ElementsAs(ctx, &globalCustom, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.GlobalCustomRoles = globalCustom
-		}
-
-		// Database builtin roles
-		if !data.SQLServerAuthProfile.DatabaseBuiltinRoles.IsNull() {
-			dbBuiltin := make(map[string][]string)
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.DatabaseBuiltinRoles.ElementsAs(ctx, &dbBuiltin, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.DatabaseBuiltinRoles = dbBuiltin
-		}
-
-		// Database custom roles
-		if !data.SQLServerAuthProfile.DatabaseCustomRoles.IsNull() {
-			dbCustom := make(map[string][]string)
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.DatabaseCustomRoles.ElementsAs(ctx, &dbCustom, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.DatabaseCustomRoles = dbCustom
-		}
-
-		instanceTarget.SQLServerAuthProfile = sqlProfile
-
-	case "rds_iam_user_auth":
-		if data.RDSIAMUserAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "rds_iam_user_auth_profile block is required when authentication_method is 'rds_iam_user_auth'")
-			return
-		}
-		instanceTarget.RDSIAMUserAuthProfile = &uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile{
-			DBUser: data.RDSIAMUserAuthProfile.DBUser.ValueString(),
-		}
-
-	default:
-		resp.Diagnostics.AddError("Unsupported Authentication Method",
-			fmt.Sprintf("Authentication method %q is not yet implemented", authMethod))
+	// Build authentication profile using factory
+	profile := BuildAuthenticationProfile(ctx, authMethod, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set profile on instance target
+	SetProfileOnInstanceTarget(instanceTarget, authMethod, profile)
 
 	tflog.Debug(ctx, "Built instance target", map[string]interface{}{
 		"instance_name": instanceTarget.InstanceName,
@@ -510,7 +374,7 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 	}
 
 	// Step 7: Store composite ID and timestamp
-	data.ID = types.StringValue(buildCompositeID(policyID, databaseID))
+	data.ID = types.StringValue(helpers.BuildCompositeID(policyID, databaseID))
 	data.LastModified = types.StringValue(time.Now().UTC().Format(time.RFC3339))
 
 	// Save data into Terraform state
@@ -531,7 +395,7 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 	LogOperationStart(ctx, "read", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -596,133 +460,10 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 	data.AuthenticationMethod = types.StringValue(target.AuthenticationMethod)
 	data.LastModified = types.StringValue(time.Now().UTC().Format(time.RFC3339))
 
-	// Update profile based on authentication method
-	switch target.AuthenticationMethod {
-	case "db_auth":
-		if target.DBAuthProfile != nil {
-			rolesList, diags := types.ListValueFrom(ctx, types.StringType, target.DBAuthProfile.Roles)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			data.DBAuthProfile = &models.DBAuthProfileModel{Roles: rolesList}
-		}
-
-	case "ldap_auth":
-		if target.LDAPAuthProfile != nil {
-			assignGroupsList, diags := types.ListValueFrom(ctx, types.StringType, target.LDAPAuthProfile.AssignGroups)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			data.LDAPAuthProfile = &models.LDAPAuthProfileModel{AssignGroups: assignGroupsList}
-		}
-
-	case "oracle_auth":
-		if target.OracleAuthProfile != nil {
-			rolesList, diags := types.ListValueFrom(ctx, types.StringType, target.OracleAuthProfile.Roles)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			data.OracleAuthProfile = &models.OracleAuthProfileModel{
-				Roles:       rolesList,
-				DbaRole:     types.BoolValue(target.OracleAuthProfile.DbaRole),
-				SysdbaRole:  types.BoolValue(target.OracleAuthProfile.SysdbaRole),
-				SysoperRole: types.BoolValue(target.OracleAuthProfile.SysoperRole),
-			}
-		}
-
-	case "mongo_auth":
-		if target.MongoAuthProfile != nil {
-			mongoModel := &models.MongoAuthProfileModel{}
-
-			// Global builtin roles
-			if len(target.MongoAuthProfile.GlobalBuiltinRoles) > 0 {
-				globalList, diags := types.ListValueFrom(ctx, types.StringType, target.MongoAuthProfile.GlobalBuiltinRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				mongoModel.GlobalBuiltinRoles = globalList
-			}
-
-			// Database builtin roles
-			if len(target.MongoAuthProfile.DatabaseBuiltinRoles) > 0 {
-				dbBuiltinMap, diags := types.MapValueFrom(ctx, types.ListType{ElemType: types.StringType}, target.MongoAuthProfile.DatabaseBuiltinRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				mongoModel.DatabaseBuiltinRoles = dbBuiltinMap
-			}
-
-			// Database custom roles
-			if len(target.MongoAuthProfile.DatabaseCustomRoles) > 0 {
-				dbCustomMap, diags := types.MapValueFrom(ctx, types.ListType{ElemType: types.StringType}, target.MongoAuthProfile.DatabaseCustomRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				mongoModel.DatabaseCustomRoles = dbCustomMap
-			}
-
-			data.MongoAuthProfile = mongoModel
-		}
-
-	case "sqlserver_auth":
-		if target.SQLServerAuthProfile != nil {
-			sqlModel := &models.SQLServerAuthProfileModel{}
-
-			// Global builtin roles
-			if len(target.SQLServerAuthProfile.GlobalBuiltinRoles) > 0 {
-				globalBuiltinList, diags := types.ListValueFrom(ctx, types.StringType, target.SQLServerAuthProfile.GlobalBuiltinRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				sqlModel.GlobalBuiltinRoles = globalBuiltinList
-			}
-
-			// Global custom roles
-			if len(target.SQLServerAuthProfile.GlobalCustomRoles) > 0 {
-				globalCustomList, diags := types.ListValueFrom(ctx, types.StringType, target.SQLServerAuthProfile.GlobalCustomRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				sqlModel.GlobalCustomRoles = globalCustomList
-			}
-
-			// Database builtin roles
-			if len(target.SQLServerAuthProfile.DatabaseBuiltinRoles) > 0 {
-				dbBuiltinMap, diags := types.MapValueFrom(ctx, types.ListType{ElemType: types.StringType}, target.SQLServerAuthProfile.DatabaseBuiltinRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				sqlModel.DatabaseBuiltinRoles = dbBuiltinMap
-			}
-
-			// Database custom roles
-			if len(target.SQLServerAuthProfile.DatabaseCustomRoles) > 0 {
-				dbCustomMap, diags := types.MapValueFrom(ctx, types.ListType{ElemType: types.StringType}, target.SQLServerAuthProfile.DatabaseCustomRoles)
-				resp.Diagnostics.Append(diags...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				sqlModel.DatabaseCustomRoles = dbCustomMap
-			}
-
-			data.SQLServerAuthProfile = sqlModel
-		}
-
-	case "rds_iam_user_auth":
-		if target.RDSIAMUserAuthProfile != nil {
-			data.RDSIAMUserAuthProfile = &models.RDSIAMUserAuthProfileModel{
-				DBUser: types.StringValue(target.RDSIAMUserAuthProfile.DBUser),
-			}
-		}
+	// Parse authentication profile from API response
+	ParseAuthenticationProfile(ctx, target, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Save updated state
@@ -743,7 +484,7 @@ func (r *PolicyDatabaseAssignmentResource) Update(ctx context.Context, req resou
 	LogOperationStart(ctx, "update", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -776,155 +517,17 @@ func (r *PolicyDatabaseAssignmentResource) Update(ctx context.Context, req resou
 	}
 
 	// Step 4: Update authentication method and profile in place (PRESERVE OTHER DATABASES)
-	target.AuthenticationMethod = data.AuthenticationMethod.ValueString()
-
-	// Update profile based on authentication method
-	// Clear all profiles first
-	target.DBAuthProfile = nil
-	target.LDAPAuthProfile = nil
-	target.OracleAuthProfile = nil
-	target.MongoAuthProfile = nil
-	target.SQLServerAuthProfile = nil
-	target.RDSIAMUserAuthProfile = nil
-
 	authMethod := data.AuthenticationMethod.ValueString()
-	switch authMethod {
-	case "db_auth":
-		if data.DBAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "db_auth_profile block is required when authentication_method is 'db_auth'")
-			return
-		}
-		var roles []string
-		resp.Diagnostics.Append(data.DBAuthProfile.Roles.ElementsAs(ctx, &roles, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		target.DBAuthProfile = &uapsiadbmodels.ArkUAPSIADBDBAuthProfile{Roles: roles}
+	target.AuthenticationMethod = authMethod
 
-	case "ldap_auth":
-		if data.LDAPAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "ldap_auth_profile block is required when authentication_method is 'ldap_auth'")
-			return
-		}
-		var assignGroups []string
-		resp.Diagnostics.Append(data.LDAPAuthProfile.AssignGroups.ElementsAs(ctx, &assignGroups, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		target.LDAPAuthProfile = &uapsiadbmodels.ArkUAPSIADBLDAPAuthProfile{AssignGroups: assignGroups}
-
-	case "oracle_auth":
-		if data.OracleAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "oracle_auth_profile block is required when authentication_method is 'oracle_auth'")
-			return
-		}
-		var roles []string
-		resp.Diagnostics.Append(data.OracleAuthProfile.Roles.ElementsAs(ctx, &roles, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		target.OracleAuthProfile = &uapsiadbmodels.ArkUAPSIADBOracleAuthProfile{
-			Roles:       roles,
-			DbaRole:     data.OracleAuthProfile.DbaRole.ValueBool(),
-			SysdbaRole:  data.OracleAuthProfile.SysdbaRole.ValueBool(),
-			SysoperRole: data.OracleAuthProfile.SysoperRole.ValueBool(),
-		}
-
-	case "mongo_auth":
-		if data.MongoAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "mongo_auth_profile block is required when authentication_method is 'mongo_auth'")
-			return
-		}
-		mongoProfile := &uapsiadbmodels.ArkUAPSIADBMongoAuthProfile{}
-
-		if !data.MongoAuthProfile.GlobalBuiltinRoles.IsNull() {
-			var globalRoles []string
-			resp.Diagnostics.Append(data.MongoAuthProfile.GlobalBuiltinRoles.ElementsAs(ctx, &globalRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.GlobalBuiltinRoles = globalRoles
-		}
-
-		if !data.MongoAuthProfile.DatabaseBuiltinRoles.IsNull() {
-			dbBuiltinRoles := make(map[string][]string)
-			resp.Diagnostics.Append(data.MongoAuthProfile.DatabaseBuiltinRoles.ElementsAs(ctx, &dbBuiltinRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.DatabaseBuiltinRoles = dbBuiltinRoles
-		}
-
-		if !data.MongoAuthProfile.DatabaseCustomRoles.IsNull() {
-			dbCustomRoles := make(map[string][]string)
-			resp.Diagnostics.Append(data.MongoAuthProfile.DatabaseCustomRoles.ElementsAs(ctx, &dbCustomRoles, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			mongoProfile.DatabaseCustomRoles = dbCustomRoles
-		}
-
-		target.MongoAuthProfile = mongoProfile
-
-	case "sqlserver_auth":
-		if data.SQLServerAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "sqlserver_auth_profile block is required when authentication_method is 'sqlserver_auth'")
-			return
-		}
-		sqlProfile := &uapsiadbmodels.ArkUAPSIADBSqlServerAuthProfile{}
-
-		if !data.SQLServerAuthProfile.GlobalBuiltinRoles.IsNull() {
-			var globalBuiltin []string
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.GlobalBuiltinRoles.ElementsAs(ctx, &globalBuiltin, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.GlobalBuiltinRoles = globalBuiltin
-		}
-
-		if !data.SQLServerAuthProfile.GlobalCustomRoles.IsNull() {
-			var globalCustom []string
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.GlobalCustomRoles.ElementsAs(ctx, &globalCustom, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.GlobalCustomRoles = globalCustom
-		}
-
-		if !data.SQLServerAuthProfile.DatabaseBuiltinRoles.IsNull() {
-			dbBuiltin := make(map[string][]string)
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.DatabaseBuiltinRoles.ElementsAs(ctx, &dbBuiltin, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.DatabaseBuiltinRoles = dbBuiltin
-		}
-
-		if !data.SQLServerAuthProfile.DatabaseCustomRoles.IsNull() {
-			dbCustom := make(map[string][]string)
-			resp.Diagnostics.Append(data.SQLServerAuthProfile.DatabaseCustomRoles.ElementsAs(ctx, &dbCustom, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			sqlProfile.DatabaseCustomRoles = dbCustom
-		}
-
-		target.SQLServerAuthProfile = sqlProfile
-
-	case "rds_iam_user_auth":
-		if data.RDSIAMUserAuthProfile == nil {
-			resp.Diagnostics.AddError("Missing Profile", "rds_iam_user_auth_profile block is required when authentication_method is 'rds_iam_user_auth'")
-			return
-		}
-		target.RDSIAMUserAuthProfile = &uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile{
-			DBUser: data.RDSIAMUserAuthProfile.DBUser.ValueString(),
-		}
-
-	default:
-		resp.Diagnostics.AddError("Unsupported Authentication Method",
-			fmt.Sprintf("Authentication method %q is not yet implemented", authMethod))
+	// Build and set updated profile using factory
+	profile := BuildAuthenticationProfile(ctx, authMethod, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set profile on instance target (clears other profiles automatically)
+	SetProfileOnInstanceTarget(target, authMethod, profile)
 
 	// Update the target in the policy's targets map
 	targets := policy.Targets[workspaceType]
@@ -987,7 +590,7 @@ func (r *PolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resou
 	LogOperationStart(ctx, "delete", "policy_database_assignment")
 
 	// Step 1: Parse composite ID
-	policyID, databaseID, err := parseCompositeID(data.ID.ValueString())
+	policyID, databaseID, err := helpers.ParsePolicyDatabaseID(data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Resource ID",
@@ -1076,19 +679,6 @@ func (r *PolicyDatabaseAssignmentResource) ImportState(ctx context.Context, req 
 
 // Helper functions (Tasks 13-14)
 
-// buildCompositeID creates a composite ID from policy ID and database ID
-func buildCompositeID(policyID, dbID string) string {
-	return fmt.Sprintf("%s:%s", policyID, dbID)
-}
-
-// parseCompositeID splits a composite ID into policy ID and database ID
-func parseCompositeID(id string) (policyID, dbID string, err error) {
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", "", fmt.Errorf("invalid composite ID format: expected 'policy-id:database-id', got '%s'", id)
-	}
-	return parts[0], parts[1], nil
-}
 
 // determineWorkspaceType returns the policy workspace type for database targets
 // ALL database workspaces use "FQDN/IP" target set regardless of cloud provider
