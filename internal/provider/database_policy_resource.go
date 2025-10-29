@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -611,14 +612,24 @@ func (r *DatabasePolicyResource) Create(ctx context.Context, req resource.Create
 		})
 	}
 
-	// Update state with created policy
-	if err := data.FromSDK(ctx, createdPolicy); err != nil {
-		resp.Diagnostics.AddError(
-			"Error Converting Policy Response",
-			fmt.Sprintf("Failed to convert API response to state: %s", err.Error()),
-		)
-		return
+	// Set only the ID fields from API response
+	// Don't call FromSDK() here - it tries to populate computed metadata fields
+	// (created_by, updated_on) which causes "unknown value" errors during CREATE.
+	// Terraform will automatically call Read() after Create() to populate all fields.
+	data.ID = types.StringValue(createdPolicy.Metadata.PolicyID)
+	data.PolicyID = types.StringValue(createdPolicy.Metadata.PolicyID)
+
+	// Set last_modified to empty string (API doesn't return this field on create)
+	data.LastModified = types.StringValue("")
+
+	// Explicitly set computed metadata fields to null to avoid "unknown value" errors
+	// These will be populated by the automatic Read() call after Create()
+	changeInfoAttrTypes := map[string]attr.Type{
+		"user":      types.StringType,
+		"timestamp": types.StringType,
 	}
+	data.CreatedBy = types.ObjectNull(changeInfoAttrTypes)
+	data.UpdatedOn = types.ObjectNull(changeInfoAttrTypes)
 
 	tflog.Info(ctx, "Created database policy", map[string]interface{}{
 		"policy_id":          data.PolicyID.ValueString(),
@@ -626,9 +637,6 @@ func (r *DatabasePolicyResource) Create(ctx context.Context, req resource.Create
 		"target_databases":   len(data.TargetDatabase),
 		"principals":         len(data.Principal),
 	})
-
-	// Set last_modified to empty string (API doesn't return this field on create)
-	data.LastModified = types.StringValue("")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

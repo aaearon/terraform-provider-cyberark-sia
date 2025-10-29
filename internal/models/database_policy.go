@@ -44,9 +44,9 @@ type DatabasePolicyModel struct {
 	Conditions *ConditionsModel `tfsdk:"conditions"`
 
 	// Computed metadata
-	CreatedBy    *ChangeInfoModel `tfsdk:"created_by"`
-	UpdatedOn    *ChangeInfoModel `tfsdk:"updated_on"`
-	LastModified types.String     `tfsdk:"last_modified"`
+	CreatedBy    types.Object `tfsdk:"created_by"`
+	UpdatedOn    types.Object `tfsdk:"updated_on"`
+	LastModified types.String `tfsdk:"last_modified"`
 }
 
 // TimeFrameModel represents policy validity period
@@ -184,19 +184,38 @@ func (m *DatabasePolicyModel) FromSDK(ctx context.Context, policy *uapsiadbmodel
 	// Convert conditions
 	m.Conditions = convertConditionsFromSDK(ctx, &policy.Conditions)
 
-	// Computed fields
+	// Computed fields - convert to types.Object to handle unknown values properly
+	changeInfoAttrTypes := map[string]attr.Type{
+		"user":      types.StringType,
+		"timestamp": types.StringType,
+	}
+
 	if policy.Metadata.CreatedBy.User != "" {
-		m.CreatedBy = &ChangeInfoModel{
-			User:      types.StringValue(policy.Metadata.CreatedBy.User),
-			Timestamp: types.StringValue(policy.Metadata.CreatedBy.Time),
+		createdByAttrs := map[string]attr.Value{
+			"user":      types.StringValue(policy.Metadata.CreatedBy.User),
+			"timestamp": types.StringValue(policy.Metadata.CreatedBy.Time),
 		}
+		objVal, diags := types.ObjectValue(changeInfoAttrTypes, createdByAttrs)
+		if diags.HasError() {
+			return fmt.Errorf("failed to create created_by object: %v", diags.Errors())
+		}
+		m.CreatedBy = objVal
+	} else {
+		m.CreatedBy = types.ObjectNull(changeInfoAttrTypes)
 	}
 
 	if policy.Metadata.UpdatedOn.User != "" {
-		m.UpdatedOn = &ChangeInfoModel{
-			User:      types.StringValue(policy.Metadata.UpdatedOn.User),
-			Timestamp: types.StringValue(policy.Metadata.UpdatedOn.Time),
+		updatedOnAttrs := map[string]attr.Value{
+			"user":      types.StringValue(policy.Metadata.UpdatedOn.User),
+			"timestamp": types.StringValue(policy.Metadata.UpdatedOn.Time),
 		}
+		objVal, diags := types.ObjectValue(changeInfoAttrTypes, updatedOnAttrs)
+		if diags.HasError() {
+			return fmt.Errorf("failed to create updated_on object: %v", diags.Errors())
+		}
+		m.UpdatedOn = objVal
+	} else {
+		m.UpdatedOn = types.ObjectNull(changeInfoAttrTypes)
 	}
 
 	return nil
