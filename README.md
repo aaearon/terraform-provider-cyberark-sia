@@ -121,7 +121,7 @@ Manages TLS/SSL certificates for database connections.
 - Label-based organization
 - Version tracking and drift detection
 
-See [examples/resources/cyberark_sia_certificate/](examples/resources/cyberark_sia_certificate/) for usage examples.
+See [examples/resources/cyberarksia_certificate/](examples/resources/cyberarksia_certificate/) for usage examples.
 
 ### `cyberarksia_database_workspace`
 
@@ -201,7 +201,7 @@ Connect database workspaces to access policies with specific authentication sett
 
 **Example use case:** You have a production PostgreSQL database and a policy for developers. This resource connects them together and specifies that users get the `readonly` role.
 
-See [examples/resources/cyberarksia_policy_database_assignment/](examples/resources/cyberarksia_policy_database_assignment/) for usage examples.
+See [docs/resources/policy_database_assignment.md](docs/resources/policy_database_assignment.md) and [examples/resources/cyberarksia_policy_database_assignment/](examples/resources/cyberarksia_policy_database_assignment/) for usage examples.
 
 ## Data Sources
 
