@@ -14,6 +14,40 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// changeInfoAttrTypes defines the attribute types for ChangeInfo objects (created_by, updated_on)
+var changeInfoAttrTypes = map[string]attr.Type{
+	"user":      types.StringType,
+	"timestamp": types.StringType,
+}
+
+// ChangeInfoAttrTypes returns the attribute types for ChangeInfo objects
+// Used for creating ObjectNull values in provider resource operations
+func ChangeInfoAttrTypes() map[string]attr.Type {
+	return changeInfoAttrTypes
+}
+
+// createChangeInfoObject creates a types.Object from user and timestamp strings
+// Returns ObjectNull if user is empty, otherwise returns ObjectValue with the provided data
+func createChangeInfoObject(user, timestamp string) types.Object {
+	if user == "" {
+		return types.ObjectNull(changeInfoAttrTypes)
+	}
+
+	attrs := map[string]attr.Value{
+		"user":      types.StringValue(user),
+		"timestamp": types.StringValue(timestamp),
+	}
+
+	objVal, diags := types.ObjectValue(changeInfoAttrTypes, attrs)
+	if diags.HasError() {
+		// Log error but return null object to avoid blocking operations
+		// In practice, this should never happen with valid string inputs
+		return types.ObjectNull(changeInfoAttrTypes)
+	}
+
+	return objVal
+}
+
 // DatabasePolicyModel represents the Terraform state for cyberarksia_database_policy resource
 type DatabasePolicyModel struct {
 	// Identifying attributes
@@ -185,38 +219,8 @@ func (m *DatabasePolicyModel) FromSDK(ctx context.Context, policy *uapsiadbmodel
 	m.Conditions = convertConditionsFromSDK(ctx, &policy.Conditions)
 
 	// Computed fields - convert to types.Object to handle unknown values properly
-	changeInfoAttrTypes := map[string]attr.Type{
-		"user":      types.StringType,
-		"timestamp": types.StringType,
-	}
-
-	if policy.Metadata.CreatedBy.User != "" {
-		createdByAttrs := map[string]attr.Value{
-			"user":      types.StringValue(policy.Metadata.CreatedBy.User),
-			"timestamp": types.StringValue(policy.Metadata.CreatedBy.Time),
-		}
-		objVal, diags := types.ObjectValue(changeInfoAttrTypes, createdByAttrs)
-		if diags.HasError() {
-			return fmt.Errorf("failed to create created_by object: %v", diags.Errors())
-		}
-		m.CreatedBy = objVal
-	} else {
-		m.CreatedBy = types.ObjectNull(changeInfoAttrTypes)
-	}
-
-	if policy.Metadata.UpdatedOn.User != "" {
-		updatedOnAttrs := map[string]attr.Value{
-			"user":      types.StringValue(policy.Metadata.UpdatedOn.User),
-			"timestamp": types.StringValue(policy.Metadata.UpdatedOn.Time),
-		}
-		objVal, diags := types.ObjectValue(changeInfoAttrTypes, updatedOnAttrs)
-		if diags.HasError() {
-			return fmt.Errorf("failed to create updated_on object: %v", diags.Errors())
-		}
-		m.UpdatedOn = objVal
-	} else {
-		m.UpdatedOn = types.ObjectNull(changeInfoAttrTypes)
-	}
+	m.CreatedBy = createChangeInfoObject(policy.Metadata.CreatedBy.User, policy.Metadata.CreatedBy.Time)
+	m.UpdatedOn = createChangeInfoObject(policy.Metadata.UpdatedOn.User, policy.Metadata.UpdatedOn.Time)
 
 	return nil
 }

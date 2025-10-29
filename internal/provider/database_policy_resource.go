@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -624,12 +623,8 @@ func (r *DatabasePolicyResource) Create(ctx context.Context, req resource.Create
 
 	// Explicitly set computed metadata fields to null to avoid "unknown value" errors
 	// These will be populated by the automatic Read() call after Create()
-	changeInfoAttrTypes := map[string]attr.Type{
-		"user":      types.StringType,
-		"timestamp": types.StringType,
-	}
-	data.CreatedBy = types.ObjectNull(changeInfoAttrTypes)
-	data.UpdatedOn = types.ObjectNull(changeInfoAttrTypes)
+	data.CreatedBy = types.ObjectNull(models.ChangeInfoAttrTypes())
+	data.UpdatedOn = types.ObjectNull(models.ChangeInfoAttrTypes())
 
 	tflog.Info(ctx, "Created database policy", map[string]interface{}{
 		"policy_id":          data.PolicyID.ValueString(),
