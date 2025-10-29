@@ -120,3 +120,17 @@ func TestAccCertificate_import(t *testing.T) {
 //		return nil
 //	}
 //}
+
+// Test configuration stubs (tests are skipped - these are placeholders)
+func testAccCertificateConfig_basic(certName string) string {
+	return ""
+}
+
+func testAccCertificateConfig_withDatabaseWorkspace(certName, dbName string) string {
+	return ""
+}
+
+func testAccCertificateConfig_deleteCertificateOnly(dbName string) string {
+	return ""
+}
+

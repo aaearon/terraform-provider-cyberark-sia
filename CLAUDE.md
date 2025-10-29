@@ -165,6 +165,23 @@ Update `examples/testing/TESTING-GUIDE.md` when:
 - Critical bugs: 1 → 0 (fixed)
 - All tests passing ✅
 
+### Principal Lookup Data Source (2025-10-29)
+
+**Feature**: `cyberarksia_principal` Terraform data source for looking up users, groups, and roles by name.
+
+**Implementation**:
+- Universal support for Cloud Directory, Federated Directory, and Active Directory
+- Hybrid lookup strategy: Fast path for users (< 1s), fallback for all types (< 2s)
+- Handles all principal types (USER, GROUP, ROLE) with single implementation
+- Zero manual UUID lookups required
+
+**Files**:
+- `internal/provider/principal_data_source.go` - Data source implementation (388 lines)
+- `internal/client/identity_client.go` - Identity API client wrapper (26 lines)
+- `docs/data-sources/principal.md` - User documentation (225 lines)
+
+**Key Design Decision**: Hybrid lookup strategy driven by ARK SDK API limitations (UserByName doesn't return directory info, ListDirectoriesEntities only searches DisplayName).
+
 ### Policy Database Assignment Bug Fix - Azure Database Support (2025-10-27)
 
 **Critical Fix**: Fixed policy database assignment to correctly handle ALL cloud providers (Azure, AWS, GCP, on-premise).

@@ -392,6 +392,18 @@ terraform apply -target=cyberarksia_database_workspace.azure_postgres -auto-appr
 
 **Example Configuration** (`crud-test-policy.tf`):
 ```hcl
+# ==============================================================================
+# DATA SOURCE - Principal Lookup (RECOMMENDED Pattern - New in v0.2.0!)
+# ==============================================================================
+# No more hardcoded UUIDs! Look up principals by name.
+data "cyberarksia_principal" "tim_user" {
+  name = "tim.schindler@cyberark.cloud.40562"
+  type = "USER"  # Optional: USER, GROUP, or ROLE
+}
+
+# ==============================================================================
+# DATABASE POLICY with Inline Assignments
+# ==============================================================================
 resource "cyberarksia_database_policy" "test" {
   name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDDhhmmss", timestamp())}"
   description                = "Comprehensive CRUD test policy for Azure PostgreSQL"
@@ -428,16 +440,26 @@ resource "cyberarksia_database_policy" "test" {
   # ============================================================================
   # INLINE PRINCIPAL - Required (at least 1)
   # ============================================================================
-  # tim.schindler@cyberark.cloud.40562 assigned inline
+  # RECOMMENDED: Use data source for principal lookup (NO hardcoded UUIDs!)
+  # tim.schindler@cyberark.cloud.40562 assigned inline via data source
   # Note: Singular block name matches AWS/GCP patterns
 
   principal {
-    principal_id          = "c2c7bcc6-9560-44e0-8dff-5be221cd37ee"  # UUID from SIA
-    principal_type        = "USER"
-    principal_name        = "tim.schindler@cyberark.cloud.40562"
-    source_directory_name = "CyberArk Cloud Directory"
-    source_directory_id   = "09B9A9B0-6CE8-465F-AB03-65766D33B05E"
+    principal_id          = data.cyberarksia_principal.tim_user.id
+    principal_type        = data.cyberarksia_principal.tim_user.principal_type
+    principal_name        = data.cyberarksia_principal.tim_user.name
+    source_directory_name = data.cyberarksia_principal.tim_user.directory_name
+    source_directory_id   = data.cyberarksia_principal.tim_user.directory_id
   }
+
+  # ALTERNATIVE: Hardcoded UUIDs (not recommended, but shown for reference)
+  # principal {
+  #   principal_id          = "c2c7bcc6-9560-44e0-8dff-5be221cd37ee"
+  #   principal_type        = "USER"
+  #   principal_name        = "tim.schindler@cyberark.cloud.40562"
+  #   source_directory_name = "CyberArk Cloud Directory"
+  #   source_directory_id   = "09B9A9B0-6CE8-465F-AB03-65766D33B05E"
+  # }
 
   policy_tags = ["test:crud", "environment:test", "managed-by:terraform"]
 

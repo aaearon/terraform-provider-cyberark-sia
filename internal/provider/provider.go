@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
+	"github.com/cyberark/ark-sdk-golang/pkg/services/identity"
 	"github.com/cyberark/ark-sdk-golang/pkg/services/sia"
 	"github.com/cyberark/ark-sdk-golang/pkg/services/uap"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -46,6 +47,9 @@ type ProviderData struct {
 	// UAPClient provides access to UAP Db() API for policy management
 	UAPClient *uap.ArkUAPAPI
 
+	// IdentityClient provides access to Identity UsersService() and DirectoriesService() for principal lookups
+	IdentityClient *identity.ArkIdentityAPI
+
 	// CertificatesClient handles certificate CRUD operations
 	// Initialized on-demand by certificate resource Configure()
 	CertificatesClient *client.CertificatesClient
@@ -76,7 +80,7 @@ func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaReq
 				Description: "Service account username in full format (e.g., 'my-service-account@cyberark.cloud.12345'). " +
 					"The tenant information is automatically extracted from the username by the ARK SDK. " +
 					"Can also be set via CYBERARK_USERNAME environment variable.",
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -85,7 +89,7 @@ func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaReq
 			"client_secret": schema.StringAttribute{
 				Description: "Service account password/secret. " +
 					"Can also be set via CYBERARK_CLIENT_SECRET environment variable.",
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
@@ -175,11 +179,22 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	}
 	LogUAPClientSuccess(ctx)
 
+	// Initialize Identity API client
+	// Returns *identity.ArkIdentityAPI for UsersService() and DirectoriesService() access
+	LogIdentityClientInit(ctx)
+	identityAPI, err := client.NewIdentityClient(ctx, authCtx)
+	if err != nil {
+		resp.Diagnostics.Append(client.MapError(err, "Identity client initialization"))
+		return
+	}
+	LogIdentityClientSuccess(ctx)
+
 	// Create provider data for resource sharing
 	providerData := &ProviderData{
-		AuthContext: authCtx,
-		SIAAPI:      siaAPI,
-		UAPClient:   uapAPI,
+		AuthContext:    authCtx,
+		SIAAPI:         siaAPI,
+		UAPClient:      uapAPI,
+		IdentityClient: identityAPI,
 	}
 
 	// Make provider data available to resources and data sources
@@ -203,6 +218,7 @@ func (p *CyberArkSIAProvider) Resources(ctx context.Context) []func() resource.R
 func (p *CyberArkSIAProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewAccessPolicyDataSource,
+		NewPrincipalDataSource,
 	}
 }
 
