@@ -303,9 +303,11 @@ Contributions are welcome! Please:
 
 ## Acknowledgments
 
-Built using:
-- [HashiCorp Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework)
-- Custom OAuth2 implementation for CyberArk Identity authentication
+This provider is built on top of:
+- **[CyberArk ARK SDK for Go](https://github.com/cyberark/ark-sdk-golang)** - Official Go SDK for CyberArk platform APIs. All provider API calls use this SDK for authentication, SIA workspace management, and UAP policy operations.
+- [HashiCorp Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework) - Framework for building Terraform providers with type-safe schemas and state management.
+
+The provider implements custom OAuth2 authentication flows for CyberArk Identity platform integration.
 
 ## Support
 
