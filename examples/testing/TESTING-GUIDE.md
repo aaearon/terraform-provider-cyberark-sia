@@ -85,46 +85,44 @@ resource "cyberarksia_database_policy" "temporary" {
 }
 ```
 
-### 4. Known Limitation: `days_of_the_week` Order Sensitivity
+### 4. ~~Known Limitation~~: `days_of_the_week` Order - FIXED ✅
 
-**Problem**: CyberArk API may return `days_of_the_week` in different order than configured, causing "Provider produced inconsistent result" errors during resource CREATE.
+**Status**: ✅ **RESOLVED** as of commit e7d8fa7 (2025-10-29)
+
+**Previous Issue**: CyberArk API returned `days_of_the_week` in different order than configured, causing false positive drift detection.
+
+**Fix Implemented**: Changed from `ListAttribute` to `SetAttribute` - days can now be specified in any order!
 
 ```hcl
-# ❌ BAD - May cause drift errors
+# ✅ All of these are equivalent and will NOT trigger drift:
 resource "cyberarksia_database_policy" "example" {
   conditions {
     access_window {
-      days_of_the_week = [5, 4, 3, 2, 1]  # Descending order may fail
+      days_of_the_week = [1, 2, 3, 4, 5]  # Ascending
+      days_of_the_week = [5, 4, 3, 2, 1]  # Descending
+      days_of_the_week = [5, 1, 3, 2, 4]  # Random order
+      # All work identically - order doesn't matter!
       from_hour        = "09:00"
       to_hour          = "17:00"
     }
-  }
-}
-
-# ✅ GOOD - Always use ascending order + lifecycle block
-resource "cyberarksia_database_policy" "example" {
-  conditions {
-    access_window {
-      days_of_the_week = [1, 2, 3, 4, 5]  # MUST be ascending order
-      from_hour        = "09:00"
-      to_hour          = "17:00"
-    }
-  }
-
-  # Required workaround for API ordering behavior
-  lifecycle {
-    ignore_changes = [conditions[0].access_window[0].days_of_the_week]
   }
 }
 ```
 
-**Why This Happens**: This is a Terraform Plugin Framework limitation where semantic equality is not applied during CREATE validation. If the API returns days in different order (e.g., `[3,1,5,2,4]` instead of `[1,2,3,4,5]`), the framework rejects the response positionally.
+**What Changed**:
+- `days_of_the_week` is now a **Set** (unordered collection) instead of a List
+- Terraform framework automatically normalizes order comparison
+- No more "Provider produced inconsistent result" errors
+- No `lifecycle { ignore_changes }` blocks needed
+- HCL syntax remains identical: `[1,2,3,4,5]` works the same
 
-**Required Workaround**:
-1. Always specify `days_of_the_week` in ascending order
-2. Add `lifecycle { ignore_changes }` block to all policies with `access_window`
+**Benefits**:
+- Users can specify days in any natural order
+- No drift detection when API returns different order
+- Cleaner code (-192 lines of workaround removed)
+- Matches semantic meaning (days are a set, not a sequence)
 
-**Reference**: See `docs/resources/database_policy.md` Troubleshooting section for full details.
+**Reference**: See `docs/days-of-week-drift-fix.md` for complete implementation details.
 
 ---
 
