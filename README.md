@@ -4,7 +4,7 @@ A Terraform provider for managing CyberArk Secure Infrastructure Access (SIA) re
 
 ## Features
 
-- **Policy Management**: Create access policies with conditions (IP restrictions, time windows, MFA requirements)
+- **Policy Management**: Create access policies with session limits and time-based restrictions
 - **User & Group Assignment**: Grant access to specific users, groups, or roles - no manual UUID lookups needed
 - **Principal Lookup**: Find users and groups by name across Cloud Directory, Azure AD, Active Directory
 - **Database Configuration**: Configure database workspaces with certificate-based authentication
@@ -166,10 +166,11 @@ See [examples/resources/secret/](examples/resources/secret/) for usage examples.
 Create and manage access policies that control who can access which databases and when.
 
 **What you can do:**
-- Set access conditions (IP restrictions, time windows, MFA requirements)
+- Set session limits (max duration, idle timeout)
+- Restrict access to specific time windows (e.g., business hours only, Monday-Friday 9-5)
+- Set policy validity periods (e.g., temporary access for Q1 2024)
 - Enable or suspend policies without deleting them
 - Tag policies for organization
-- Define when access is allowed (business hours only, specific dates, etc.)
 
 Think of policies as the rules. The other resources assign specific users and databases to those rules.
 
