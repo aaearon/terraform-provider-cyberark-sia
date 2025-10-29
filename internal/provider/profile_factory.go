@@ -220,31 +220,45 @@ func SetProfileOnInstanceTarget(
 	instanceTarget.RDSIAMUserAuthProfile = nil
 
 	// Set the appropriate one
+	// Type assertions should never fail if BuildAuthenticationProfile works correctly
+	// Panic on mismatch to catch programming errors early
 	switch authMethod {
 	case "db_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBDBAuthProfile); ok {
-			instanceTarget.DBAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBDBAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for db_auth - got %T, expected *ArkUAPSIADBDBAuthProfile", profile))
 		}
+		instanceTarget.DBAuthProfile = p
 	case "ldap_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBLDAPAuthProfile); ok {
-			instanceTarget.LDAPAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBLDAPAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for ldap_auth - got %T, expected *ArkUAPSIADBLDAPAuthProfile", profile))
 		}
+		instanceTarget.LDAPAuthProfile = p
 	case "oracle_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBOracleAuthProfile); ok {
-			instanceTarget.OracleAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBOracleAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for oracle_auth - got %T, expected *ArkUAPSIADBOracleAuthProfile", profile))
 		}
+		instanceTarget.OracleAuthProfile = p
 	case "mongo_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBMongoAuthProfile); ok {
-			instanceTarget.MongoAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBMongoAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for mongo_auth - got %T, expected *ArkUAPSIADBMongoAuthProfile", profile))
 		}
+		instanceTarget.MongoAuthProfile = p
 	case "sqlserver_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBSqlServerAuthProfile); ok {
-			instanceTarget.SQLServerAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBSqlServerAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for sqlserver_auth - got %T, expected *ArkUAPSIADBSqlServerAuthProfile", profile))
 		}
+		instanceTarget.SQLServerAuthProfile = p
 	case "rds_iam_user_auth":
-		if p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile); ok {
-			instanceTarget.RDSIAMUserAuthProfile = p
+		p, ok := profile.(*uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile)
+		if !ok {
+			panic(fmt.Sprintf("BUG: profile type mismatch for rds_iam_user_auth - got %T, expected *ArkUAPSIADBRDSIAMUserAuthProfile", profile))
 		}
+		instanceTarget.RDSIAMUserAuthProfile = p
 	}
 }
 
@@ -267,6 +281,16 @@ func ParseAuthenticationProfile(
 	data *models.PolicyDatabaseAssignmentModel,
 	diagnostics *diag.Diagnostics,
 ) {
+	// CRITICAL: Clear all profile pointers before parsing to prevent stale data
+	// When authentication method changes (e.g., db_auth → ldap_auth), the old
+	// profile pointer must be removed to avoid perpetual Terraform diffs
+	data.DBAuthProfile = nil
+	data.LDAPAuthProfile = nil
+	data.OracleAuthProfile = nil
+	data.MongoAuthProfile = nil
+	data.SQLServerAuthProfile = nil
+	data.RDSIAMUserAuthProfile = nil
+
 	switch target.AuthenticationMethod {
 	case "db_auth":
 		parseDBAuthProfile(ctx, target, data, diagnostics)

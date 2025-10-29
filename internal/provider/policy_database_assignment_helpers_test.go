@@ -3,6 +3,7 @@ package provider
 import (
 	"testing"
 
+	"github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/helpers"
 	uapsiadbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/db/models"
 )
 
@@ -30,9 +31,9 @@ func TestBuildCompositeID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildCompositeID(tt.policyID, tt.dbID)
+			got := helpers.BuildCompositeID(tt.policyID, tt.dbID)
 			if got != tt.want {
-				t.Errorf("buildCompositeID() = %v, want %v", got, tt.want)
+				t.Errorf("BuildCompositeID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -87,17 +88,17 @@ func TestParseCompositeID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPolicyID, gotDBID, err := parseCompositeID(tt.id)
+			gotPolicyID, gotDBID, err := helpers.ParsePolicyDatabaseID(tt.id)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseCompositeID() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParsePolicyDatabaseID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr {
 				if gotPolicyID != tt.wantPolicyID {
-					t.Errorf("parseCompositeID() policyID = %v, want %v", gotPolicyID, tt.wantPolicyID)
+					t.Errorf("ParsePolicyDatabaseID() policyID = %v, want %v", gotPolicyID, tt.wantPolicyID)
 				}
 				if gotDBID != tt.wantDBID {
-					t.Errorf("parseCompositeID() dbID = %v, want %v", gotDBID, tt.wantDBID)
+					t.Errorf("ParsePolicyDatabaseID() dbID = %v, want %v", gotDBID, tt.wantDBID)
 				}
 			}
 		})
