@@ -193,6 +193,17 @@ Lookup existing SIA access policies by ID or name for use with policy database a
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions, and pull request process.
+
+### Quick Links
+
+- **[Contributing Guide](CONTRIBUTING.md)** - Development setup and contribution guidelines
+- **[Testing Guide](TESTING.md)** - Running tests and CRUD testing framework
+- **[Design Decisions](docs/development/design-decisions.md)** - Active technologies, SDK limitations, breaking changes
+- **[SDK Integration](docs/sdk-integration.md)** - ARK SDK patterns and field mappings
+- **[Development Guidelines](CLAUDE.md)** - Code style, commands, and project structure
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+
 ### Building
 
 ```bash
@@ -209,9 +220,7 @@ TF_ACC=1 go test ./... -v
 go test ./internal/client/... -v
 ```
 
-### Development Guidelines
-
-See [CLAUDE.md](CLAUDE.md) for development conventions, code style, and contribution guidelines.
+For comprehensive CRUD testing, see [TESTING.md](TESTING.md) and [examples/testing/TESTING-GUIDE.md](examples/testing/TESTING-GUIDE.md).
 
 ## Project Structure
 
