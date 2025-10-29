@@ -4,13 +4,15 @@ A Terraform provider for managing CyberArk Secure Infrastructure Access (SIA) re
 
 ## Features
 
-- **Certificate Management**: Create, update, and delete TLS/SSL certificates for database connections
-- **Secret Management**: Manage database authentication secrets for local, domain, and AWS IAM credentials
-- **Database Workspace Management**: Configure and manage database targets with certificate-based authentication
-- **Access Policy Management**: Assign database workspaces to existing SIA access policies with 6 authentication methods
-- **Multiple Database Engines**: Support for PostgreSQL, MySQL, Oracle, SQL Server, MongoDB, and more
-- **Cloud Platform Support**: AWS RDS, Azure SQL, GCP Cloud SQL, MongoDB Atlas, and on-premise databases
-- **Secure by Default**: Built-in certificate validation and encryption support
+- **Policy Management**: Create access policies with conditions (IP restrictions, time windows, MFA requirements)
+- **User & Group Assignment**: Grant access to specific users, groups, or roles - no manual UUID lookups needed
+- **Principal Lookup**: Find users and groups by name across Cloud Directory, Azure AD, Active Directory
+- **Database Configuration**: Configure database workspaces with certificate-based authentication
+- **Database Assignment**: Connect databases to policies with 6 authentication methods
+- **Certificate Management**: Manage TLS/SSL certificates for secure database connections
+- **Secret Management**: Store database credentials (local auth, Active Directory, AWS IAM)
+- **Multiple Database Engines**: PostgreSQL, MySQL, Oracle, SQL Server, MongoDB, Snowflake, and 60+ more
+- **Multi-Cloud Support**: AWS RDS, Azure SQL, GCP Cloud SQL, MongoDB Atlas, and on-premise
 
 ## Requirements
 
@@ -159,37 +161,89 @@ Manages database authentication secrets for use with database workspaces.
 
 See [examples/resources/secret/](examples/resources/secret/) for usage examples.
 
+### `cyberarksia_database_policy`
+
+Create and manage access policies that control who can access which databases and when.
+
+**What you can do:**
+- Set access conditions (IP restrictions, time windows, MFA requirements)
+- Enable or suspend policies without deleting them
+- Tag policies for organization
+- Define when access is allowed (business hours only, specific dates, etc.)
+
+Think of policies as the rules. The other resources assign specific users and databases to those rules.
+
+See [docs/resources/database_policy.md](docs/resources/database_policy.md) for usage examples.
+
+### `cyberarksia_database_policy_principal_assignment`
+
+Grant specific users, groups, or roles access to databases through policies.
+
+**What you can do:**
+- Assign individual users to policies
+- Assign entire groups (like "Database Admins" or "Developers")
+- Assign federated users from Azure AD, Okta, etc.
+- No more hunting for user UUIDs - use the `cyberarksia_principal` data source to look them up by name
+
+**Example use case:** Your security team creates a policy for production database access. You assign your DevOps team's group to that policy without needing to know any UUIDs.
+
+See [docs/resources/database_policy_principal_assignment.md](docs/resources/database_policy_principal_assignment.md) for usage examples.
+
 ### `cyberarksia_policy_database_assignment`
 
-Manages assignment of database workspaces to existing SIA access policies. Follows the AWS Security Group Rule pattern for granular policy management.
+Connect database workspaces to access policies with specific authentication settings.
 
-**Supported Authentication Methods:**
-- `db_auth` - Standard database user authentication with role assignment
-- `ldap_auth` - LDAP/Active Directory group-based authentication
-- `oracle_auth` - Oracle-specific authentication with DBA/SYSDBA/SYSOPER roles
-- `mongo_auth` - MongoDB RBAC with global and database-specific roles
-- `sqlserver_auth` - SQL Server Windows authentication with role management
-- `rds_iam_user_auth` - AWS RDS IAM authentication (passwordless)
+**What you can do:**
+- Assign databases to policies with different auth methods (standard DB auth, LDAP, AWS IAM, etc.)
+- Specify which database roles users get when they connect
+- Works with 6 authentication methods including passwordless AWS RDS IAM
 
-**Features:**
-- Preserves UI-managed and other Terraform-managed databases (read-modify-write pattern)
-- Platform drift detection (automatic replacement on database platform changes)
-- Import support with composite ID format
-- Idempotent operations (safe to re-apply)
-- Retry logic with exponential backoff
-
-**Important:** Multiple assignments to the same policy are supported within a single Terraform workspace. Managing the same policy from multiple workspaces can cause conflicts. See [documentation](docs/resources/policy_database_assignment.md) for best practices.
+**Example use case:** You have a production PostgreSQL database and a policy for developers. This resource connects them together and specifies that users get the `readonly` role.
 
 See [examples/resources/cyberarksia_policy_database_assignment/](examples/resources/cyberarksia_policy_database_assignment/) for usage examples.
 
-### `cyberarksia_access_policy` (Data Source)
+## Data Sources
 
-Lookup existing SIA access policies by ID or name for use with policy database assignments.
+Data sources let you look up existing resources without creating them.
 
-**Features:**
-- Lookup by policy ID or name
-- Returns policy metadata (status, description)
-- Integration with policy assignment resources
+### `cyberarksia_access_policy`
+
+Look up existing access policies by name or ID.
+
+**Why you'd use this:**
+- Reference policies created outside Terraform (in the UI or by another team)
+- Share policies across multiple Terraform workspaces
+
+See [examples/data-sources/cyberarksia_access_policy/](examples/data-sources/cyberarksia_access_policy/) for usage examples.
+
+### `cyberarksia_principal`
+
+Look up users, groups, or roles by name - no more hunting for UUIDs.
+
+**What you can do:**
+- Find cloud users: `tim@cyberark.cloud.12345`
+- Find federated users: `john.doe@company.com` (Azure AD, Okta, etc.)
+- Find Active Directory users: `SchindlerT@domain.com`
+- Find groups: `Database Administrators`
+
+Returns the UUID and directory information you need for policy assignments.
+
+**Example:**
+```hcl
+data "cyberarksia_principal" "db_team" {
+  name = "Database Administrators"
+  type = "GROUP"
+}
+
+resource "cyberarksia_database_policy_principal_assignment" "grant_access" {
+  policy_id         = cyberarksia_database_policy.prod.policy_id
+  principal_id      = data.cyberarksia_principal.db_team.id
+  principal_type    = data.cyberarksia_principal.db_team.principal_type
+  # ... other fields populated automatically from the data source
+}
+```
+
+See [docs/data-sources/principal.md](docs/data-sources/principal.md) for usage examples.
 
 ## Development
 
