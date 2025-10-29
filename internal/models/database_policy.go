@@ -4,6 +4,8 @@ package models
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
 	uapsiacommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/sia/common/models"
@@ -19,9 +21,9 @@ type DatabasePolicyModel struct {
 	PolicyID types.String `tfsdk:"policy_id"` // UUID from API (computed)
 
 	// Required metadata
-	Name                     types.String `tfsdk:"name"`                        // 1-200 chars, unique
-	Status                   types.String `tfsdk:"status"`                      // "active"|"suspended"
-	DelegationClassification types.String `tfsdk:"delegation_classification"`   // "restricted"|"unrestricted"
+	Name                     types.String `tfsdk:"name"`                      // 1-200 chars, unique
+	Status                   types.String `tfsdk:"status"`                    // "active"|"suspended"
+	DelegationClassification types.String `tfsdk:"delegation_classification"` // "restricted"|"unrestricted"
 
 	// Optional metadata
 	Description types.String `tfsdk:"description"` // max 200 chars
@@ -150,10 +152,11 @@ func (m *DatabasePolicyModel) FromSDK(ctx context.Context, policy *uapsiadbmodel
 	m.Name = types.StringValue(policy.Metadata.Name)
 	m.Description = types.StringValue(policy.Metadata.Description)
 	// Keep API values as-is (API returns "Active"/"Suspended" capitalized)
-	m.Status = types.StringValue(policy.Metadata.Status.Status)
+	// Normalize to lowercase to match user config (API returns titlecase)
+	m.Status = types.StringValue(strings.ToLower(policy.Metadata.Status.Status))
 	m.TimeZone = types.StringValue(policy.Metadata.TimeZone)
-	// Keep API values as-is (API returns "Restricted"/"Unrestricted" capitalized)
-	m.DelegationClassification = types.StringValue(policy.DelegationClassification)
+	// Normalize to lowercase to match user config (API returns titlecase)
+	m.DelegationClassification = types.StringValue(strings.ToLower(policy.DelegationClassification))
 
 	// Convert policy tags
 	if len(policy.Metadata.PolicyTags) > 0 {
@@ -212,9 +215,12 @@ func convertConditionsToSDK(c *ConditionsModel) uapsiacommonmodels.ArkUAPSIAComm
 	if c.AccessWindow != nil {
 		var days []int
 		if !c.AccessWindow.DaysOfTheWeek.IsNull() && !c.AccessWindow.DaysOfTheWeek.IsUnknown() {
-			// Convert set to slice - order doesn't matter, API accepts any order
+			// Convert set to slice
 			var daysInt64 []int64
 			c.AccessWindow.DaysOfTheWeek.ElementsAs(context.Background(), &daysInt64, false)
+
+			// Sort to ensure canonical order (eliminates plan/state mismatch)
+			sort.Slice(daysInt64, func(i, j int) bool { return daysInt64[i] < daysInt64[j] })
 
 			// Convert []int64 to []int for SDK
 			days = make([]int, len(daysInt64))
@@ -246,13 +252,16 @@ func convertConditionsFromSDK(ctx context.Context, c *uapsiacommonmodels.ArkUAPS
 
 	// Convert access window if present
 	if len(c.AccessWindow.DaysOfTheWeek) > 0 || c.AccessWindow.FromHour != "" || c.AccessWindow.ToHour != "" {
-		// Convert API response to set - no sorting needed, sets handle order automatically
+		// Convert API response to slice
 		daysInt64 := make([]int64, len(c.AccessWindow.DaysOfTheWeek))
 		for i, day := range c.AccessWindow.DaysOfTheWeek {
 			daysInt64[i] = int64(day)
 		}
 
-		// Create set from days - framework automatically normalizes order
+		// Sort to ensure canonical order (eliminates plan/state mismatch)
+		sort.Slice(daysInt64, func(i, j int) bool { return daysInt64[i] < daysInt64[j] })
+
+		// Create set from sorted days
 		daysSet, _ := types.SetValueFrom(ctx, types.Int64Type, daysInt64)
 
 		conditions.AccessWindow = &AccessWindowModel{
