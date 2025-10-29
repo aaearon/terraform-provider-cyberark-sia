@@ -94,12 +94,12 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"delegation_classification": schema.StringAttribute{
-				MarkdownDescription: "Delegation classification. Valid values: `restricted`, `unrestricted`. Default: `unrestricted`.",
+				MarkdownDescription: "Delegation classification. Valid values: `restricted`/`Restricted`, `unrestricted`/`Unrestricted`. Default: `unrestricted`. Note: API returns capitalized values.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString("unrestricted"),
+				Default:             stringdefault.StaticString("Unrestricted"),
 				Validators: []validator.String{
-					stringvalidator.OneOf("restricted", "unrestricted"),
+					stringvalidator.OneOf("restricted", "unrestricted", "Restricted", "Unrestricted"),
 				},
 			},
 			"time_zone": schema.StringAttribute{

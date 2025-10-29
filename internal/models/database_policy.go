@@ -4,6 +4,8 @@ package models
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	customtypes "github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/types"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
@@ -150,8 +152,10 @@ func (m *DatabasePolicyModel) FromSDK(ctx context.Context, policy *uapsiadbmodel
 	m.PolicyID = types.StringValue(policy.Metadata.PolicyID)
 	m.Name = types.StringValue(policy.Metadata.Name)
 	m.Description = types.StringValue(policy.Metadata.Description)
+	// Keep API values as-is (API returns "Active"/"Suspended" capitalized)
 	m.Status = types.StringValue(policy.Metadata.Status.Status)
 	m.TimeZone = types.StringValue(policy.Metadata.TimeZone)
+	// Keep API values as-is (API returns "Restricted"/"Unrestricted" capitalized)
 	m.DelegationClassification = types.StringValue(policy.DelegationClassification)
 
 	// Convert policy tags
@@ -239,10 +243,15 @@ func convertConditionsFromSDK(ctx context.Context, c *uapsiacommonmodels.ArkUAPS
 
 	// Convert access window if present
 	if len(c.AccessWindow.DaysOfTheWeek) > 0 || c.AccessWindow.FromHour != "" || c.AccessWindow.ToHour != "" {
+		// Sort days to ensure consistent ordering (API may return in arbitrary order)
+		// This prevents "Provider produced inconsistent result" errors during CREATE
+		days := make([]int, len(c.AccessWindow.DaysOfTheWeek))
+		copy(days, c.AccessWindow.DaysOfTheWeek)
+		sort.Ints(days)
+
 		// Convert days to attr.Value slice
-		// Note: No need to sort - DaysOfWeekValue.ListSemanticEquals() handles order-independent comparison
-		dayValues := make([]attr.Value, len(c.AccessWindow.DaysOfTheWeek))
-		for i, day := range c.AccessWindow.DaysOfTheWeek {
+		dayValues := make([]attr.Value, len(days))
+		for i, day := range days {
 			dayValues[i] = types.Int64Value(int64(day))
 		}
 

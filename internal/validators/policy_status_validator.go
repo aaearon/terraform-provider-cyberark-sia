@@ -29,13 +29,14 @@ func (v policyStatusValidator) ValidateString(ctx context.Context, req validator
 	}
 
 	value := req.ConfigValue.ValueString()
-	validStatuses := []string{"active", "suspended"}
+	// Accept both lowercase and uppercase (API returns uppercase)
+	validStatuses := []string{"active", "suspended", "Active", "Suspended"}
 
 	if !slices.Contains(validStatuses, value) {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid Policy Status",
-			fmt.Sprintf("Value %q is not valid. Must be 'active' or 'suspended'. "+
+			fmt.Sprintf("Value %q is not valid. Must be 'active'/'Active' or 'suspended'/'Suspended'. "+
 				"Note: 'expired', 'validating', and 'error' are server-managed statuses "+
 				"and cannot be set by users.", value),
 		)
