@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/client"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/models"
-	customtypes "github.com/aaearon/terraform-provider-cyberark-sia/internal/provider/types"
 	"github.com/aaearon/terraform-provider-cyberark-sia/internal/validators"
 	dbmodels "github.com/cyberark/ark-sdk-golang/pkg/services/sia/workspaces/db/models"
 	uapcommonmodels "github.com/cyberark/ark-sdk-golang/pkg/services/uap/common/models"
@@ -351,18 +351,13 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 					"access_window": schema.SingleNestedBlock{
 						MarkdownDescription: "Time-based access restrictions (days and hours).",
 						Attributes: map[string]schema.Attribute{
-							"days_of_the_week": schema.ListAttribute{
-								MarkdownDescription: "Days access is allowed (0=Sunday through 6=Saturday). Example: `[1, 2, 3, 4, 5]` for weekdays.\n\n" +
-									"**KNOWN LIMITATION**: The CyberArk API may return days in a different order than configured (e.g., `[3,1,5,2,4]` instead of `[1,2,3,4,5]`). " +
-									"During resource CREATE, this causes 'Provider produced inconsistent result' errors. **Workaround**: Always specify days in ascending order `[1,2,3,4,5]` and add:\n\n" +
-									"```hcl\nlifecycle {\n  ignore_changes = [conditions[0].access_window[0].days_of_the_week]\n}\n```\n\n" +
-									"This is a Terraform Plugin Framework limitation where semantic equality is not applied during CREATE validation.",
+							"days_of_the_week": schema.SetAttribute{
+								MarkdownDescription: "Days access is allowed (0=Sunday through 6=Saturday). Specify days in any order - order is automatically normalized. Example: `[1, 2, 3, 4, 5]` for weekdays.",
 								Required:            true,
-								CustomType: customtypes.DaysOfWeekType{
-									ListType: types.ListType{ElemType: types.Int64Type},
-								},
-								Validators: []validator.List{
-									listvalidator.ValueInt64sAre(int64validator.Between(0, 6)),
+								ElementType:         types.Int64Type,
+								Validators: []validator.Set{
+									setvalidator.ValueInt64sAre(int64validator.Between(0, 6)), // 0=Sunday through 6=Saturday (0-indexed)
+									setvalidator.SizeBetween(1, 7),                             // At least 1 day required, max 7 days (e.g., all week = [0,1,2,3,4,5,6])
 								},
 							},
 							"from_hour": schema.StringAttribute{
