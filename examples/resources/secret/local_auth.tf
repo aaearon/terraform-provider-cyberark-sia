@@ -20,15 +20,13 @@ provider "cyberarksia" {
   # export CYBERARK_IDENTITY_URL="https://your-tenant.cyberarkgov.cloud"
 }
 
-# Database target (from Phase 3 example)
+# On-premise database target
 resource "cyberarksia_database_workspace" "postgres" {
   name                  = "production-postgres"
   database_type         = "postgresql"
   address               = "prod-db.example.com"
   port                  = 5432
   authentication_method = "local_ephemeral_user"
-  cloud_provider        = "aws"
-  region                = "us-east-1"
   description           = "Production PostgreSQL database"
 
   tags = {

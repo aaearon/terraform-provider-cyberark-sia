@@ -13,7 +13,7 @@ This directory contains examples for the `cyberark_sia_certificate` resource.
 Upload a TLS certificate to CyberArk SIA:
 
 ```hcl
-resource "cyberark_sia_certificate" "example" {
+resource "cyberarksia_certificate" "example" {
   cert_name        = "my-database-cert"
   cert_body        = file("path/to/certificate.pem")
   cert_description = "TLS certificate for database connections"
@@ -56,20 +56,20 @@ Upload a certificate and reference it in a database workspace:
 
 ```hcl
 # 1. Upload certificate
-resource "cyberark_sia_certificate" "db_cert" {
+resource "cyberarksia_certificate" "db_cert" {
   cert_name = "postgres-tls"
   cert_body = file("certs/postgres.pem")
 }
 
 # 2. Reference in database workspace
-resource "cyberark_sia_database_workspace" "postgres" {
+resource "cyberarksia_database_workspace" "postgres" {
   name           = "prod-postgres"
-  database_type  = "postgres"
+  database_type  = "postgresql"
   address        = "postgres.example.com"
   port           = 5432
 
   # Associate certificate
-  certificate_id                = cyberark_sia_certificate.db_cert.id
+  certificate_id                = cyberarksia_certificate.db_cert.id
   enable_certificate_validation = true
 }
 ```
@@ -85,20 +85,20 @@ resource "cyberark_sia_database_workspace" "postgres" {
 One certificate can be used by multiple database workspaces:
 
 ```hcl
-resource "cyberark_sia_certificate" "shared_cert" {
+resource "cyberarksia_certificate" "shared_cert" {
   cert_name = "wildcard-db-cert"
   cert_body = file("certs/wildcard.pem")
 }
 
-resource "cyberark_sia_database_workspace" "db1" {
+resource "cyberarksia_database_workspace" "db1" {
   name           = "postgres-primary"
-  certificate_id = cyberark_sia_certificate.shared_cert.id
+  certificate_id = cyberarksia_certificate.shared_cert.id
   # ...
 }
 
-resource "cyberark_sia_database_workspace" "db2" {
+resource "cyberarksia_database_workspace" "db2" {
   name           = "postgres-replica"
-  certificate_id = cyberark_sia_certificate.shared_cert.id  # Same cert
+  certificate_id = cyberarksia_certificate.shared_cert.id  # Same cert
   # ...
 }
 ```
@@ -109,14 +109,14 @@ You can add, update, or remove certificate references:
 
 ```hcl
 # Add certificate to existing workspace
-resource "cyberark_sia_database_workspace" "db" {
+resource "cyberarksia_database_workspace" "db" {
   name           = "my-database"
-  certificate_id = cyberark_sia_certificate.new_cert.id  # Add
+  certificate_id = cyberarksia_certificate.new_cert.id  # Add
   # ...
 }
 
 # Remove certificate reference
-resource "cyberark_sia_database_workspace" "db" {
+resource "cyberarksia_database_workspace" "db" {
   name           = "my-database"
   certificate_id = null  # Remove
   # ...
@@ -134,7 +134,7 @@ The specified certificate (ID: cert-123) does not exist or is invalid.
 
 Ensure the certificate exists before associating it with this database workspace.
 You can verify the certificate exists with:
-  terraform state show cyberark_sia_certificate.<name>
+  terraform state show cyberarksia_certificate.<name>
 ```
 
 **Solution**: Ensure certificate resource is created before database workspace references it (Terraform handles dependency automatically).
@@ -154,7 +154,7 @@ You can verify the certificate exists with:
 
 ## Related Resources
 
-- `cyberark_sia_database_workspace`: References certificates via `certificate_id`
+- `cyberarksia_database_workspace`: References certificates via `certificate_id`
 
 ## Testing
 
