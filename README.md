@@ -19,7 +19,8 @@ A Terraform provider for managing CyberArk Secure Infrastructure Access (SIA) re
 - Terraform >= 1.0
 - Go >= 1.21 (for development)
 - CyberArk Identity tenant with SIA enabled
-- Valid CyberArk service account credentials
+- Identity Security Platform Shared Services tenant with Unified Access Policies (UAP) enabled
+- Valid CyberArk service account credentials with `DpaAdmin` role
 
 ## Installation
 
@@ -41,22 +42,14 @@ This installs the provider to `~/.terraform.d/plugins/` for local testing.
 
 ## Authentication
 
-This provider uses **OAuth2 Client Credentials Grant** to authenticate with the CyberArk Identity platform. The provider obtains an OAuth2 access token using service account credentials and uses it for all API requests.
+The provider authenticates using a CyberArk service account. Simply provide the service account username and password - the provider handles OAuth2 authentication automatically.
 
 **Service Account Setup:**
-1. Create a service account in CyberArk Identity with SIA permissions
-2. Generate OAuth2 client credentials (username and client_secret)
-3. Configure the provider with these credentials
+1. Create a service account in CyberArk Identity
+2. Assign the **`DpaAdmin`** role (required for managing SIA resources)
+3. Provide the username and password to the provider
 
-**Authentication Flow:**
-1. Provider authenticates to `https://{tenant_id}.id.cyberark.cloud/oauth2/platformtoken`
-2. Obtains an OAuth2 access token (valid for 1 hour)
-3. Uses the access token for all SIA API requests
-
-**Security Notes:**
-- Access tokens expire after 3600 seconds (1 hour)
-- The provider handles token refresh automatically
-- Never commit client_secret to version control - use environment variables or secure variable storage
+**Important:** Never commit credentials to version control. Use environment variables or secure variable storage (e.g., Terraform Cloud, HashiCorp Vault).
 
 ## Quick Start
 
