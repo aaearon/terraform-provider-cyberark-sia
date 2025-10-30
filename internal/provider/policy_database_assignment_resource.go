@@ -679,7 +679,6 @@ func (r *PolicyDatabaseAssignmentResource) ImportState(ctx context.Context, req 
 
 // Helper functions (Tasks 13-14)
 
-
 // determineWorkspaceType returns the policy workspace type for database targets
 // ALL database workspaces use "FQDN/IP" target set regardless of cloud provider
 // The cloud_provider field is metadata only and doesn't affect policy target sets

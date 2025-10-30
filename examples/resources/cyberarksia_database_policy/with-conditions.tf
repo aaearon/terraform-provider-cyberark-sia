@@ -2,11 +2,11 @@
 # Restricts access to weekdays 9 AM - 5 PM in GMT timezone
 
 resource "cyberarksia_database_policy" "with_conditions" {
-  name                       = "Weekday-Business-Hours-Policy"
-  description                = "Database access limited to business hours"
-  status                     = "active"
-  delegation_classification  = "Unrestricted"
-  time_zone                  = "GMT"
+  name                      = "Weekday-Business-Hours-Policy"
+  description               = "Database access limited to business hours"
+  status                    = "active"
+  delegation_classification = "Unrestricted"
+  time_zone                 = "GMT"
 
   conditions {
     max_session_duration = 4  # 4 hours
@@ -22,11 +22,11 @@ resource "cyberarksia_database_policy" "with_conditions" {
 
 # Example with US Eastern timezone
 resource "cyberarksia_database_policy" "us_eastern" {
-  name                       = "US-Eastern-Business-Hours"
-  description                = "Access during US Eastern business hours"
-  status                     = "active"
-  delegation_classification  = "Unrestricted"
-  time_zone                  = "America/New_York"
+  name                      = "US-Eastern-Business-Hours"
+  description               = "Access during US Eastern business hours"
+  status                    = "active"
+  delegation_classification = "Unrestricted"
+  time_zone                 = "America/New_York"
 
   conditions {
     max_session_duration = 8

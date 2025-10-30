@@ -86,9 +86,9 @@ resource "cyberarksia_database_workspace" "test_db" {
 
 # 4. Policy Database Assignment Resource - Assigns database to access policy
 resource "cyberarksia_policy_database_assignment" "test_assignment" {
-  policy_id              = data.cyberarksia_access_policy.test_policy.id
-  database_workspace_id  = cyberarksia_database_workspace.test_db.id
-  authentication_method  = "db_auth"
+  policy_id             = data.cyberarksia_access_policy.test_policy.id
+  database_workspace_id = cyberarksia_database_workspace.test_db.id
+  authentication_method = "db_auth"
 
   db_auth_profile {
     roles = ["crud_test_reader", "crud_test_writer"]

@@ -41,25 +41,25 @@ variable "sia_client_secret" {
 variable "test_policy_id" {
   description = "Existing policy ID to assign principals to (or use the policy created below)"
   type        = string
-  default     = ""  # Leave empty to create new policy
+  default     = "" # Leave empty to create new policy
 }
 
 variable "azuread_directory_id" {
   description = "Azure AD directory ID for USER/GROUP principals"
   type        = string
-  default     = "12345678-1234-1234-1234-123456789012"  # UPDATE THIS
+  default     = "12345678-1234-1234-1234-123456789012" # UPDATE THIS
 }
 
 variable "test_user_email" {
   description = "Test USER principal email"
   type        = string
-  default     = "test-user@example.com"  # UPDATE THIS
+  default     = "test-user@example.com" # UPDATE THIS
 }
 
 variable "test_group_email" {
   description = "Test GROUP principal email"
   type        = string
-  default     = "test-group@example.com"  # UPDATE THIS
+  default     = "test-group@example.com" # UPDATE THIS
 }
 
 # ============================================================================
@@ -69,10 +69,10 @@ variable "test_group_email" {
 resource "cyberarksia_database_policy" "test" {
   count = var.test_policy_id == "" ? 1 : 0
 
-  name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDD-HHmmss", timestamp())}"
-  status                     = "active"
-  delegation_classification  = "unrestricted"
-  description                = "Temporary policy for principal assignment CRUD testing"
+  name                      = "CRUD-Test-Policy-${formatdate("YYYYMMDD-HHmmss", timestamp())}"
+  status                    = "active"
+  delegation_classification = "unrestricted"
+  description               = "Temporary policy for principal assignment CRUD testing"
 
   conditions {
     max_session_duration = 8
@@ -115,22 +115,22 @@ locals {
 
 # Test USER principal (requires directory)
 resource "cyberarksia_database_policy_principal_assignment" "test_user" {
-  policy_id               = local.policy_id
-  principal_id            = var.test_user_email
-  principal_type          = "USER"
-  principal_name          = "Test User - CRUD Testing"
-  source_directory_name   = "AzureAD-Test"
-  source_directory_id     = var.azuread_directory_id
+  policy_id             = local.policy_id
+  principal_id          = var.test_user_email
+  principal_type        = "USER"
+  principal_name        = "Test User - CRUD Testing"
+  source_directory_name = "AzureAD-Test"
+  source_directory_id   = var.azuread_directory_id
 }
 
 # Test GROUP principal (requires directory)
 resource "cyberarksia_database_policy_principal_assignment" "test_group" {
-  policy_id               = local.policy_id
-  principal_id            = var.test_group_email
-  principal_type          = "GROUP"
-  principal_name          = "Test Group - CRUD Testing"
-  source_directory_name   = "AzureAD-Test"
-  source_directory_id     = var.azuread_directory_id
+  policy_id             = local.policy_id
+  principal_id          = var.test_group_email
+  principal_type        = "GROUP"
+  principal_name        = "Test Group - CRUD Testing"
+  source_directory_name = "AzureAD-Test"
+  source_directory_id   = var.azuread_directory_id
 }
 
 # Test ROLE principal (no directory required)
@@ -198,9 +198,9 @@ output "composite_id_format" {
 output "import_commands" {
   description = "Commands to test import functionality"
   value = {
-    user = "terraform import cyberarksia_database_policy_principal_assignment.test_user \"${cyberarksia_database_policy_principal_assignment.test_user.id}\""
+    user  = "terraform import cyberarksia_database_policy_principal_assignment.test_user \"${cyberarksia_database_policy_principal_assignment.test_user.id}\""
     group = "terraform import cyberarksia_database_policy_principal_assignment.test_group \"${cyberarksia_database_policy_principal_assignment.test_group.id}\""
-    role = "terraform import cyberarksia_database_policy_principal_assignment.test_role \"${cyberarksia_database_policy_principal_assignment.test_role.id}\""
+    role  = "terraform import cyberarksia_database_policy_principal_assignment.test_role \"${cyberarksia_database_policy_principal_assignment.test_role.id}\""
   }
 }
 

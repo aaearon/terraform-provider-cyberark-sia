@@ -2,9 +2,9 @@
 # This policy is valid indefinitely and has default conditions
 
 resource "cyberarksia_database_policy" "basic" {
-  name                       = "Basic-Database-Policy"
-  status                     = "active"
-  delegation_classification  = "Unrestricted"
+  name                      = "Basic-Database-Policy"
+  status                    = "active"
+  delegation_classification = "Unrestricted"
 
   conditions {
     max_session_duration = 8  # 8 hours

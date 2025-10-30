@@ -4,10 +4,10 @@
 # ROLEs do not require source_directory_name or source_directory_id.
 
 resource "cyberarksia_database_policy" "admin_policy" {
-  name                       = "Database-Admin-Role-Policy"
-  status                     = "active"
-  delegation_classification  = "Restricted"
-  description                = "Policy for database administrator role"
+  name                      = "Database-Admin-Role-Policy"
+  status                    = "active"
+  delegation_classification = "Restricted"
+  description               = "Policy for database administrator role"
 
   conditions {
     max_session_duration = 12 # 12 hours for admin work
@@ -28,9 +28,9 @@ resource "cyberarksia_database_policy_principal_assignment" "admin_role" {
 
 # Read-Only Database role
 resource "cyberarksia_database_policy" "readonly_policy" {
-  name                       = "Database-ReadOnly-Role-Policy"
-  status                     = "active"
-  delegation_classification  = "Unrestricted"
+  name                      = "Database-ReadOnly-Role-Policy"
+  status                    = "active"
+  delegation_classification = "Unrestricted"
 
   conditions {
     max_session_duration = 8
@@ -47,9 +47,9 @@ resource "cyberarksia_database_policy_principal_assignment" "readonly_role" {
 
 # DevOps role with time restrictions
 resource "cyberarksia_database_policy" "devops_policy" {
-  name                       = "DevOps-On-Call-Policy"
-  status                     = "active"
-  delegation_classification  = "Restricted"
+  name                      = "DevOps-On-Call-Policy"
+  status                    = "active"
+  delegation_classification = "Restricted"
 
   conditions {
     max_session_duration = 6

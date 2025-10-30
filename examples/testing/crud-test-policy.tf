@@ -20,11 +20,11 @@ terraform {
 # API REQUIREMENT: Must have at least 1 target_database and 1 principal block
 
 resource "cyberarksia_database_policy" "test" {
-  name                       = "CRUD-Test-Policy-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
-  description                = "CRUD validation test policy"
-  status                     = "active"
-  delegation_classification  = "unrestricted"
-  time_zone                  = "GMT"
+  name                      = "CRUD-Test-Policy-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
+  description               = "CRUD validation test policy"
+  status                    = "active"
+  delegation_classification = "unrestricted"
+  time_zone                 = "GMT"
 
   conditions {
     max_session_duration = 4
@@ -38,7 +38,7 @@ resource "cyberarksia_database_policy" "test" {
   # Example: database_workspace_id = cyberarksia_database_workspace.test.id
 
   target_database {
-    database_workspace_id = "YOUR_DATABASE_WORKSPACE_ID_HERE"  # REQUIRED: Update this
+    database_workspace_id = "YOUR_DATABASE_WORKSPACE_ID_HERE" # REQUIRED: Update this
     authentication_method = "db_auth"
 
     db_auth_profile {
@@ -53,11 +53,11 @@ resource "cyberarksia_database_policy" "test" {
   # Find these values in SIA UI → Identity & Access → Users
 
   principal {
-    principal_id          = "YOUR_PRINCIPAL_UUID_HERE"         # REQUIRED: Update this
+    principal_id          = "YOUR_PRINCIPAL_UUID_HERE" # REQUIRED: Update this
     principal_type        = "USER"
-    principal_name        = "your.email@example.com"           # REQUIRED: Update this
-    source_directory_name = "CyberArk Cloud Directory"         # Update if using different directory
-    source_directory_id   = "YOUR_DIRECTORY_ID_HERE"           # REQUIRED: Update this
+    principal_name        = "your.email@example.com"   # REQUIRED: Update this
+    source_directory_name = "CyberArk Cloud Directory" # Update if using different directory
+    source_directory_id   = "YOUR_DIRECTORY_ID_HERE"   # REQUIRED: Update this
   }
 }
 

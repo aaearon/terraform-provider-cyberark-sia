@@ -357,7 +357,7 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 								ElementType:         types.Int64Type,
 								Validators: []validator.Set{
 									setvalidator.ValueInt64sAre(int64validator.Between(0, 6)), // 0=Sunday through 6=Saturday (0-indexed)
-									setvalidator.SizeBetween(1, 7),                             // At least 1 day required, max 7 days (e.g., all week = [0,1,2,3,4,5,6])
+									setvalidator.SizeBetween(1, 7),                            // At least 1 day required, max 7 days (e.g., all week = [0,1,2,3,4,5,6])
 								},
 							},
 							"from_hour": schema.StringAttribute{
@@ -627,10 +627,10 @@ func (r *DatabasePolicyResource) Create(ctx context.Context, req resource.Create
 	data.UpdatedOn = types.ObjectNull(models.ChangeInfoAttrTypes())
 
 	tflog.Info(ctx, "Created database policy", map[string]interface{}{
-		"policy_id":          data.PolicyID.ValueString(),
-		"policy_name":        data.Name.ValueString(),
-		"target_databases":   len(data.TargetDatabase),
-		"principals":         len(data.Principal),
+		"policy_id":        data.PolicyID.ValueString(),
+		"policy_name":      data.Name.ValueString(),
+		"target_databases": len(data.TargetDatabase),
+		"principals":       len(data.Principal),
 	})
 
 	// Save data into Terraform state

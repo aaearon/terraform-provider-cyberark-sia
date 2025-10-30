@@ -4,11 +4,11 @@
 # Shows distributed team workflow where different teams manage their own principal assignments.
 
 resource "cyberarksia_database_policy" "production_database" {
-  name                       = "Production-Database-Access"
-  status                     = "active"
-  delegation_classification  = "Restricted"
-  description                = "Production database access with strict conditions"
-  time_zone                  = "America/New_York"
+  name                      = "Production-Database-Access"
+  status                    = "active"
+  delegation_classification = "Restricted"
+  description               = "Production database access with strict conditions"
+  time_zone                 = "America/New_York"
 
   conditions {
     max_session_duration = 4 # 4 hours max
@@ -32,39 +32,39 @@ resource "cyberarksia_database_policy" "production_database" {
 locals {
   senior_engineers = {
     alice = { email = "alice@example.com", name = "Alice Smith" },
-    bob   = { email = "bob@example.com",   name = "Bob Johnson" },
+    bob   = { email = "bob@example.com", name = "Bob Johnson" },
   }
 }
 
 resource "cyberarksia_database_policy_principal_assignment" "senior_engineers" {
   for_each = local.senior_engineers
 
-  policy_id               = cyberarksia_database_policy.production_database.policy_id
-  principal_id            = each.value.email
-  principal_type          = "USER"
-  principal_name          = each.value.name
-  source_directory_name   = "AzureAD"
-  source_directory_id     = "12345678-1234-1234-1234-123456789012"
+  policy_id             = cyberarksia_database_policy.production_database.policy_id
+  principal_id          = each.value.email
+  principal_type        = "USER"
+  principal_name        = each.value.name
+  source_directory_name = "AzureAD"
+  source_directory_id   = "12345678-1234-1234-1234-123456789012"
 }
 
 # GROUP for DBA team
 resource "cyberarksia_database_policy_principal_assignment" "dba_team" {
-  policy_id               = cyberarksia_database_policy.production_database.policy_id
-  principal_id            = "dba-team@example.com"
-  principal_type          = "GROUP"
-  principal_name          = "Database Administration Team"
-  source_directory_name   = "AzureAD"
-  source_directory_id     = "12345678-1234-1234-1234-123456789012"
+  policy_id             = cyberarksia_database_policy.production_database.policy_id
+  principal_id          = "dba-team@example.com"
+  principal_type        = "GROUP"
+  principal_name        = "Database Administration Team"
+  source_directory_name = "AzureAD"
+  source_directory_id   = "12345678-1234-1234-1234-123456789012"
 }
 
 # GROUP for backend engineers
 resource "cyberarksia_database_policy_principal_assignment" "backend_team" {
-  policy_id               = cyberarksia_database_policy.production_database.policy_id
-  principal_id            = "backend-team@example.com"
-  principal_type          = "GROUP"
-  principal_name          = "Backend Engineering Team"
-  source_directory_name   = "AzureAD"
-  source_directory_id     = "12345678-1234-1234-1234-123456789012"
+  policy_id             = cyberarksia_database_policy.production_database.policy_id
+  principal_id          = "backend-team@example.com"
+  principal_type        = "GROUP"
+  principal_name        = "Backend Engineering Team"
+  source_directory_name = "AzureAD"
+  source_directory_id   = "12345678-1234-1234-1234-123456789012"
 }
 
 # ROLE for automated systems

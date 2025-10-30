@@ -65,21 +65,21 @@ output "validation_summary" {
   sensitive   = true
   value = {
     azure_infrastructure = {
-      resource_group    = azurerm_resource_group.sia_test.name
-      postgres_server   = azurerm_postgresql_flexible_server.sia_test.name
-      postgres_fqdn     = azurerm_postgresql_flexible_server.sia_test.fqdn
-      test_database     = azurerm_postgresql_flexible_server_database.testdb.name
-      firewall_rules    = ["AllowAzureServices", "AllowAll"]
-      region            = var.azure_region
+      resource_group  = azurerm_resource_group.sia_test.name
+      postgres_server = azurerm_postgresql_flexible_server.sia_test.name
+      postgres_fqdn   = azurerm_postgresql_flexible_server.sia_test.fqdn
+      test_database   = azurerm_postgresql_flexible_server_database.testdb.name
+      firewall_rules  = ["AllowAzureServices", "AllowAll"]
+      region          = var.azure_region
     }
     sia_resources = {
-      secret_id             = cyberarksia_secret.admin.id
-      database_workspace_id = cyberarksia_database_workspace.azure_postgres.id
-      database_name         = cyberarksia_database_workspace.azure_postgres.name
+      secret_id                      = cyberarksia_secret.admin.id
+      database_workspace_id          = cyberarksia_database_workspace.azure_postgres.id
+      database_name                  = cyberarksia_database_workspace.azure_postgres.name
       certificate_validation_enabled = cyberarksia_database_workspace.azure_postgres.enable_certificate_validation
-      policy_id             = cyberarksia_database_policy.test.policy_id
-      policy_name           = cyberarksia_database_policy.test.name
-      policy_status         = cyberarksia_database_policy.test.status
+      policy_id                      = cyberarksia_database_policy.test.policy_id
+      policy_name                    = cyberarksia_database_policy.test.name
+      policy_status                  = cyberarksia_database_policy.test.status
     }
     principal_assignments = {
       service_account = {
@@ -87,18 +87,18 @@ output "validation_summary" {
         email = var.sia_username
       }
       tim_schindler = {
-        type           = "USER (separate resource)"
-        email          = var.test_principal_email
-        assignment_id  = cyberarksia_database_policy_principal_assignment.tim_schindler.id
+        type          = "USER (separate resource)"
+        email         = var.test_principal_email
+        assignment_id = cyberarksia_database_policy_principal_assignment.tim_schindler.id
       }
     }
     policy_conditions = {
       max_session_duration = cyberarksia_database_policy.test.conditions.max_session_duration
       idle_time            = cyberarksia_database_policy.test.conditions.idle_time
-      access_window        = {
-        days     = cyberarksia_database_policy.test.conditions.access_window.days_of_the_week
-        from     = cyberarksia_database_policy.test.conditions.access_window.from_hour
-        to       = cyberarksia_database_policy.test.conditions.access_window.to_hour
+      access_window = {
+        days = cyberarksia_database_policy.test.conditions.access_window.days_of_the_week
+        from = cyberarksia_database_policy.test.conditions.access_window.from_hour
+        to   = cyberarksia_database_policy.test.conditions.access_window.to_hour
       }
     }
   }
@@ -107,7 +107,7 @@ output "validation_summary" {
 output "next_steps" {
   description = "Next steps for manual verification"
   sensitive   = true
-  value = <<-EOT
+  value       = <<-EOT
 
   ✅ TERRAFORM APPLY COMPLETE!
 

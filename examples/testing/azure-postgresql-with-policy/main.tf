@@ -140,10 +140,10 @@ resource "cyberarksia_secret" "admin" {
 
 # Database workspace for Azure PostgreSQL (NO certificate validation)
 resource "cyberarksia_database_workspace" "azure_postgres" {
-  name          = "azure-postgres-policy-test-${random_string.suffix.result}"
-  database_type = "postgres-azure-managed"
+  name           = "azure-postgres-policy-test-${random_string.suffix.result}"
+  database_type  = "postgres-azure-managed"
   cloud_provider = "azure"
-  region        = var.azure_region
+  region         = var.azure_region
 
   # Connection details
   address = azurerm_postgresql_flexible_server.sia_test.fqdn
@@ -176,11 +176,11 @@ resource "cyberarksia_database_workspace" "azure_postgres" {
 
 resource "cyberarksia_database_policy" "test" {
   # IMPORTANT: Using static name without timestamp() to avoid updates
-  name                       = "SIA-Policy-Test-${random_string.suffix.result}"
-  description                = "Database access policy for Azure PostgreSQL testing"
-  status                     = "active"
-  delegation_classification  = "unrestricted"
-  time_zone                  = "GMT"
+  name                      = "SIA-Policy-Test-${random_string.suffix.result}"
+  description               = "Database access policy for Azure PostgreSQL testing"
+  status                    = "active"
+  delegation_classification = "unrestricted"
+  time_zone                 = "GMT"
 
   # Access conditions
   conditions {
@@ -232,7 +232,7 @@ resource "cyberarksia_database_policy" "test" {
   # Allow separate principal assignment resource to manage additional principals
   lifecycle {
     ignore_changes = [
-      principal  # Hybrid pattern: manage additional principals via assignment resources
+      principal # Hybrid pattern: manage additional principals via assignment resources
     ]
   }
 

@@ -74,12 +74,12 @@ output "test_commands" {
 output "estimated_cost" {
   description = "Estimated cost for this infrastructure"
   value = {
-    hourly_rate  = "$0.017 USD (B1ms compute)"
-    daily_rate   = "$0.41 USD"
-    monthly_rate = "$12.41 USD (if running continuously)"
-    storage_cost = "$0.138/GB/month (32GB = $4.42/month)"
+    hourly_rate   = "$0.017 USD (B1ms compute)"
+    daily_rate    = "$0.41 USD"
+    monthly_rate  = "$12.41 USD (if running continuously)"
+    storage_cost  = "$0.138/GB/month (32GB = $4.42/month)"
     total_monthly = "~$16.83 USD if running 24/7"
-    note = "Stop server when not in use to eliminate compute costs (only storage remains)"
+    note          = "Stop server when not in use to eliminate compute costs (only storage remains)"
   }
 }
 
@@ -88,10 +88,10 @@ output "validation_summary" {
   description = "Summary of created resources for validation"
   value = {
     azure_resources_created = {
-      resource_group     = azurerm_resource_group.sia_test.name
-      postgres_server    = azurerm_postgresql_flexible_server.sia_test.name
-      database           = azurerm_postgresql_flexible_server_database.testdb.name
-      firewall_rules     = ["AllowAzureServices", "AllowAll_TestOnly"]
+      resource_group  = azurerm_resource_group.sia_test.name
+      postgres_server = azurerm_postgresql_flexible_server.sia_test.name
+      database        = azurerm_postgresql_flexible_server_database.testdb.name
+      firewall_rules  = ["AllowAzureServices", "AllowAll_TestOnly"]
     }
     sia_resources_created = {
       certificate        = cyberarksia_certificate.azure_postgres_cert.cert_name

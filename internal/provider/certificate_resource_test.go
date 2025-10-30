@@ -133,4 +133,3 @@ func testAccCertificateConfig_withDatabaseWorkspace(certName, dbName string) str
 func testAccCertificateConfig_deleteCertificateOnly(dbName string) string {
 	return ""
 }
-

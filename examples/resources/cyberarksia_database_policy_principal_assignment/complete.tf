@@ -12,11 +12,11 @@
 # ============================================================================
 
 resource "cyberarksia_database_policy" "enterprise_database" {
-  name                       = "Enterprise-Database-Access-Policy"
-  status                     = "active"
-  delegation_classification  = "Restricted"
-  description                = "Comprehensive policy for enterprise database access"
-  time_zone                  = "America/New_York"
+  name                      = "Enterprise-Database-Access-Policy"
+  status                    = "active"
+  delegation_classification = "Restricted"
+  description               = "Comprehensive policy for enterprise database access"
+  time_zone                 = "America/New_York"
 
   # Policy valid for Q1 2024
   time_frame {
@@ -72,12 +72,12 @@ locals {
 resource "cyberarksia_database_policy_principal_assignment" "azuread_users" {
   for_each = local.azuread_users
 
-  policy_id               = cyberarksia_database_policy.enterprise_database.policy_id
-  principal_id            = each.value.email
-  principal_type          = "USER"
-  principal_name          = each.value.name
-  source_directory_name   = "AzureAD-Production"
-  source_directory_id     = local.azuread_directory_id
+  policy_id             = cyberarksia_database_policy.enterprise_database.policy_id
+  principal_id          = each.value.email
+  principal_type        = "USER"
+  principal_name        = each.value.name
+  source_directory_name = "AzureAD-Production"
+  source_directory_id   = local.azuread_directory_id
 }
 
 # ============================================================================
@@ -100,12 +100,12 @@ locals {
 resource "cyberarksia_database_policy_principal_assignment" "ldap_users" {
   for_each = local.ldap_users
 
-  policy_id               = cyberarksia_database_policy.enterprise_database.policy_id
-  principal_id            = each.value.username
-  principal_type          = "USER"
-  principal_name          = each.value.name
-  source_directory_name   = "CorporateLDAP"
-  source_directory_id     = "ldap-prod-001"
+  policy_id             = cyberarksia_database_policy.enterprise_database.policy_id
+  principal_id          = each.value.username
+  principal_type        = "USER"
+  principal_name        = each.value.name
+  source_directory_name = "CorporateLDAP"
+  source_directory_id   = "ldap-prod-001"
 }
 
 # ============================================================================
@@ -114,32 +114,32 @@ resource "cyberarksia_database_policy_principal_assignment" "ldap_users" {
 
 # DBA Team
 resource "cyberarksia_database_policy_principal_assignment" "dba_group" {
-  policy_id               = cyberarksia_database_policy.enterprise_database.policy_id
-  principal_id            = "dba-team@example.com"
-  principal_type          = "GROUP"
-  principal_name          = "Database Administration Team"
-  source_directory_name   = "AzureAD-Production"
-  source_directory_id     = local.azuread_directory_id
+  policy_id             = cyberarksia_database_policy.enterprise_database.policy_id
+  principal_id          = "dba-team@example.com"
+  principal_type        = "GROUP"
+  principal_name        = "Database Administration Team"
+  source_directory_name = "AzureAD-Production"
+  source_directory_id   = local.azuread_directory_id
 }
 
 # Backend Engineers
 resource "cyberarksia_database_policy_principal_assignment" "backend_group" {
-  policy_id               = cyberarksia_database_policy.enterprise_database.policy_id
-  principal_id            = "backend-engineers@example.com"
-  principal_type          = "GROUP"
-  principal_name          = "Backend Engineering Team"
-  source_directory_name   = "AzureAD-Production"
-  source_directory_id     = local.azuread_directory_id
+  policy_id             = cyberarksia_database_policy.enterprise_database.policy_id
+  principal_id          = "backend-engineers@example.com"
+  principal_type        = "GROUP"
+  principal_name        = "Backend Engineering Team"
+  source_directory_name = "AzureAD-Production"
+  source_directory_id   = local.azuread_directory_id
 }
 
 # Data Analytics Team (LDAP group)
 resource "cyberarksia_database_policy_principal_assignment" "analytics_group" {
-  policy_id               = cyberarksia_database_policy.enterprise_database.policy_id
-  principal_id            = "data-analytics"
-  principal_type          = "GROUP"
-  principal_name          = "Data Analytics Team"
-  source_directory_name   = "CorporateLDAP"
-  source_directory_id     = "ldap-prod-001"
+  policy_id             = cyberarksia_database_policy.enterprise_database.policy_id
+  principal_id          = "data-analytics"
+  principal_type        = "GROUP"
+  principal_name        = "Data Analytics Team"
+  source_directory_name = "CorporateLDAP"
+  source_directory_id   = "ldap-prod-001"
 }
 
 # ============================================================================
@@ -215,9 +215,9 @@ output "principal_summary" {
 output "import_commands" {
   description = "Example import commands for existing principals"
   value = {
-    user_example = "terraform import cyberarksia_database_policy_principal_assignment.azuread_users[\"alice\"] \"${cyberarksia_database_policy.enterprise_database.policy_id}:alice.smith@example.com:USER\""
+    user_example  = "terraform import cyberarksia_database_policy_principal_assignment.azuread_users[\"alice\"] \"${cyberarksia_database_policy.enterprise_database.policy_id}:alice.smith@example.com:USER\""
     group_example = "terraform import cyberarksia_database_policy_principal_assignment.dba_group \"${cyberarksia_database_policy.enterprise_database.policy_id}:dba-team@example.com:GROUP\""
-    role_example = "terraform import cyberarksia_database_policy_principal_assignment.admin_role \"${cyberarksia_database_policy.enterprise_database.policy_id}:database-administrator:ROLE\""
+    role_example  = "terraform import cyberarksia_database_policy_principal_assignment.admin_role \"${cyberarksia_database_policy.enterprise_database.policy_id}:database-administrator:ROLE\""
   }
 }
 

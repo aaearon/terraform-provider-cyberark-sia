@@ -61,7 +61,7 @@ resource "azurerm_postgresql_flexible_server" "sia_test" {
 
   # B1ms SKU - Burstable tier (1 vCore, 2GB RAM) - ~$12.41/month
   sku_name   = "B_Standard_B1ms"
-  storage_mb = 32768  # 32 GB (minimum for Flexible Server)
+  storage_mb = 32768 # 32 GB (minimum for Flexible Server)
 
   # PostgreSQL version
   version = "16"
@@ -88,7 +88,7 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure_service
   name             = "AllowAzureServices"
   server_id        = azurerm_postgresql_flexible_server.sia_test.id
   start_ip_address = "0.0.0.0"
-  end_ip_address   = "0.0.0.0"  # Special Azure magic IP for Azure services
+  end_ip_address   = "0.0.0.0" # Special Azure magic IP for Azure services
 }
 
 # Firewall rule: Allow all IPs (for testing - SIA can connect from anywhere)
@@ -124,9 +124,9 @@ data "cyberarksia_access_policy" "terraform_test" {
 }
 
 resource "cyberarksia_policy_database_assignment" "azure_postgres_assignment" {
-  policy_id              = data.cyberarksia_access_policy.terraform_test.id
-  database_workspace_id  = cyberarksia_database_workspace.azure_postgres.id
-  authentication_method  = "db_auth"
+  policy_id             = data.cyberarksia_access_policy.terraform_test.id
+  database_workspace_id = cyberarksia_database_workspace.azure_postgres.id
+  authentication_method = "db_auth"
 
   db_auth_profile {
     roles = ["pg_read_all_settings"]
@@ -143,7 +143,7 @@ resource "cyberarksia_certificate" "azure_postgres_cert" {
   cert_name        = "azure-postgres-ssl-cert-${random_string.suffix.result}"
   cert_description = "Microsoft RSA Root CA 2017 for Azure PostgreSQL Flexible Server TLS/SSL validation"
   cert_type        = "PEM"
-  cert_body = <<-EOT
+  cert_body        = <<-EOT
 -----BEGIN CERTIFICATE-----
 MIIFqDCCA5CgAwIBAgIQHtOXCV/YtLNHcB6qvn9FszANBgkqhkiG9w0BAQwFADBl
 MQswCQYDVQQGEwJVUzEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMTYw
@@ -236,6 +236,6 @@ resource "cyberarksia_database_workspace" "azure_postgres" {
   depends_on = [
     azurerm_postgresql_flexible_server_database.testdb,
     cyberarksia_secret.postgres_admin,
-    cyberarksia_certificate.azure_postgres_cert  # Certificate must exist first
+    cyberarksia_certificate.azure_postgres_cert # Certificate must exist first
   ]
 }
