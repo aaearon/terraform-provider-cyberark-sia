@@ -1,0 +1,172 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us investigate.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest version of the provider
+          required: true
+
+  - type: input
+    id: provider_version
+    attributes:
+      label: Provider Version
+      description: What version of the provider are you using?
+      placeholder: "e.g., 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: terraform_version
+    attributes:
+      label: Terraform Version
+      description: What version of Terraform are you using?
+      placeholder: "e.g., 1.5.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: resource_type
+    attributes:
+      label: Affected Resource(s)
+      description: Which resource or data source is affected?
+      multiple: true
+      options:
+        - cyberarksia_certificate
+        - cyberarksia_database_workspace
+        - cyberarksia_secret
+        - cyberarksia_database_policy
+        - cyberarksia_database_policy_principal_assignment
+        - cyberarksia_policy_database_assignment
+        - cyberarksia_principal (data source)
+        - cyberarksia_access_policy (data source)
+        - Provider Configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: terraform_config
+    attributes:
+      label: Terraform Configuration
+      description: |
+        Please provide your Terraform configuration (HCL).
+        **IMPORTANT**: Remove any sensitive information (passwords, secrets, tenant IDs, real database names).
+      placeholder: |
+        terraform {
+          required_providers {
+            cyberarksia = {
+              source  = "aaearon/cyberarksia"
+              version = "0.1.0"
+            }
+          }
+        }
+
+        resource "cyberarksia_certificate" "example" {
+          cert_name = "example-cert"
+          # ...
+        }
+      render: hcl
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "I expected the resource to be created successfully..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: "The provider returned an error..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_messages
+    attributes:
+      label: Error Messages
+      description: |
+        Paste any error messages or logs here.
+        **IMPORTANT**: Redact any sensitive information (tokens, secrets, URLs with tenant IDs).
+      placeholder: |
+        Error: Failed to create certificate
+
+        with cyberarksia_certificate.example,
+        on main.tf line 10, in resource "cyberarksia_certificate" "example":
+        10: resource "cyberarksia_certificate" "example" {
+
+        API returned 400: Invalid certificate format
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Create a certificate resource with...
+        2. Run `terraform apply`
+        3. Observe error
+    validations:
+      required: true
+
+  - type: input
+    id: go_version
+    attributes:
+      label: Go Version (if building from source)
+      description: What version of Go are you using?
+      placeholder: "e.g., 1.21.0"
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running on?
+      placeholder: "e.g., Ubuntu 22.04, macOS 14.0, Windows 11"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context about the problem here.
+        - Are you behind a proxy?
+        - Using a custom CyberArk Identity URL?
+        - Any network restrictions?
+      placeholder: "Additional details..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Security
+      description: Please confirm you have not included sensitive information
+      options:
+        - label: I have removed all sensitive information (passwords, secrets, tenant IDs, tokens)
+          required: true

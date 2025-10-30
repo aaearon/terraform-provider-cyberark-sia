@@ -15,7 +15,7 @@
 terraform {
   required_providers {
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "0.1.0"
     }
   }
@@ -80,7 +80,8 @@ resource "cyberarksia_database_policy" "test" {
   }
 
   # ⚠️ API REQUIREMENT: At least 1 target_database and 1 principal required
-  # TODO: Update these with actual values for your environment
+  # Replace placeholders below with your actual database workspace ID and principal details
+  # Tip: Use variables or reference existing resources instead of hardcoding IDs
 
   target_database {
     database_workspace_id = "YOUR_DATABASE_WORKSPACE_ID_HERE"

@@ -64,7 +64,7 @@ This provider uses **OAuth2 Client Credentials Grant** to authenticate with the 
 terraform {
   required_providers {
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "0.1.0"
     }
   }
@@ -190,7 +190,7 @@ Grant specific users, groups, or roles access to databases through policies.
 
 See [docs/resources/database_policy_principal_assignment.md](docs/resources/database_policy_principal_assignment.md) for usage examples.
 
-### `cyberarksia_policy_database_assignment`
+### `cyberarksia_database_policy_database_assignment`
 
 Connect database workspaces to access policies with specific authentication settings.
 
@@ -201,13 +201,13 @@ Connect database workspaces to access policies with specific authentication sett
 
 **Example use case:** You have a production PostgreSQL database and a policy for developers. This resource connects them together and specifies that users get the `readonly` role.
 
-See [docs/resources/policy_database_assignment.md](docs/resources/policy_database_assignment.md) and [examples/resources/cyberarksia_policy_database_assignment/](examples/resources/cyberarksia_policy_database_assignment/) for usage examples.
+See [docs/resources/policy_database_assignment.md](docs/resources/policy_database_assignment.md) and [examples/resources/cyberarksia_database_policy_database_assignment/](examples/resources/cyberarksia_database_policy_database_assignment/) for usage examples.
 
 ## Data Sources
 
 Data sources let you look up existing resources without creating them.
 
-### `cyberarksia_access_policy`
+### `cyberarksia_database_policy`
 
 Look up existing access policies by name or ID.
 
@@ -215,7 +215,7 @@ Look up existing access policies by name or ID.
 - Reference policies created outside Terraform (in the UI or by another team)
 - Share policies across multiple Terraform workspaces
 
-See [examples/data-sources/cyberarksia_access_policy/](examples/data-sources/cyberarksia_access_policy/) for usage examples.
+See [examples/data-sources/cyberarksia_database_policy/](examples/data-sources/cyberarksia_database_policy/) for usage examples.
 
 ### `cyberarksia_principal`
 

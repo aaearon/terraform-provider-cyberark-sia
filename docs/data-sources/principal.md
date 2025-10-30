@@ -18,7 +18,7 @@ Looks up a principal (user, group, or role) by name from CyberArk Identity direc
 terraform {
   required_providers {
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "~> 0.1"
     }
   }
@@ -90,12 +90,12 @@ data "cyberarksia_principal" "policy_user" {
   name = "tim.schindler@cyberark.cloud.40562"
 }
 
-data "cyberarksia_access_policy" "production_policy" {
+data "cyberarksia_database_policy" "production_policy" {
   name = "Production Database Access"
 }
 
 resource "cyberarksia_database_policy_principal_assignment" "user_access" {
-  policy_id             = data.cyberarksia_access_policy.production_policy.id
+  policy_id             = data.cyberarksia_database_policy.production_policy.id
   principal_id          = data.cyberarksia_principal.policy_user.id
   principal_type        = data.cyberarksia_principal.policy_user.principal_type
   principal_name        = data.cyberarksia_principal.policy_user.name
@@ -115,7 +115,7 @@ data "cyberarksia_principal" "qa_group" {
 }
 
 resource "cyberarksia_database_policy_principal_assignment" "dev_access" {
-  policy_id             = data.cyberarksia_access_policy.production_policy.id
+  policy_id             = data.cyberarksia_database_policy.production_policy.id
   principal_id          = data.cyberarksia_principal.dev_group.id
   principal_type        = data.cyberarksia_principal.dev_group.principal_type
   principal_name        = data.cyberarksia_principal.dev_group.name
@@ -124,7 +124,7 @@ resource "cyberarksia_database_policy_principal_assignment" "dev_access" {
 }
 
 resource "cyberarksia_database_policy_principal_assignment" "qa_access" {
-  policy_id             = data.cyberarksia_access_policy.production_policy.id
+  policy_id             = data.cyberarksia_database_policy.production_policy.id
   principal_id          = data.cyberarksia_principal.qa_group.id
   principal_type        = data.cyberarksia_principal.qa_group.principal_type
   principal_name        = data.cyberarksia_principal.qa_group.name

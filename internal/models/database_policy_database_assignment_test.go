@@ -9,7 +9,7 @@ import (
 // These tests would be placed in the provider package test file instead.
 // This file serves as a placeholder for future model-specific tests.
 
-func TestPolicyDatabaseAssignmentModel_Placeholder(t *testing.T) {
+func TestDatabasePolicyDatabaseAssignmentModel_Placeholder(t *testing.T) {
 	// This is a placeholder test to ensure the models package can be tested.
 	// Actual tests for helper functions are in the provider package.
 	t.Log("Model package is testable")

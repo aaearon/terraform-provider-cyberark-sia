@@ -26,7 +26,7 @@ Manages a CyberArk SIA database access policy including metadata and access cond
 ### Optional
 
 - `conditions` (Block, Optional) Policy access conditions (session limits, idle timeouts, time windows). (see [below for nested schema](#nestedblock--conditions))
-- `delegation_classification` (String) Delegation classification. Valid values: `restricted`/`Restricted`, `unrestricted`/`Unrestricted`. Default: `unrestricted`. Note: API returns capitalized values.
+- `delegation_classification` (String) Delegation classification. Valid values: `restricted`, `unrestricted`. Default: `unrestricted`. **Note**: Currently, SIA only supports `unrestricted` for database policies regardless of the value set. This attribute is available for future compatibility.
 - `description` (String) Policy description (max 200 characters).
 - `last_modified` (String) Timestamp of the last modification to the policy.
 - `policy_tags` (List of String) List of tags for policy organization (max 20 tags).
@@ -60,8 +60,11 @@ Optional:
 Required:
 
 - `days_of_the_week` (Set of Number) Days access is allowed (0=Sunday through 6=Saturday). Specify days in any order - order is automatically normalized. Example: `[1, 2, 3, 4, 5]` for weekdays.
-- `from_hour` (String) Start time in HH:MM format (e.g., `09:00`).
-- `to_hour` (String) End time in HH:MM format (e.g., `17:00`).
+
+Optional:
+
+- `from_hour` (String) Start time in HH:MM format (e.g., `09:00`). Optional - if both `from_hour` and `to_hour` are omitted, access is allowed all day. If one is specified, the other must also be specified.
+- `to_hour` (String) End time in HH:MM format (e.g., `17:00`). Optional - if both `from_hour` and `to_hour` are omitted, access is allowed all day. If one is specified, the other must also be specified.
 
 
 

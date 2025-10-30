@@ -14,19 +14,19 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ datasource.DataSource = &AccessPolicyDataSource{}
+var _ datasource.DataSource = &DatabasePolicyDataSource{}
 
-func NewAccessPolicyDataSource() datasource.DataSource {
-	return &AccessPolicyDataSource{}
+func NewDatabasePolicyDataSource() datasource.DataSource {
+	return &DatabasePolicyDataSource{}
 }
 
-// AccessPolicyDataSource defines the data source implementation.
-type AccessPolicyDataSource struct {
+// DatabasePolicyDataSource defines the data source implementation.
+type DatabasePolicyDataSource struct {
 	providerData *ProviderData
 }
 
-// AccessPolicyDataSourceModel describes the data source data model.
-type AccessPolicyDataSourceModel struct {
+// DatabasePolicyDataSourceModel describes the data source data model.
+type DatabasePolicyDataSourceModel struct {
 	// Input (one required)
 	PolicyID types.String `tfsdk:"policy_id"`
 	Name     types.String `tfsdk:"name"`
@@ -37,11 +37,11 @@ type AccessPolicyDataSourceModel struct {
 	Status      types.String `tfsdk:"status"`
 }
 
-func (d *AccessPolicyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_access_policy"
+func (d *DatabasePolicyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_database_policy"
 }
 
-func (d *AccessPolicyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *DatabasePolicyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Fetches an existing SIA access policy by ID or name. Use this data source to reference policies when creating policy database assignments.",
 
@@ -70,7 +70,7 @@ func (d *AccessPolicyDataSource) Schema(ctx context.Context, req datasource.Sche
 	}
 }
 
-func (d *AccessPolicyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *DatabasePolicyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -87,8 +87,8 @@ func (d *AccessPolicyDataSource) Configure(ctx context.Context, req datasource.C
 	d.providerData = providerData
 }
 
-func (d *AccessPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data AccessPolicyDataSourceModel
+func (d *DatabasePolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data DatabasePolicyDataSourceModel
 
 	// Read configuration
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

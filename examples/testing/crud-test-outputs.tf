@@ -20,17 +20,17 @@
 # ----------------------------------------------------------------------------
 output "policy_id" {
   description = "Looked up policy ID"
-  value       = data.cyberarksia_access_policy.test_policy.id
+  value       = data.cyberarksia_database_policy.test_policy.id
 }
 
 output "policy_name" {
   description = "Looked up policy name"
-  value       = data.cyberarksia_access_policy.test_policy.name
+  value       = data.cyberarksia_database_policy.test_policy.name
 }
 
 output "policy_status" {
   description = "Looked up policy status"
-  value       = data.cyberarksia_access_policy.test_policy.status
+  value       = data.cyberarksia_database_policy.test_policy.status
 }
 
 # ----------------------------------------------------------------------------
@@ -117,27 +117,27 @@ output "database_workspace_certificate_id" {
 # ----------------------------------------------------------------------------
 output "policy_assignment_id" {
   description = "Policy database assignment composite ID (format: policy_id:database_id)"
-  value       = cyberarksia_policy_database_assignment.test_assignment.id
+  value       = cyberarksia_database_policy_database_assignment.test_assignment.id
 }
 
 output "policy_assignment_policy_id" {
   description = "Assigned policy ID"
-  value       = cyberarksia_policy_database_assignment.test_assignment.policy_id
+  value       = cyberarksia_database_policy_database_assignment.test_assignment.policy_id
 }
 
 output "policy_assignment_database_id" {
   description = "Assigned database workspace ID"
-  value       = cyberarksia_policy_database_assignment.test_assignment.database_workspace_id
+  value       = cyberarksia_database_policy_database_assignment.test_assignment.database_workspace_id
 }
 
 output "policy_assignment_auth_method" {
   description = "Authentication method used"
-  value       = cyberarksia_policy_database_assignment.test_assignment.authentication_method
+  value       = cyberarksia_database_policy_database_assignment.test_assignment.authentication_method
 }
 
 output "policy_assignment_last_modified" {
   description = "Last modification timestamp"
-  value       = cyberarksia_policy_database_assignment.test_assignment.last_modified
+  value       = cyberarksia_database_policy_database_assignment.test_assignment.last_modified
 }
 
 # ----------------------------------------------------------------------------
@@ -147,19 +147,19 @@ output "validation_summary" {
   description = "Summary of created resources for validation"
   value = {
     # Policy lookup
-    policy_found = data.cyberarksia_access_policy.test_policy.id != ""
+    policy_found = data.cyberarksia_database_policy.test_policy.id != ""
 
     # Resource creation
     certificate_created = cyberarksia_certificate.test_cert.id != ""
     secret_created      = cyberarksia_secret.test_secret.id != ""
     database_created    = cyberarksia_database_workspace.test_db.id != ""
-    assignment_created  = cyberarksia_policy_database_assignment.test_assignment.id != ""
+    assignment_created  = cyberarksia_database_policy_database_assignment.test_assignment.id != ""
 
     # Dependencies working
     database_has_secret      = cyberarksia_database_workspace.test_db.secret_id == cyberarksia_secret.test_secret.id
     database_has_certificate = cyberarksia_database_workspace.test_db.certificate_id == cyberarksia_certificate.test_cert.id
-    assignment_has_database  = cyberarksia_policy_database_assignment.test_assignment.database_workspace_id == cyberarksia_database_workspace.test_db.id
-    assignment_has_policy    = cyberarksia_policy_database_assignment.test_assignment.policy_id == data.cyberarksia_access_policy.test_policy.id
+    assignment_has_database  = cyberarksia_database_policy_database_assignment.test_assignment.database_workspace_id == cyberarksia_database_workspace.test_db.id
+    assignment_has_policy    = cyberarksia_database_policy_database_assignment.test_assignment.policy_id == data.cyberarksia_database_policy.test_policy.id
 
     # Resource count
     total_resources_created = 4

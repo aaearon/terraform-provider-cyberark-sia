@@ -1,0 +1,110 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please provide as much detail as possible.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and this feature has not been requested
+          required: true
+        - label: This feature is not currently documented in the provider
+          required: true
+
+  - type: dropdown
+    id: feature_type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New Resource
+        - New Data Source
+        - Resource Enhancement
+        - Data Source Enhancement
+        - Provider Configuration
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: Describe the problem or use case this feature would solve
+      placeholder: |
+        As a DevOps engineer, I need to manage XYZ in CyberArk SIA so that I can...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this feature to work?
+      placeholder: |
+        Add a new resource `cyberarksia_xyz` that allows me to:
+        - Configure ABC
+        - Manage DEF
+
+        Example HCL:
+        ```hcl
+        resource "cyberarksia_xyz" "example" {
+          name = "example"
+          # ...
+        }
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: |
+        - Manually configure via CyberArk UI (not ideal for IaC workflows)
+        - Use API calls (breaks Terraform state management)
+    validations:
+      required: false
+
+  - type: textarea
+    id: api_reference
+    attributes:
+      label: CyberArk API Reference (if applicable)
+      description: |
+        If this relates to a specific CyberArk SIA API endpoint, please provide:
+        - API documentation link
+        - API endpoint path
+        - API method (GET, POST, PUT, DELETE)
+      placeholder: |
+        API Endpoint: POST /api/v1/workspaces/xyz
+        Documentation: https://docs.cyberark.com/...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples
+      placeholder: "Additional details..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you interested in contributing this feature?
+      options:
+        - label: I am willing to submit a pull request for this feature
+          required: false

@@ -8,7 +8,7 @@
 terraform {
   required_providers {
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "0.1.0"
     }
   }
@@ -34,8 +34,9 @@ resource "cyberarksia_database_policy" "test" {
   # ============================================================================
   # INLINE TARGET DATABASE - Required (at least 1)
   # ============================================================================
-  # TODO: Update with your actual database workspace ID
-  # Example: database_workspace_id = cyberarksia_database_workspace.test.id
+  # Replace "YOUR_DATABASE_WORKSPACE_ID_HERE" with your actual database workspace ID
+  # You can reference an existing workspace: database_workspace_id = cyberarksia_database_workspace.test.id
+  # Or use a variable: database_workspace_id = var.database_workspace_id
 
   target_database {
     database_workspace_id = "YOUR_DATABASE_WORKSPACE_ID_HERE" # REQUIRED: Update this
@@ -49,8 +50,10 @@ resource "cyberarksia_database_policy" "test" {
   # ============================================================================
   # INLINE PRINCIPAL - Required (at least 1)
   # ============================================================================
-  # TODO: Update with your actual user details from SIA
   # Find these values in SIA UI → Identity & Access → Users
+  # Or use the cyberarksia_principal data source to look up by name:
+  #   data "cyberarksia_principal" "user" { name = "your.email@example.com" }
+  #   Then reference: principal_id = data.cyberarksia_principal.user.id
 
   principal {
     principal_id          = "YOUR_PRINCIPAL_UUID_HERE" # REQUIRED: Update this
@@ -154,7 +157,7 @@ output "update_validation" {
 #
 # IMPORTANT: Preservation of Principals and Targets
 # If this policy has principals (via cyberarksia_database_policy_principal_assignment)
-# or database assignments (via cyberarksia_policy_database_assignment), verify:
+# or database assignments (via cyberarksia_database_policy_database_assignment), verify:
 # [ ] Principal assignments remain intact after policy update (check SIA UI "Assigned To")
 # [ ] Database assignments remain intact after policy update (check SIA UI "Targets")
 #
@@ -184,12 +187,12 @@ output "update_validation" {
 # CASCADE DELETE BEHAVIOR:
 # The SIA API automatically removes all principals and database assignments when
 # a policy is deleted. If you have cyberarksia_database_policy_principal_assignment
-# or cyberarksia_policy_database_assignment resources in state, they will show as
+# or cyberarksia_database_policy_database_assignment resources in state, they will show as
 # "deleted" on the next terraform refresh.
 #
 # BEST PRACTICE: Delete assignment resources first, then the policy:
 #   terraform destroy -target=cyberarksia_database_policy_principal_assignment.*
-#   terraform destroy -target=cyberarksia_policy_database_assignment.*
+#   terraform destroy -target=cyberarksia_database_policy_database_assignment.*
 #   terraform destroy -target=cyberarksia_database_policy.test
 
 # ============================================================================

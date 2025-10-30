@@ -26,19 +26,19 @@ func TestAccPolicyDatabaseAssignment_basic(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigBasic,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.test", "id"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.test", "policy_id"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.test", "database_workspace_id"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.test", "authentication_method", "db_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.test", "db_auth_profile.roles.#", "2"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.test", "db_auth_profile.roles.0", "pg_read_all_data"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.test", "db_auth_profile.roles.1", "pg_write_all_data"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.test", "last_modified"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.test", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.test", "policy_id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.test", "database_workspace_id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.test", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.test", "db_auth_profile.roles.#", "2"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.test", "db_auth_profile.roles.0", "pg_read_all_data"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.test", "db_auth_profile.roles.1", "pg_write_all_data"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.test", "last_modified"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "cyberarksia_policy_database_assignment.test",
+				ResourceName:      "cyberarksia_database_policy_database_assignment.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -59,12 +59,12 @@ func TestAccPolicyDatabaseAssignment_withDBAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigDBAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "authentication_method", "db_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "db_auth_profile.roles.#", "3"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "db_auth_profile.roles.0", "connect"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "db_auth_profile.roles.1", "resource"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "db_auth_profile.roles.2", "dba"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.db_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.db_auth", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.db_auth", "db_auth_profile.roles.#", "3"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.db_auth", "db_auth_profile.roles.0", "connect"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.db_auth", "db_auth_profile.roles.1", "resource"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.db_auth", "db_auth_profile.roles.2", "dba"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.db_auth", "id"),
 				),
 			},
 		},
@@ -84,11 +84,11 @@ func TestAccPolicyDatabaseAssignment_withLDAPAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigLdapAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.ldap_auth", "authentication_method", "ldap_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.#", "2"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.0", "CN=DBAdmins,OU=Groups,DC=example,DC=com"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.1", "CN=DBUsers,OU=Groups,DC=example,DC=com"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.ldap_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.ldap_auth", "authentication_method", "ldap_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.#", "2"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.0", "CN=DBAdmins,OU=Groups,DC=example,DC=com"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.ldap_auth", "ldap_auth_profile.assign_groups.1", "CN=DBUsers,OU=Groups,DC=example,DC=com"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.ldap_auth", "id"),
 				),
 			},
 		},
@@ -108,14 +108,14 @@ func TestAccPolicyDatabaseAssignment_withOracleAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigOracleAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "authentication_method", "oracle_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.#", "2"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.0", "CONNECT"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.1", "RESOURCE"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.dba_role", "true"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.sysdba_role", "false"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.oracle_auth", "oracle_auth_profile.sysoper_role", "false"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.oracle_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "authentication_method", "oracle_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.#", "2"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.0", "CONNECT"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.roles.1", "RESOURCE"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.dba_role", "true"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.sysdba_role", "false"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.oracle_auth", "oracle_auth_profile.sysoper_role", "false"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.oracle_auth", "id"),
 				),
 			},
 		},
@@ -136,11 +136,11 @@ func TestAccPolicyDatabaseAssignment_withMongoAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigMongoAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.mongo_auth", "authentication_method", "mongo_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.mongo_auth", "mongo_auth_profile.global_builtin_roles.#", "1"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.mongo_auth", "mongo_auth_profile.global_builtin_roles.0", "readAnyDatabase"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.mongo_auth", "mongo_auth_profile.database_builtin_roles.%", "1"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.mongo_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.mongo_auth", "authentication_method", "mongo_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.mongo_auth", "mongo_auth_profile.global_builtin_roles.#", "1"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.mongo_auth", "mongo_auth_profile.global_builtin_roles.0", "readAnyDatabase"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.mongo_auth", "mongo_auth_profile.database_builtin_roles.%", "1"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.mongo_auth", "id"),
 				),
 			},
 		},
@@ -161,11 +161,11 @@ func TestAccPolicyDatabaseAssignment_withSQLServerAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigSqlserverAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.sqlserver_auth", "authentication_method", "sqlserver_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.#", "2"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.0", "sysadmin"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.1", "serveradmin"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.sqlserver_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.sqlserver_auth", "authentication_method", "sqlserver_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.#", "2"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.0", "sysadmin"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.sqlserver_auth", "sqlserver_auth_profile.global_builtin_roles.1", "serveradmin"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.sqlserver_auth", "id"),
 				),
 			},
 		},
@@ -185,9 +185,9 @@ func TestAccPolicyDatabaseAssignment_withRDSIAMAuth(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigRdsIAMAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.rds_iam_auth", "authentication_method", "rds_iam_user_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.rds_iam_auth", "rds_iam_user_auth_profile.db_user", "iamuser"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.rds_iam_auth", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.rds_iam_auth", "authentication_method", "rds_iam_user_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.rds_iam_auth", "rds_iam_user_auth_profile.db_user", "iamuser"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.rds_iam_auth", "id"),
 				),
 			},
 		},
@@ -210,7 +210,7 @@ func TestAccPolicyDatabaseAssignment_import(t *testing.T) {
 			},
 			// Test import with composite ID
 			{
-				ResourceName:      "cyberarksia_policy_database_assignment.test",
+				ResourceName:      "cyberarksia_database_policy_database_assignment.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -236,18 +236,18 @@ func TestAccPolicyDatabaseAssignment_updateAuthMethod(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigUpdateBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "authentication_method", "db_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "db_auth_profile.roles.#", "1"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "db_auth_profile.roles.0", "connect"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "db_auth_profile.roles.#", "1"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "db_auth_profile.roles.0", "connect"),
 				),
 			},
 			// Step 2: Update to ldap_auth
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigUpdateAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "authentication_method", "ldap_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "ldap_auth_profile.assign_groups.#", "1"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.update_test", "ldap_auth_profile.assign_groups.0", "CN=Developers,OU=Groups,DC=example,DC=com"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "authentication_method", "ldap_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "ldap_auth_profile.assign_groups.#", "1"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.update_test", "ldap_auth_profile.assign_groups.0", "CN=Developers,OU=Groups,DC=example,DC=com"),
 				),
 			},
 		},
@@ -268,19 +268,19 @@ func TestAccPolicyDatabaseAssignment_updateProfile(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigProfileUpdateBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "authentication_method", "db_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "db_auth_profile.roles.#", "1"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "db_auth_profile.roles.0", "connect"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "db_auth_profile.roles.#", "1"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "db_auth_profile.roles.0", "connect"),
 				),
 			},
 			// Step 2: Update roles
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigProfileUpdateAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "authentication_method", "db_auth"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "db_auth_profile.roles.#", "2"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "db_auth_profile.roles.0", "connect"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.profile_update", "db_auth_profile.roles.1", "dba"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "db_auth_profile.roles.#", "2"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "db_auth_profile.roles.0", "connect"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.profile_update", "db_auth_profile.roles.1", "dba"),
 				),
 			},
 		},
@@ -304,7 +304,7 @@ func TestAccPolicyDatabaseAssignment_forceNewPolicy(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigForceNewBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_test", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_test", "id"),
 				),
 			},
 			// Step 2: Change policy_id (should trigger replacement)
@@ -312,7 +312,7 @@ func TestAccPolicyDatabaseAssignment_forceNewPolicy(t *testing.T) {
 				Config: testAccPolicyDatabaseAssignmentConfigForceNewAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// ID should be different due to resource replacement
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_test", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_test", "id"),
 				),
 			},
 		},
@@ -332,8 +332,8 @@ func TestAccPolicyDatabaseAssignment_forceNewDatabase(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigForceNewDatabaseBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_db", "id"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_db", "database_workspace_id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_db", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_db", "database_workspace_id"),
 				),
 			},
 			// Step 2: Change database_workspace_id (should trigger replacement)
@@ -341,8 +341,8 @@ func TestAccPolicyDatabaseAssignment_forceNewDatabase(t *testing.T) {
 				Config: testAccPolicyDatabaseAssignmentConfigForceNewDatabaseAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// ID should be different due to resource replacement
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_db", "id"),
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.forcenew_db", "database_workspace_id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_db", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.forcenew_db", "database_workspace_id"),
 				),
 			},
 		},
@@ -367,14 +367,14 @@ func TestAccPolicyDatabaseAssignment_multipleAssignments(t *testing.T) {
 				Config: testAccPolicyDatabaseAssignmentConfigMultiple,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Assignment 1
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.multi1", "id"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.multi1", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.multi1", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.multi1", "authentication_method", "db_auth"),
 					// Assignment 2
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.multi2", "id"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.multi2", "authentication_method", "ldap_auth"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.multi2", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.multi2", "authentication_method", "ldap_auth"),
 					// Assignment 3
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.multi3", "id"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.multi3", "authentication_method", "oracle_auth"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.multi3", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.multi3", "authentication_method", "oracle_auth"),
 				),
 			},
 		},
@@ -398,8 +398,8 @@ func TestAccPolicyDatabaseAssignment_driftDetection(t *testing.T) {
 			{
 				Config: testAccPolicyDatabaseAssignmentConfigDrift,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.drift_test", "id"),
-					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.drift_test", "authentication_method", "db_auth"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.drift_test", "id"),
+					resource.TestCheckResourceAttr("cyberarksia_database_policy_database_assignment.drift_test", "authentication_method", "db_auth"),
 				),
 			},
 			// Step 2: Refresh state (should detect if assignment was removed outside Terraform)
@@ -409,7 +409,7 @@ func TestAccPolicyDatabaseAssignment_driftDetection(t *testing.T) {
 				Config:   testAccPolicyDatabaseAssignmentConfigDrift,
 				PlanOnly: true,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("cyberarksia_policy_database_assignment.drift_test", "id"),
+					resource.TestCheckResourceAttrSet("cyberarksia_database_policy_database_assignment.drift_test", "id"),
 				),
 			},
 		},
@@ -443,7 +443,7 @@ resource "cyberarksia_database_policy" "test" {
   description = "Test policy for basic assignment"
 }
 
-resource "cyberarksia_policy_database_assignment" "test" {
+resource "cyberarksia_database_policy_database_assignment" "test" {
   policy_id              = cyberarksia_database_policy.test.id
   database_workspace_id  = cyberarksia_database_workspace.test.id
   authentication_method  = "db_auth"
@@ -477,7 +477,7 @@ resource "cyberarksia_database_policy" "db_auth" {
   description = "Test policy for db_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "db_auth" {
+resource "cyberarksia_database_policy_database_assignment" "db_auth" {
   policy_id              = cyberarksia_database_policy.db_auth.id
   database_workspace_id  = cyberarksia_database_workspace.db_auth.id
   authentication_method  = "db_auth"
@@ -511,7 +511,7 @@ resource "cyberarksia_database_policy" "ldap_auth" {
   description = "Test policy for ldap_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "ldap_auth" {
+resource "cyberarksia_database_policy_database_assignment" "ldap_auth" {
   policy_id              = cyberarksia_database_policy.ldap_auth.id
   database_workspace_id  = cyberarksia_database_workspace.ldap_auth.id
   authentication_method  = "ldap_auth"
@@ -548,7 +548,7 @@ resource "cyberarksia_database_policy" "oracle_auth" {
   description = "Test policy for oracle_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "oracle_auth" {
+resource "cyberarksia_database_policy_database_assignment" "oracle_auth" {
   policy_id              = cyberarksia_database_policy.oracle_auth.id
   database_workspace_id  = cyberarksia_database_workspace.oracle_auth.id
   authentication_method  = "oracle_auth"
@@ -585,7 +585,7 @@ resource "cyberarksia_database_policy" "mongo_auth" {
   description = "Test policy for mongo_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "mongo_auth" {
+resource "cyberarksia_database_policy_database_assignment" "mongo_auth" {
   policy_id              = cyberarksia_database_policy.mongo_auth.id
   database_workspace_id  = cyberarksia_database_workspace.mongo_auth.id
   authentication_method  = "mongo_auth"
@@ -622,7 +622,7 @@ resource "cyberarksia_database_policy" "sqlserver_auth" {
   description = "Test policy for sqlserver_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "sqlserver_auth" {
+resource "cyberarksia_database_policy_database_assignment" "sqlserver_auth" {
   policy_id              = cyberarksia_database_policy.sqlserver_auth.id
   database_workspace_id  = cyberarksia_database_workspace.sqlserver_auth.id
   authentication_method  = "sqlserver_auth"
@@ -657,7 +657,7 @@ resource "cyberarksia_database_policy" "rds_iam" {
   description = "Test policy for rds_iam_user_auth profile"
 }
 
-resource "cyberarksia_policy_database_assignment" "rds_iam_auth" {
+resource "cyberarksia_database_policy_database_assignment" "rds_iam_auth" {
   policy_id              = cyberarksia_database_policy.rds_iam.id
   database_workspace_id  = cyberarksia_database_workspace.rds_iam.id
   authentication_method  = "rds_iam_user_auth"
@@ -691,7 +691,7 @@ resource "cyberarksia_database_policy" "update_test" {
   description = "Test policy for auth method update"
 }
 
-resource "cyberarksia_policy_database_assignment" "update_test" {
+resource "cyberarksia_database_policy_database_assignment" "update_test" {
   policy_id              = cyberarksia_database_policy.update_test.id
   database_workspace_id  = cyberarksia_database_workspace.update_test.id
   authentication_method  = "db_auth"
@@ -725,7 +725,7 @@ resource "cyberarksia_database_policy" "update_test" {
   description = "Test policy for auth method update"
 }
 
-resource "cyberarksia_policy_database_assignment" "update_test" {
+resource "cyberarksia_database_policy_database_assignment" "update_test" {
   policy_id              = cyberarksia_database_policy.update_test.id
   database_workspace_id  = cyberarksia_database_workspace.update_test.id
   authentication_method  = "ldap_auth"
@@ -759,7 +759,7 @@ resource "cyberarksia_database_policy" "profile_update" {
   description = "Test policy for profile update"
 }
 
-resource "cyberarksia_policy_database_assignment" "profile_update" {
+resource "cyberarksia_database_policy_database_assignment" "profile_update" {
   policy_id              = cyberarksia_database_policy.profile_update.id
   database_workspace_id  = cyberarksia_database_workspace.profile_update.id
   authentication_method  = "db_auth"
@@ -793,7 +793,7 @@ resource "cyberarksia_database_policy" "profile_update" {
   description = "Test policy for profile update"
 }
 
-resource "cyberarksia_policy_database_assignment" "profile_update" {
+resource "cyberarksia_database_policy_database_assignment" "profile_update" {
   policy_id              = cyberarksia_database_policy.profile_update.id
   database_workspace_id  = cyberarksia_database_workspace.profile_update.id
   authentication_method  = "db_auth"
@@ -832,7 +832,7 @@ resource "cyberarksia_database_policy" "forcenew2" {
   description = "Second test policy"
 }
 
-resource "cyberarksia_policy_database_assignment" "forcenew_test" {
+resource "cyberarksia_database_policy_database_assignment" "forcenew_test" {
   policy_id              = cyberarksia_database_policy.forcenew1.id
   database_workspace_id  = cyberarksia_database_workspace.forcenew.id
   authentication_method  = "db_auth"
@@ -871,7 +871,7 @@ resource "cyberarksia_database_policy" "forcenew2" {
   description = "Second test policy"
 }
 
-resource "cyberarksia_policy_database_assignment" "forcenew_test" {
+resource "cyberarksia_database_policy_database_assignment" "forcenew_test" {
   policy_id              = cyberarksia_database_policy.forcenew2.id
   database_workspace_id  = cyberarksia_database_workspace.forcenew.id
   authentication_method  = "db_auth"
@@ -915,7 +915,7 @@ resource "cyberarksia_database_policy" "forcenew_db" {
   description = "Test policy for database forcenew"
 }
 
-resource "cyberarksia_policy_database_assignment" "forcenew_db" {
+resource "cyberarksia_database_policy_database_assignment" "forcenew_db" {
   policy_id              = cyberarksia_database_policy.forcenew_db.id
   database_workspace_id  = cyberarksia_database_workspace.forcenew_db1.id
   authentication_method  = "db_auth"
@@ -959,7 +959,7 @@ resource "cyberarksia_database_policy" "forcenew_db" {
   description = "Test policy for database forcenew"
 }
 
-resource "cyberarksia_policy_database_assignment" "forcenew_db" {
+resource "cyberarksia_database_policy_database_assignment" "forcenew_db" {
   policy_id              = cyberarksia_database_policy.forcenew_db.id
   database_workspace_id  = cyberarksia_database_workspace.forcenew_db2.id
   authentication_method  = "db_auth"
@@ -1013,7 +1013,7 @@ resource "cyberarksia_database_policy" "multi" {
   description = "Test policy for multiple assignments"
 }
 
-resource "cyberarksia_policy_database_assignment" "multi1" {
+resource "cyberarksia_database_policy_database_assignment" "multi1" {
   policy_id              = cyberarksia_database_policy.multi.id
   database_workspace_id  = cyberarksia_database_workspace.multi1.id
   authentication_method  = "db_auth"
@@ -1023,7 +1023,7 @@ resource "cyberarksia_policy_database_assignment" "multi1" {
   }
 }
 
-resource "cyberarksia_policy_database_assignment" "multi2" {
+resource "cyberarksia_database_policy_database_assignment" "multi2" {
   policy_id              = cyberarksia_database_policy.multi.id
   database_workspace_id  = cyberarksia_database_workspace.multi2.id
   authentication_method  = "ldap_auth"
@@ -1033,7 +1033,7 @@ resource "cyberarksia_policy_database_assignment" "multi2" {
   }
 }
 
-resource "cyberarksia_policy_database_assignment" "multi3" {
+resource "cyberarksia_database_policy_database_assignment" "multi3" {
   policy_id              = cyberarksia_database_policy.multi.id
   database_workspace_id  = cyberarksia_database_workspace.multi3.id
   authentication_method  = "oracle_auth"
@@ -1068,7 +1068,7 @@ resource "cyberarksia_database_policy" "drift" {
   description = "Test policy for drift detection"
 }
 
-resource "cyberarksia_policy_database_assignment" "drift_test" {
+resource "cyberarksia_database_policy_database_assignment" "drift_test" {
   policy_id              = cyberarksia_database_policy.drift.id
   database_workspace_id  = cyberarksia_database_workspace.drift.id
   authentication_method  = "db_auth"

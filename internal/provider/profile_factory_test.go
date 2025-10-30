@@ -17,7 +17,7 @@ func TestBuildAuthenticationProfile_DBAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with db_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		DBAuthProfile: &models.DBAuthProfileModel{
 			Roles: types.ListValueMust(types.StringType, []attr.Value{
 				types.StringValue("db_reader"),
@@ -58,7 +58,7 @@ func TestBuildAuthenticationProfile_DBAuth_Missing(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data WITHOUT db_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		DBAuthProfile: nil,
 	}
 
@@ -90,7 +90,7 @@ func TestBuildAuthenticationProfile_LDAPAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with ldap_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		LDAPAuthProfile: &models.LDAPAuthProfileModel{
 			AssignGroups: types.ListValueMust(types.StringType, []attr.Value{
 				types.StringValue("admins"),
@@ -127,7 +127,7 @@ func TestBuildAuthenticationProfile_UnsupportedMethod(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
 
-	data := &models.PolicyDatabaseAssignmentModel{}
+	data := &models.DatabasePolicyDatabaseAssignmentModel{}
 
 	// Build profile with invalid method
 	_ = BuildAuthenticationProfile(ctx, "invalid_method", data, &diags)
@@ -239,7 +239,7 @@ func TestBuildAuthenticationProfile_OracleAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with oracle_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		OracleAuthProfile: &models.OracleAuthProfileModel{
 			Roles: types.ListValueMust(types.StringType, []attr.Value{
 				types.StringValue("oracle_reader"),
@@ -294,7 +294,7 @@ func TestBuildAuthenticationProfile_OracleAuth_Missing(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data WITHOUT oracle_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		OracleAuthProfile: nil,
 	}
 
@@ -324,7 +324,7 @@ func TestBuildAuthenticationProfile_MongoAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with mongo_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		MongoAuthProfile: &models.MongoAuthProfileModel{
 			GlobalBuiltinRoles: types.ListValueMust(types.StringType, []attr.Value{
 				types.StringValue("readAnyDatabase"),
@@ -403,7 +403,7 @@ func TestBuildAuthenticationProfile_MongoAuth_Missing(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data WITHOUT mongo_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		MongoAuthProfile: nil,
 	}
 
@@ -433,7 +433,7 @@ func TestBuildAuthenticationProfile_SQLServerAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with sqlserver_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		SQLServerAuthProfile: &models.SQLServerAuthProfileModel{
 			GlobalBuiltinRoles: types.ListValueMust(types.StringType, []attr.Value{
 				types.StringValue("sysadmin"),
@@ -523,7 +523,7 @@ func TestBuildAuthenticationProfile_SQLServerAuth_Missing(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data WITHOUT sqlserver_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		SQLServerAuthProfile: nil,
 	}
 
@@ -553,7 +553,7 @@ func TestBuildAuthenticationProfile_RDSIAMUserAuth(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data with rds_iam_user_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		RDSIAMUserAuthProfile: &models.RDSIAMUserAuthProfileModel{
 			DBUser: types.StringValue("rds_iam_user"),
 		},
@@ -585,7 +585,7 @@ func TestBuildAuthenticationProfile_RDSIAMUserAuth_Missing(t *testing.T) {
 	var diags diag.Diagnostics
 
 	// Create test data WITHOUT rds_iam_user_auth profile
-	data := &models.PolicyDatabaseAssignmentModel{
+	data := &models.DatabasePolicyDatabaseAssignmentModel{
 		RDSIAMUserAuthProfile: nil,
 	}
 

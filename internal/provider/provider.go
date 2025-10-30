@@ -210,14 +210,14 @@ func (p *CyberArkSIAProvider) Resources(ctx context.Context) []func() resource.R
 		NewCertificateResource,
 		NewDatabasePolicyResource,
 		NewDatabasePolicyPrincipalAssignmentResource,
-		NewPolicyDatabaseAssignmentResource,
+		NewDatabasePolicyDatabaseAssignmentResource,
 	}
 }
 
 // DataSources defines the data sources implemented in the provider
 func (p *CyberArkSIAProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewAccessPolicyDataSource,
+		NewDatabasePolicyDataSource,
 		NewPrincipalDataSource,
 	}
 }

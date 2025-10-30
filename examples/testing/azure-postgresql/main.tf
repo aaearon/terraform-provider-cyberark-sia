@@ -11,7 +11,7 @@ terraform {
       version = "~> 4.0"
     }
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "0.1.0"
     }
     random = {
@@ -119,12 +119,12 @@ resource "azurerm_postgresql_flexible_server_database" "testdb" {
 # All databases use "FQDN/IP" target set regardless of cloud provider
 # ============================================================================
 
-data "cyberarksia_access_policy" "terraform_test" {
+data "cyberarksia_database_policy" "terraform_test" {
   name = "Terraform-Test-Policy"
 }
 
-resource "cyberarksia_policy_database_assignment" "azure_postgres_assignment" {
-  policy_id             = data.cyberarksia_access_policy.terraform_test.id
+resource "cyberarksia_database_policy_database_assignment" "azure_postgres_assignment" {
+  policy_id             = data.cyberarksia_database_policy.terraform_test.id
   database_workspace_id = cyberarksia_database_workspace.azure_postgres.id
   authentication_method = "db_auth"
 

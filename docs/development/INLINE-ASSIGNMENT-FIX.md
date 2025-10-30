@@ -217,7 +217,7 @@ terraform destroy -auto-approve
 
 1. **Assignment Resource Models** (`PolicyDatabaseAssignmentModel`):
    - Have resource management fields: `id`, `policy_id`, `last_modified`
-   - Used by: `cyberarksia_policy_database_assignment` resource
+   - Used by: `cyberarksia_database_policy_database_assignment` resource
    - Purpose: Manage individual assignments as separate resources
 
 2. **Inline Models** (`InlineDatabaseAssignmentModel`):

@@ -26,23 +26,23 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &PolicyDatabaseAssignmentResource{}
-var _ resource.ResourceWithImportState = &PolicyDatabaseAssignmentResource{}
+var _ resource.Resource = &DatabasePolicyDatabaseAssignmentResource{}
+var _ resource.ResourceWithImportState = &DatabasePolicyDatabaseAssignmentResource{}
 
-func NewPolicyDatabaseAssignmentResource() resource.Resource {
-	return &PolicyDatabaseAssignmentResource{}
+func NewDatabasePolicyDatabaseAssignmentResource() resource.Resource {
+	return &DatabasePolicyDatabaseAssignmentResource{}
 }
 
-// PolicyDatabaseAssignmentResource defines the resource implementation.
-type PolicyDatabaseAssignmentResource struct {
+// DatabasePolicyDatabaseAssignmentResource defines the resource implementation.
+type DatabasePolicyDatabaseAssignmentResource struct {
 	providerData *ProviderData
 }
 
-func (r *PolicyDatabaseAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_policy_database_assignment"
+func (r *DatabasePolicyDatabaseAssignmentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_database_policy_database_assignment"
 }
 
-func (r *PolicyDatabaseAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *DatabasePolicyDatabaseAssignmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the assignment of a database workspace to an existing SIA access policy. " +
 			"This resource follows the AWS Security Group Rule pattern - manage individual database assignments " +
@@ -190,7 +190,7 @@ func (r *PolicyDatabaseAssignmentResource) Schema(ctx context.Context, req resou
 	}
 }
 
-func (r *PolicyDatabaseAssignmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *DatabasePolicyDatabaseAssignmentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -207,8 +207,8 @@ func (r *PolicyDatabaseAssignmentResource) Configure(ctx context.Context, req re
 	r.providerData = providerData
 }
 
-func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data models.PolicyDatabaseAssignmentModel
+func (r *DatabasePolicyDatabaseAssignmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data models.DatabasePolicyDatabaseAssignmentModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -383,8 +383,8 @@ func (r *PolicyDatabaseAssignmentResource) Create(ctx context.Context, req resou
 	LogOperationSuccess(ctx, "create", "policy_database_assignment", data.ID.ValueString())
 }
 
-func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data models.PolicyDatabaseAssignmentModel
+func (r *DatabasePolicyDatabaseAssignmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data models.DatabasePolicyDatabaseAssignmentModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -472,8 +472,8 @@ func (r *PolicyDatabaseAssignmentResource) Read(ctx context.Context, req resourc
 	LogOperationSuccess(ctx, "read", "policy_database_assignment", data.ID.ValueString())
 }
 
-func (r *PolicyDatabaseAssignmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data models.PolicyDatabaseAssignmentModel
+func (r *DatabasePolicyDatabaseAssignmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data models.DatabasePolicyDatabaseAssignmentModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -578,8 +578,8 @@ func (r *PolicyDatabaseAssignmentResource) Update(ctx context.Context, req resou
 	LogOperationSuccess(ctx, "update", "policy_database_assignment", data.ID.ValueString())
 }
 
-func (r *PolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data models.PolicyDatabaseAssignmentModel
+func (r *DatabasePolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data models.DatabasePolicyDatabaseAssignmentModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -672,7 +672,7 @@ func (r *PolicyDatabaseAssignmentResource) Delete(ctx context.Context, req resou
 	LogOperationSuccess(ctx, "delete", "policy_database_assignment", data.ID.ValueString())
 }
 
-func (r *PolicyDatabaseAssignmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *DatabasePolicyDatabaseAssignmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Import ID format: policy-id:database-id
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

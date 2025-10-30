@@ -1,7 +1,7 @@
 # Basic example: Add a database to a policy with database authentication
 
 # Lookup existing policy by name
-data "cyberarksia_access_policy" "db_admins" {
+data "cyberarksia_database_policy" "db_admins" {
   name = "Database Administrators Policy"
 }
 
@@ -23,8 +23,8 @@ resource "cyberarksia_secret" "db_admin" {
 }
 
 # Add database to policy
-resource "cyberarksia_policy_database_assignment" "prod_postgres_to_policy" {
-  policy_id             = data.cyberarksia_access_policy.db_admins.id
+resource "cyberarksia_database_policy_database_assignment" "prod_postgres_to_policy" {
+  policy_id             = data.cyberarksia_database_policy.db_admins.id
   database_workspace_id = cyberarksia_database_workspace.prod_postgres.id
   authentication_method = "db_auth"
 
@@ -34,8 +34,8 @@ resource "cyberarksia_policy_database_assignment" "prod_postgres_to_policy" {
 }
 
 # Multiple databases can be added to the same policy
-resource "cyberarksia_policy_database_assignment" "prod_mysql_to_policy" {
-  policy_id             = data.cyberarksia_access_policy.db_admins.id
+resource "cyberarksia_database_policy_database_assignment" "prod_mysql_to_policy" {
+  policy_id             = data.cyberarksia_database_policy.db_admins.id
   database_workspace_id = cyberarksia_database_workspace.prod_mysql.id
   authentication_method = "db_auth"
 

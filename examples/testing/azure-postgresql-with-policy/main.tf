@@ -11,7 +11,7 @@ terraform {
       version = "~> 3.0"
     }
     cyberarksia = {
-      source  = "terraform.local/local/cyberark-sia"
+      source  = "aaearon/cyberarksia"
       version = "0.1.0"
     }
     random = {

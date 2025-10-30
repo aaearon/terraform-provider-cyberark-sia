@@ -57,13 +57,13 @@
 **Example Failure Scenario**:
 ```hcl
 # Day 1: Create with db_auth
-resource "cyberarksia_policy_database_assignment" "example" {
+resource "cyberarksia_database_policy_database_assignment" "example" {
   authentication_method = "db_auth"
   db_auth_profile { roles = ["reader"] }
 }
 
 # Day 2: Switch to ldap_auth
-resource "cyberarksia_policy_database_assignment" "example" {
+resource "cyberarksia_database_policy_database_assignment" "example" {
   authentication_method = "ldap_auth"
   ldap_auth_profile { assign_groups = ["admins"] }
 }
