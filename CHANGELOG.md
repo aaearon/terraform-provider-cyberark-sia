@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Future changes will be documented here
 
+## [0.1.1] - 2025-10-30
+
+### Fixed
+- Binary naming to match repository rename (terraform-provider-cyberarksia)
+- Terraform Registry installation now works correctly
+
 ## [0.1.0] - 2025-10-30
 
 ### Added
