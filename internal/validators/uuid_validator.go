@@ -12,7 +12,8 @@ import (
 type uuidValidator struct{}
 
 // UUID pattern: 8-4-4-4-12 hex digits (case-insensitive)
-var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+// Accepts both dashes and underscores as separators (SIA API returns both formats)
+var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{4}[-_][0-9a-fA-F]{12}$`)
 
 // Description returns a plain text description of the validator's behavior
 func (v uuidValidator) Description(ctx context.Context) string {

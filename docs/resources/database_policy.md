@@ -71,7 +71,7 @@ Required:
 Required:
 
 - `principal_id` (String) Principal identifier in UUID format (e.g., `c2c7bcc6-9560-44e0-8dff-5be221cd37ee`). This is the unique identifier returned by the SIA API.
-- `principal_name` (String) Principal name in email format (e.g., `user@example.com` or `tim.schindler@cyberark.cloud.40562`).
+- `principal_name` (String) Principal name (SystemName). For USER: email format (e.g., `user@example.com`). For GROUP/ROLE: display name (e.g., `CyberIAM Guardians`, `Database Administrators`).
 - `principal_type` (String) Principal type. Valid values: `USER`, `GROUP`, `ROLE`.
 
 Optional:

@@ -297,10 +297,10 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 							},
 						},
 						"principal_name": schema.StringAttribute{
-							MarkdownDescription: "Principal name in email format (e.g., `user@example.com` or `tim.schindler@cyberark.cloud.40562`).",
+							MarkdownDescription: "Principal name (SystemName). For USER: email format (e.g., `user@example.com`). For GROUP/ROLE: display name (e.g., `CyberIAM Guardians`, `Database Administrators`).",
 							Required:            true,
 							Validators: []validator.String{
-								validators.EmailLike(),
+								stringvalidator.LengthBetween(1, 255),
 							},
 						},
 						"source_directory_name": schema.StringAttribute{
