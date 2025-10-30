@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -59,7 +59,7 @@ jobs:
 
       - name: Verify documentation is up-to-date
         run: |
-          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.24.0
           tfplugindocs generate --provider-name cyberarksia
           if [ -n "$(git status --porcelain docs/)" ]; then
             echo "ERROR: Documentation is out of date!"
@@ -78,7 +78,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -123,7 +123,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -161,12 +161,17 @@ jobs:
           echo "Checking Terraform formatting..."
           terraform fmt -check -recursive examples/
 
-      - name: Validate Terraform Syntax
+      - name: Validate Terraform Configuration
         run: |
-          echo "Validating HCL syntax..."
-          for file in $(find examples -name "*.tf"); do
-            echo "Checking: $file"
-            terraform fmt -check "$file" || exit 1
+          echo "Validating Terraform configuration in example directories..."
+          for dir in examples/*/; do
+            if [ -f "$dir/main.tf" ] || [ -f "$dir/provider.tf" ]; then
+              echo "Validating: $dir"
+              cd "$dir"
+              terraform init -backend=false
+              terraform validate
+              cd - > /dev/null
+            fi
           done
 
   security:
@@ -179,7 +184,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.0'
+          go-version: '1.25.3'
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -191,26 +196,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Check for accidentally committed secrets
-        run: |
-          if [ -f .env ]; then
-            echo "ERROR: .env file found in repository!"
-            exit 1
-          fi
-          # Search for hardcoded credentials, excluding comments and examples
-          if grep -rn "CYBERARK_CLIENT_SECRET=" . \
-            --include="*.tf" \
-            --include="*.go" \
-            --exclude-dir=examples \
-            --exclude-dir=docs \
-            | grep -v '^\s*//' \
-            | grep -v '^\s*#' \
-            | grep -v '^\s*/\*'; then
-            echo "ERROR: Hardcoded credentials found in non-example code!"
-            exit 1
-          fi
+      - name: Scan for secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan dependencies for vulnerabilities
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
           govulncheck ./...

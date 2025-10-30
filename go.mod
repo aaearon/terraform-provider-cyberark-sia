@@ -1,6 +1,6 @@
 module github.com/aaearon/terraform-provider-cyberark-sia
 
-go 1.25.0
+go 1.25.3
 
 require (
 	github.com/cyberark/ark-sdk-golang v1.5.0
@@ -10,6 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.13.3
 	github.com/mitchellh/mapstructure v1.5.0
+	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
 )
 
 require (
@@ -86,7 +87,6 @@ require (
 	github.com/zclconf/go-cty v1.16.3 // indirect
 	golang.design/x/clipboard v0.7.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/image v0.26.0 // indirect
 	golang.org/x/mobile v0.0.0-20250408133729-978277e7eaf7 // indirect
@@ -104,3 +104,7 @@ require (
 	gopkg.in/errgo.v1 v1.0.1 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 )
+
+// Security: Fix GO-2023-2409 - DoS vulnerability in jose2go
+// ARK SDK v1.5.0 depends on vulnerable jose2go@v1.5.0
+replace github.com/dvsekhvalnov/jose2go => github.com/dvsekhvalnov/jose2go v1.5.1-0.20231206184617-48ba0b76bc88
