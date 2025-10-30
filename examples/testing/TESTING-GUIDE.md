@@ -4,7 +4,7 @@
 
 This guide is the **single source of truth** for CRUD testing of the CyberArk SIA Terraform provider.
 
-**Last Updated**: 2025-10-28 (Added comprehensive Azure PostgreSQL CRUD workflow + Critical fixes)
+**Last Updated**: 2025-10-30 (Added automated CRUD testing via make test-crud + scripts/test-crud-resource.sh)
 
 ---
 
@@ -132,6 +132,7 @@ resource "cyberarksia_database_policy" "example" {
 
 - **Location**: `examples/testing/TESTING-GUIDE.md`
 - **Referenced by**: `CLAUDE.md`, `docs/testing-framework.md`, all template files
+- **Automation**: `scripts/test-crud-resource.sh`, `Makefile` (targets: `test-crud`, `check-env`)
 - **Maintainers**: Must update when resource schemas or testing requirements change
 - **Version**: See git history for changes
 
@@ -143,6 +144,7 @@ Update this guide when:
 3. ✅ Discovering new validation requirements
 4. ✅ Adding new troubleshooting scenarios
 5. ✅ Updating provider configuration requirements
+6. ✅ Modifying automation scripts (`scripts/test-crud-resource.sh`, Makefile targets)
 
 ### When NOT to Follow This Guide
 
@@ -176,8 +178,8 @@ This test validates all CyberArk SIA Terraform provider resources:
 
 ### Basic Testing (On-Premise/Mock Resources)
 - ✅ CyberArk SIA tenant with UAP service provisioned
-- ✅ Valid credentials (username + client_secret) - stored in project root `.env` file
-- ✅ Provider built and installed (`go build -v && go install`)
+- ✅ Valid credentials (username + client_secret) - exported as environment variables (see CLAUDE.md → Environment Setup)
+- ✅ Provider built and installed (`make build && make install`)
 
 ### Cloud Provider Testing (Azure/AWS/GCP)
 - ✅ Azure CLI authenticated (`az login`) - for Azure PostgreSQL testing
@@ -192,7 +194,83 @@ This test validates all CyberArk SIA Terraform provider resources:
 
 ---
 
-## Quick Start
+## Testing Approaches
+
+This guide supports two testing workflows:
+
+### ⚡ Automated Testing (Recommended)
+
+**Use this for**: Fast CRUD validation during development
+
+**Tool**: `scripts/test-crud-resource.sh` (automated via `make test-crud`)
+
+**Time**: 5-10 minutes for full CREATE → READ → DELETE cycle
+
+**What it does**:
+- ✅ Automatically copies all templates to `/tmp/sia-crud-validation-{timestamp}/`
+- ✅ Runs `terraform init`
+- ✅ Executes CREATE test (`terraform apply`)
+- ✅ Executes READ test (`terraform plan` with drift detection)
+- ✅ Skips UPDATE test (requires manual modification)
+- ✅ Executes DELETE test (`terraform destroy`)
+- ✅ Provides detailed success/failure report
+
+**Prerequisites**:
+```bash
+# Verify environment variables are set
+make check-env
+
+# Should confirm:
+# ✅ CYBERARK_USERNAME
+# ✅ CYBERARK_CLIENT_SECRET
+# ⚠️  TF_ACC=1 (recommended)
+```
+
+**Usage**:
+```bash
+# From project root
+cd ~/terraform-provider-cyberark-sia
+
+# Run automated CRUD test
+make test-crud DESC=policy-principal-assignment
+
+# Or run script directly
+./scripts/test-crud-resource.sh "my-test-description"
+```
+
+**Output**:
+```
+╔════════════════════════════════════════════════════════════════════╗
+║  CRUD Test Summary                                                  ║
+╚════════════════════════════════════════════════════════════════════╝
+
+  CREATE:  ✅ PASSED
+  READ:    ✅ PASSED (no drift detected)
+  UPDATE:  ⏭️  SKIPPED (manual modification required)
+  DELETE:  ✅ PASSED
+
+Test directory preserved: /tmp/sia-crud-validation-my-test-{timestamp}/
+```
+
+**When to use automated testing**:
+- ✅ Quick validation during development
+- ✅ Verifying bug fixes (CREATE/DELETE cycle)
+- ✅ Pre-commit smoke testing
+- ✅ CI/CD pipeline integration (future)
+
+**When to use manual testing** (see below):
+- 🔧 Testing UPDATE operations (requires template modification)
+- 🔧 Testing specific cloud providers (Azure/AWS/GCP)
+- 🔧 Complex policy assignment scenarios
+- 🔧 Debugging drift detection issues
+
+---
+
+## 🔧 Manual Testing (Full Control)
+
+**Use this for**: Detailed CRUD validation, UPDATE testing, cloud provider testing
+
+**Time**: 15-30 minutes for full CREATE → READ → UPDATE → DELETE cycle
 
 ### 1. Setup Test Environment
 
@@ -211,12 +289,29 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out test-cert.pem \
 
 ### 2. Configure Provider
 
-Edit `provider.tf` with your credentials (from project root `.env` file):
+**Option A: Use Environment Variables (Recommended)**
 
+Ensure environment variables are exported (see CLAUDE.md → Environment Setup):
+```bash
+export CYBERARK_USERNAME="your-username@cyberark.cloud.XXXX"
+export CYBERARK_CLIENT_SECRET="your-client-secret"
+export TF_ACC=1  # For acceptance testing
+```
+
+Provider configuration (no hardcoded credentials):
+```hcl
+provider "cyberarksia" {
+  # Credentials automatically read from environment variables
+}
+```
+
+**Option B: Explicit Configuration (Alternative)**
+
+Edit `crud-test-provider.tf`:
 ```hcl
 provider "cyberarksia" {
   username      = "your-username@cyberark.cloud.XXXX"
-  client_secret = "your-client-secret"
+  client_secret = var.client_secret  # Use variables, not hardcoded
 }
 ```
 
@@ -224,8 +319,8 @@ provider "cyberarksia" {
 
 ```bash
 cd ~/terraform-provider-cyberark-sia
-go build -v
-go install
+make build
+make install
 ```
 
 ### 4. Initialize Terraform
@@ -283,11 +378,19 @@ cd $TEST_DIR
 # 2. Copy Azure PostgreSQL template
 cp -r ~/terraform-provider-cyberark-sia/examples/testing/azure-postgresql/* .
 
-# 3. Create terraform.tfvars from .env file
+# 3. Export environment variables (recommended)
+export CYBERARK_USERNAME="your-username@cyberark.cloud.XXXX"
+export CYBERARK_CLIENT_SECRET="your-client-secret"
+export TF_ACC=1
+
+# Verify environment
+cd ~/terraform-provider-cyberark-sia
+make check-env
+
+# Alternative: Create terraform.tfvars (if not using environment variables)
 cat > terraform.tfvars <<EOF
-# From project root .env file
-sia_username              = "$(grep CYBERARK_USERNAME ~/terraform-provider-cyberark-sia/.env | cut -d'=' -f2)"
-sia_client_secret         = "$(grep CYBERARK_CLIENT_SECRET ~/terraform-provider-cyberark-sia/.env | cut -d'=' -f2)"
+sia_username              = "your-username@cyberark.cloud.XXXX"
+sia_client_secret         = "your-client-secret"
 
 # Azure settings
 azure_subscription_id     = "YOUR_AZURE_SUBSCRIPTION_ID"
@@ -305,7 +408,7 @@ EOF
 
 # 4. Build and install provider
 cd ~/terraform-provider-cyberark-sia
-go build -v && go install
+make build && make install
 
 # 5. Initialize Terraform
 cd $TEST_DIR
@@ -983,7 +1086,7 @@ If UAP/JIT/DPA is not in the response, contact CyberArk support to provision the
 **Solution**: Rebuild and reinstall provider:
 ```bash
 cd ~/terraform-provider-cyberark-sia
-go clean && go build -v && go install
+make clean && make build && make install
 ```
 
 ### Error: Schema Validation Failed
@@ -1117,7 +1220,7 @@ Templates in `examples/testing/` are canonical references. Copy to working direc
 ### 4. Always Rebuild After Code Changes
 ```bash
 cd ~/terraform-provider-cyberark-sia
-go build -v && go install
+make build && make install
 ```
 
 ### 5. Reinitialize After Provider Updates
@@ -1541,7 +1644,7 @@ Use this checklist before committing resource changes or releasing new provider 
 **Environment**:
 - [ ] `.env` file exists with valid `CYBERARK_USERNAME` and `CYBERARK_CLIENT_SECRET`
 - [ ] Azure CLI authenticated: `az login && az account show`
-- [ ] Provider built and installed: `cd ~/terraform-provider-cyberark-sia && go build -v && go install`
+- [ ] Provider built and installed: `cd ~/terraform-provider-cyberark-sia && make build && make install`
 - [ ] Clean working directory: `/tmp/sia-crud-validation-$(date +%Y%m%d-%H%M%S)`
 
 **Credentials**:
@@ -1664,12 +1767,16 @@ Use this checklist before committing resource changes or releasing new provider 
 
 ### Troubleshooting Reference
 
+**Quick Diagnostics**:
+0. **Start with automated testing**: `make check-env && make test-crud DESC=test` - validates environment and runs basic CRUD cycle
+
 **Common Issues**:
-1. **Provider binary not found**: `go build -v && go install`
+1. **Provider binary not found**: `make build && make install` or `make build && make install`
 2. **Schema validation failed**: `rm -rf .terraform .terraform.lock.hcl && terraform init`
 3. **UAP service not available**: Verify tenant provisioning, may need to contact CyberArk support
 4. **Azure location restricted**: Change `azure_region` to "westus2"
 5. **Terraform state drift**: Run `terraform refresh` then `terraform plan`
+6. **Environment variables missing**: Run `make check-env` to verify `CYBERARK_USERNAME` and `CYBERARK_CLIENT_SECRET`
 
 **Error Patterns**:
 - **"Policy not found"**: Verify policy name or create new test policy
@@ -1695,10 +1802,22 @@ For a test to be considered successful, ALL of the following must be true:
 
 ## See Also
 
+### Documentation
 - [`CLAUDE.md`](../../CLAUDE.md) - Development guidelines (references this guide)
 - [`docs/testing-framework.md`](../../docs/testing-framework.md) - Conceptual testing framework
 - [`docs/resources/policy_database_assignment.md`](../../docs/resources/policy_database_assignment.md) - Policy database assignment documentation
 - [`docs/resources/database_policy.md`](../../docs/resources/database_policy.md) - Database policy documentation
 - [`docs/resources/database_policy_principal_assignment.md`](../../docs/resources/database_policy_principal_assignment.md) - Principal assignment documentation
 - [`examples/resources/`](../resources/) - Per-resource usage examples
+
+### Automation
+- [`scripts/test-crud-resource.sh`](../../scripts/test-crud-resource.sh) - Automated CRUD testing script
+- [`Makefile`](../../Makefile) - Build and test targets (`make help` for all commands)
+  - `make test-crud DESC=<description>` - Run automated CRUD validation
+  - `make check-env` - Verify environment variables
+  - `make build && make install` - Build and install provider
+  - `make testacc` - Run acceptance tests
+
+### Test Results
 - `/tmp/sia-azure-test-20251027-185657/TEST-RESULTS.md` - Azure PostgreSQL test results (2025-10-27)
+- `/tmp/sia-crud-validation-*/` - Automated test directories (timestamped)
