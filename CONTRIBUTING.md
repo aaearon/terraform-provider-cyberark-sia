@@ -54,12 +54,62 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide.
 
 ```bash
 # Format code
-go fmt ./...
-gofmt -w .
+make fmt
 
 # Run linter
-golangci-lint run
+make lint
 ```
+
+## Developer Workflow
+
+### First-Time Setup
+
+Install development tools and enable automatic validation:
+
+```bash
+make tools-install         # Install golangci-lint, tfplugindocs, govulncheck
+make pre-commit-install    # Enable pre-commit hooks (automatic validation)
+make validate              # Verify everything works
+```
+
+### Daily Development
+
+**Recommended workflow to catch issues early:**
+
+```bash
+# 1. Work on your changes...
+
+# 2. Format and validate locally (before committing)
+make validate              # Runs ALL checks: format, lint, tests, security
+                           # Mirrors CI exactly - catches issues locally
+
+# 3. Commit (pre-commit hooks run automatically)
+git commit -m "feat: add new feature"
+
+# 4. Push (CI validates as final check)
+git push
+```
+
+**Available validation commands:**
+- `make validate` - Run ALL checks (recommended)
+- `make validate-go` - Go format + vet + golangci-lint
+- `make validate-terraform` - Terraform format check
+- `make validate-docs` - Verify documentation is up-to-date
+- `make validate-security` - Secrets detection + vulnerability scan
+
+**See all available commands:** `make help`
+
+**Detailed command reference:** [CLAUDE.md → Commands](./CLAUDE.md#commands)
+
+### CI/CD Philosophy
+
+**CI is your last line of defense, not the first.** Use local validation to catch issues before pushing:
+
+- ✅ **Local validation** (`make validate`) - Instant feedback, same checks as CI
+- ✅ **Pre-commit hooks** - Automatic validation on commit
+- ✅ **CI validation** - Final verification before merge
+
+This "shift-left" approach catches issues early and speeds up development.
 
 ## Project Structure
 
@@ -298,14 +348,15 @@ TF_ACC=1 go test ./internal/provider -run TestPolicyDatabaseAssignment -v
 
 1. ✅ Create feature branch from `main`
 2. ✅ Write clear commit messages
-3. ✅ Run tests: `go test ./... -v`
-4. ✅ Run linter: `golangci-lint run`
-5. ✅ Update documentation
-6. ✅ Test CRUD operations using `examples/testing/TESTING-GUIDE.md`
+3. ✅ Run local validation: `make validate` (runs all checks: format, lint, tests, docs, security)
+4. ✅ Update documentation: `make generate`
+5. ✅ Test CRUD operations using `examples/testing/TESTING-GUIDE.md` (if resource changes)
+
+**Tip:** Pre-commit hooks run automatically if you ran `make pre-commit-install` during setup.
 
 ### PR Checklist
 
-- [ ] All tests pass (unit + acceptance)
+- [ ] `make validate` passes locally (all checks green)
 - [ ] Code follows Go conventions and passes linter
 - [ ] No sensitive data logged (passwords, tokens, secrets)
 - [ ] Documentation updated (`docs/resources/`, `examples/`)

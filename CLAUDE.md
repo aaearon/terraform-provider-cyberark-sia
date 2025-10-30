@@ -438,27 +438,64 @@ updated, err := siaAPI.AccessPolicies().UpdatePolicy(policyID, newPolicy)
 
 **Quick Reference**: Run `make help` to see all available commands
 
-### Build & Test
+### Build & Install
 ```bash
 make build                              # Build provider binary
 make install                            # Install locally for Terraform development
+make clean                              # Clean build artifacts
+```
+
+### Testing
+```bash
 make test                               # Run unit tests
 make testacc                            # Run acceptance tests (requires TF_ACC=1)
 make test-crud DESC=policy-assignment   # Run automated CRUD validation
-make check-env                          # Verify environment variables are set
 ```
 
 ### Code Quality
 ```bash
 make fmt                                # Format Go code
 make lint                               # Run golangci-lint
+make generate                           # Generate provider documentation
 ```
 
-### Development Workflow
+### Validation (Local CI)
+**Use these before committing to catch issues locally:**
 ```bash
+make validate                           # Run ALL validations (recommended before commit)
+make validate-go                        # Go: format + vet + golangci-lint
+make validate-terraform                 # Terraform: format check for examples/
+make validate-docs                      # Docs: verify tfplugindocs was run
+make validate-security                  # Security: secrets detection + govulncheck
+make check-all                          # Alias for 'validate'
+```
+
+### Pre-commit Hooks
+```bash
+make pre-commit-install                 # Install pre-commit hooks (one-time setup)
+make pre-commit-run                     # Run pre-commit checks manually
+```
+
+### Development Setup
+```bash
+make tools-install                      # Install golangci-lint, tfplugindocs, govulncheck
+make check-env                          # Verify environment variables are set
 make deps                               # Download and tidy Go dependencies
-make generate                           # Generate provider documentation
-make clean                              # Clean build artifacts
+```
+
+### Recommended Workflow
+
+**First-time setup:**
+```bash
+make tools-install                      # Install dev tools
+make pre-commit-install                 # Enable automatic validation on commit
+make validate                           # Verify everything works
+```
+
+**Before each commit:**
+```bash
+make validate                           # Run all checks locally (mirrors CI)
+git commit -m "message"                 # Pre-commit hooks run automatically
 ```
 
 ### Manual Commands (Advanced)

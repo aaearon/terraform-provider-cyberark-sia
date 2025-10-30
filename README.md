@@ -294,12 +294,23 @@ terraform-provider-cyberark-sia/
 
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! To get started:
 
-1. Review [CLAUDE.md](CLAUDE.md) for development guidelines
-2. Ensure all tests pass (`go test ./...`)
-3. Run `go fmt ./...` before committing
-4. Follow existing code patterns and conventions
+**Quick Setup:**
+```bash
+make tools-install         # Install dev tools
+make pre-commit-install    # Enable automatic validation
+make validate              # Verify setup works
+```
+
+**Before submitting:**
+```bash
+make validate              # Run all checks locally (mirrors CI)
+```
+
+**Full contributor guide:** [CONTRIBUTING.md](CONTRIBUTING.md)
+
+**Development reference:** [CLAUDE.md](CLAUDE.md) (for LLM-assisted development)
 
 ## Acknowledgments
 
