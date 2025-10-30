@@ -222,6 +222,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Required for gitleaks to scan commit history
 
       - name: Scan for secrets with Gitleaks
         uses: gitleaks/gitleaks-action@v2
