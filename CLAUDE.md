@@ -4,6 +4,40 @@
 
 **Last Updated**: 2025-10-30 (Complete rewrite with Environment Setup, Provider Overview, CRUD automation, Release guidelines)
 
+## Branch Protection & Workflow
+
+**Main branch is protected** - direct commits are blocked. All changes must go through pull requests.
+
+**Standard workflow:**
+```bash
+# 1. Create feature branch
+git checkout -b feature/description-of-change
+
+# 2. Make changes, commit locally
+git add .
+git commit -m "feat: description"
+
+# 3. Push and create PR
+git push -u origin feature/description-of-change
+gh pr create --title "feat: description" --body "Details..."
+
+# 4. Merge via PR (even if you're the only reviewer)
+gh pr merge --squash
+
+# 5. Clean up
+git checkout main
+git pull
+git branch -d feature/description-of-change
+```
+
+**Branch naming conventions:**
+- `feature/*` - New features
+- `fix/*` - Bug fixes
+- `docs/*` - Documentation only
+- `refactor/*` - Code refactoring
+- `test/*` - Test additions/changes
+- `chore/*` - Maintenance tasks
+
 ## Quick Start
 
 **Technology Stack**:
