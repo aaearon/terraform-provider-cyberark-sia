@@ -1,0 +1,149 @@
+# Pre-commit hooks configuration
+# Mirrors CI checks for local validation before commit
+# Install: make pre-commit-install
+# Run manually: make pre-commit-run or pre-commit run --all-files
+
+repos:
+  # ============================================================================
+  # Go Code Quality (mirrors CI validate job)
+  # ============================================================================
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      # Format Go code (equivalent to gofmt check in CI)
+      - id: go-fmt
+        name: Go Format Check
+        args: [-w]
+
+      # Run go vet (mirrors CI)
+      - id: go-vet
+        name: Go Vet
+        args: [-v]
+
+      # Run unit tests (fast, only changed packages)
+      - id: go-unit-tests
+        name: Go Unit Tests
+        args: [-race, -timeout=60s]
+        pass_filenames: false
+        # Only run on Go files to avoid slow runs
+        files: \.go$
+
+  # ============================================================================
+  # golangci-lint (mirrors CI lint check)
+  # ============================================================================
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.63.4
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run
+        args: [--timeout=5m, --new-from-rev=HEAD~1]
+        types: [go]
+        language: system
+        pass_filenames: false
+
+  # ============================================================================
+  # Terraform Validation (mirrors CI terraform-validate job)
+  # ============================================================================
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.2
+    hooks:
+      # Format Terraform files (mirrors CI check)
+      - id: terraform_fmt
+        name: Terraform Format
+        args:
+          - --args=-recursive
+          - --args=-check
+        files: ^examples/.*\.tf$
+
+  # ============================================================================
+  # Documentation Generation (mirrors CI docs check)
+  # ============================================================================
+  - repo: local
+    hooks:
+      - id: tfplugindocs-generate
+        name: Generate Terraform Docs
+        entry: bash -c 'tfplugindocs generate --provider-name cyberarksia || (echo "Install tfplugindocs: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest" && exit 1)'
+        language: system
+        pass_filenames: false
+        files: ^(internal/provider/.*\.go|docs/.*\.md)$
+        # Only run if provider code or docs changed
+
+  # ============================================================================
+  # Security Checks (mirrors CI security job)
+  # ============================================================================
+  - repo: local
+    hooks:
+      # Check for accidentally committed secrets
+      - id: detect-secrets
+        name: Detect Secrets
+        entry: bash -c 'if [ -f .env ]; then echo "ERROR: .env file found!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: detect-hardcoded-credentials
+        name: Detect Hardcoded Credentials
+        entry: bash -c 'if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go" 2>/dev/null; then echo "ERROR: Hardcoded credentials found!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+  # ============================================================================
+  # General File Quality
+  # ============================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent committing to main directly
+      - id: no-commit-to-branch
+        name: Don't Commit to Main
+        args: [--branch, main]
+
+      # File hygiene
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        args: [--markdown-linebreak-ext=md]
+
+      - id: end-of-file-fixer
+        name: Fix End of Files
+
+      - id: mixed-line-ending
+        name: Fix Mixed Line Endings
+
+      - id: check-added-large-files
+        name: Check for Large Files
+        args: [--maxkb=1000]
+
+      # YAML/JSON validation
+      - id: check-yaml
+        name: Check YAML Syntax
+        files: \.(yaml|yml)$
+
+      - id: check-json
+        name: Check JSON Syntax
+        files: \.json$
+
+      # Merge conflict markers
+      - id: check-merge-conflict
+        name: Check for Merge Conflicts
+
+      # Case conflicts on case-insensitive filesystems
+      - id: check-case-conflict
+        name: Check Case Conflicts
+
+# ============================================================================
+# Configuration
+# ============================================================================
+default_stages: [commit]
+fail_fast: false  # Run all hooks even if one fails
+
+# Exclude patterns
+exclude: |
+  (?x)(
+    ^\.git/|
+    ^\.github/|
+    ^vendor/|
+    ^dist/|
+    .*\.tfstate$|
+    .*\.tfstate\.backup$|
+    ^\.terraform/
+  )
