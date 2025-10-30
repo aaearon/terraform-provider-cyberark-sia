@@ -18,8 +18,7 @@ A Terraform provider for managing CyberArk Secure Infrastructure Access (SIA) re
 
 - Terraform >= 1.0
 - Go >= 1.21 (for development)
-- CyberArk Identity tenant with SIA enabled
-- Identity Security Platform Shared Services tenant with Unified Access Policies (UAP) enabled
+- CyberArk Identity Security Platform Shared Services tenant with SIA and Unified Access Policies (UAP) enabled
 - Valid CyberArk service account credentials with `DpaAdmin` role
 
 ## Installation
@@ -45,7 +44,7 @@ This installs the provider to `~/.terraform.d/plugins/` for local testing.
 The provider authenticates using a CyberArk service account. Simply provide the service account username and password - the provider handles OAuth2 authentication automatically.
 
 **Service Account Setup:**
-1. Create a service account in CyberArk Identity
+1. Create a service account in CyberArk Identity Security Platform Shared Services
 2. Assign the **`DpaAdmin`** role (required for managing SIA resources)
 3. Provide the username and password to the provider
 
@@ -311,7 +310,7 @@ This provider is built on top of:
 - **[CyberArk ARK SDK for Go](https://github.com/cyberark/ark-sdk-golang)** - Official Go SDK for CyberArk platform APIs. All provider API calls use this SDK for authentication, SIA workspace management, and UAP policy operations.
 - [HashiCorp Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework) - Framework for building Terraform providers with type-safe schemas and state management.
 
-The provider implements custom OAuth2 authentication flows for CyberArk Identity platform integration.
+The provider implements custom OAuth2 authentication flows for CyberArk Identity Security Platform Shared Services integration.
 
 ## Support
 
