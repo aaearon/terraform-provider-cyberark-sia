@@ -107,6 +107,9 @@ func TestParseCompositeID(t *testing.T) {
 
 // Test workspace type determination
 func TestDetermineWorkspaceType(t *testing.T) {
+	// Note: All cloud providers (AWS, AZURE, GCP, ATLAS) use "FQDN/IP" workspace type
+	// The cloud_provider attribute is metadata only - validated in ARK SDK with choices:"FQDN/IP"
+	// See CLAUDE.md: "Database Workspace Constraints → All Cloud Providers Use 'FQDN/IP' Target Set"
 	tests := []struct {
 		name     string
 		platform string
@@ -115,27 +118,27 @@ func TestDetermineWorkspaceType(t *testing.T) {
 		{
 			name:     "AWS platform",
 			platform: "AWS",
-			want:     "AWS",
+			want:     "FQDN/IP",
 		},
 		{
 			name:     "AWS lowercase",
 			platform: "aws",
-			want:     "AWS",
+			want:     "FQDN/IP",
 		},
 		{
 			name:     "AZURE platform",
 			platform: "AZURE",
-			want:     "AZURE",
+			want:     "FQDN/IP",
 		},
 		{
 			name:     "GCP platform",
 			platform: "GCP",
-			want:     "GCP",
+			want:     "FQDN/IP",
 		},
 		{
 			name:     "ATLAS platform",
 			platform: "ATLAS",
-			want:     "ATLAS",
+			want:     "FQDN/IP",
 		},
 		{
 			name:     "ON-PREMISE platform",

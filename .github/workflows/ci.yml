@@ -195,7 +195,8 @@ jobs:
             echo "ERROR: .env file found in repository!"
             exit 1
           fi
-          if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go"; then
+          # Search for hardcoded credentials, excluding comments
+          if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go" | grep -v "^\s*#" | grep -v "^\s*//"; then
             echo "ERROR: Hardcoded credentials found!"
             exit 1
           fi

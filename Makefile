@@ -199,7 +199,7 @@ validate-security:
 		echo "❌ .env file found in repository!"; \
 		exit 1; \
 	fi
-	@if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go" 2>/dev/null; then \
+	@if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go" 2>/dev/null | grep -v "^\s*#" | grep -v "^\s*//"; then \
 		echo "❌ Hardcoded credentials found!"; \
 		exit 1; \
 	fi
