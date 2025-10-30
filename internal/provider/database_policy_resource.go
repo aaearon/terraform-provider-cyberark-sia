@@ -361,8 +361,8 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 								},
 							},
 							"from_hour": schema.StringAttribute{
-								MarkdownDescription: "Start time in HH:MM format (e.g., `09:00`).",
-								Required:            true,
+								MarkdownDescription: "Start time in HH:MM format (e.g., `09:00`). Optional - if both `from_hour` and `to_hour` are omitted, access is allowed all day. If one is specified, the other must also be specified.",
+								Optional:            true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
 										mustCompileRegex(`^([01]\d|2[0-3]):([0-5]\d)$`),
@@ -371,8 +371,8 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 								},
 							},
 							"to_hour": schema.StringAttribute{
-								MarkdownDescription: "End time in HH:MM format (e.g., `17:00`).",
-								Required:            true,
+								MarkdownDescription: "End time in HH:MM format (e.g., `17:00`). Optional - if both `from_hour` and `to_hour` are omitted, access is allowed all day. If one is specified, the other must also be specified.",
+								Optional:            true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
 										mustCompileRegex(`^([01]\d|2[0-3]):([0-5]\d)$`),
@@ -494,6 +494,20 @@ func (r *DatabasePolicyResource) ValidateConfig(ctx context.Context, req resourc
 					fmt.Sprintf("target_databases[%d]: rds_iam_user_auth_profile block is required when authentication_method is 'rds_iam_user_auth'", i),
 				)
 			}
+		}
+	}
+
+	// Validate access_window: if from_hour or to_hour is set, both must be set
+	if data.Conditions != nil && data.Conditions.AccessWindow != nil {
+		fromHourSet := !data.Conditions.AccessWindow.FromHour.IsNull() && !data.Conditions.AccessWindow.FromHour.IsUnknown()
+		toHourSet := !data.Conditions.AccessWindow.ToHour.IsNull() && !data.Conditions.AccessWindow.ToHour.IsUnknown()
+
+		if fromHourSet != toHourSet {
+			resp.Diagnostics.AddError(
+				"Invalid Access Window Configuration",
+				"Both from_hour and to_hour must be specified together, or both must be omitted. "+
+					"When both are omitted, access is allowed all day (00:00-23:59).",
+			)
 		}
 	}
 }
