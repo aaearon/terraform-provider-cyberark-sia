@@ -94,10 +94,10 @@ func (r *DatabasePolicyResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"delegation_classification": schema.StringAttribute{
-				MarkdownDescription: "Delegation classification. Valid values: `restricted`/`Restricted`, `unrestricted`/`Unrestricted`. Default: `unrestricted`. Note: API returns capitalized values.",
+				MarkdownDescription: "Delegation classification. Valid values: `restricted`, `unrestricted`. Default: `unrestricted`. **Note**: Currently, SIA only supports `unrestricted` for database policies regardless of the value set. This attribute is available for future compatibility.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString("Unrestricted"),
+				Default:             stringdefault.StaticString("unrestricted"),
 				Validators: []validator.String{
 					stringvalidator.OneOf("restricted", "unrestricted", "Restricted", "Unrestricted"),
 				},

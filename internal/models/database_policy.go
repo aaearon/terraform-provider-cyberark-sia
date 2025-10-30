@@ -135,7 +135,10 @@ func (m *DatabasePolicyModel) ToSDK() *uapsiadbmodels.ArkUAPSIADBAccessPolicy {
 					},
 					TimeZone: m.TimeZone.ValueString(),
 				},
-				DelegationClassification: m.DelegationClassification.ValueString(),
+				// SIA currently only supports "unrestricted" for database policies
+				// Send "unrestricted" regardless of configured value for now
+				// When SIA supports this attribute, remove this override
+				DelegationClassification: "unrestricted",
 			},
 		},
 	}
