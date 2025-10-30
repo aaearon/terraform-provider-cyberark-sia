@@ -227,7 +227,7 @@ func TestAccDatabasePolicy_dbAuthProfile(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatabasePolicyConfigDbAuth,
+				Config: testAccDatabasePolicyConfigDBAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberarksia_database_policy.dbauth_test", "name", "test-dbauth-policy"),
 					resource.TestCheckResourceAttr("cyberarksia_database_policy.dbauth_test", "target_database.#", "1"),
@@ -806,7 +806,7 @@ resource "cyberarksia_database_policy" "window_test" {
 }
 `
 
-const testAccDatabasePolicyConfigDbAuth = `
+const testAccDatabasePolicyConfigDBAuth = `
 resource "cyberarksia_secret" "dbauth" {
   name                = "test-dbauth-secret"
   authentication_type = "local"

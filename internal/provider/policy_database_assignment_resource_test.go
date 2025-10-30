@@ -57,7 +57,7 @@ func TestAccPolicyDatabaseAssignment_withDBAuth(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPolicyDatabaseAssignmentConfigDbAuth,
+				Config: testAccPolicyDatabaseAssignmentConfigDBAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "authentication_method", "db_auth"),
 					resource.TestCheckResourceAttr("cyberarksia_policy_database_assignment.db_auth", "db_auth_profile.roles.#", "3"),
@@ -454,7 +454,7 @@ resource "cyberarksia_policy_database_assignment" "test" {
 }
 `
 
-const testAccPolicyDatabaseAssignmentConfigDbAuth = `
+const testAccPolicyDatabaseAssignmentConfigDBAuth = `
 resource "cyberarksia_secret" "db_auth" {
   name                = "db-auth-secret"
   authentication_type = "local"

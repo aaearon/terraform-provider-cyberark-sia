@@ -50,37 +50,21 @@ func createChangeInfoObject(user, timestamp string) types.Object {
 
 // DatabasePolicyModel represents the Terraform state for cyberarksia_database_policy resource
 type DatabasePolicyModel struct {
-	// Inline assignments (required by API - at least 1 of each)
-	// Note: Singular tfsdk names match familiar Terraform patterns (aws_security_group ingress/egress)
-	TargetDatabase []InlineDatabaseAssignmentModel `tfsdk:"target_database"` // 24 bytes (slice)
-	Principal      []InlinePrincipalModel          `tfsdk:"principal"`       // 24 bytes (slice)
-
-	// Optional time frame
-	TimeFrame *TimeFrameModel `tfsdk:"time_frame"` // 8 bytes (pointer)
-
-	// Conditions (nested block)
-	Conditions *ConditionsModel `tfsdk:"conditions"` // 8 bytes (pointer)
-
-	// Optional tags (max 20)
-	PolicyTags types.List `tfsdk:"policy_tags"` // 8 bytes - []string
-
-	// Computed metadata
-	CreatedBy types.Object `tfsdk:"created_by"` // 8 bytes
-	UpdatedOn types.Object `tfsdk:"updated_on"` // 8 bytes
-
-	// Identifying attributes
-	ID       types.String `tfsdk:"id"`        // types.String (likely 8 bytes) - Same as PolicyID (UUID)
-	PolicyID types.String `tfsdk:"policy_id"` // types.String - UUID from API (computed)
-
-	// Required metadata
-	Name                     types.String `tfsdk:"name"`                      // types.String - 1-200 chars, unique
-	Status                   types.String `tfsdk:"status"`                    // types.String - "active"|"suspended"
-	DelegationClassification types.String `tfsdk:"delegation_classification"` // types.String - "restricted"|"unrestricted"
-
-	// Optional metadata
-	Description  types.String `tfsdk:"description"`   // types.String - max 200 chars
-	TimeZone     types.String `tfsdk:"time_zone"`     // types.String - max 50 chars, default "GMT"
-	LastModified types.String `tfsdk:"last_modified"` // types.String
+	Conditions               *ConditionsModel                `tfsdk:"conditions"`
+	TimeFrame                *TimeFrameModel                 `tfsdk:"time_frame"`
+	PolicyTags               types.List                      `tfsdk:"policy_tags"`
+	UpdatedOn                types.Object                    `tfsdk:"updated_on"`
+	CreatedBy                types.Object                    `tfsdk:"created_by"`
+	ID                       types.String                    `tfsdk:"id"`
+	PolicyID                 types.String                    `tfsdk:"policy_id"`
+	Name                     types.String                    `tfsdk:"name"`
+	Status                   types.String                    `tfsdk:"status"`
+	DelegationClassification types.String                    `tfsdk:"delegation_classification"`
+	Description              types.String                    `tfsdk:"description"`
+	TimeZone                 types.String                    `tfsdk:"time_zone"`
+	LastModified             types.String                    `tfsdk:"last_modified"`
+	Principal                []InlinePrincipalModel          `tfsdk:"principal"`
+	TargetDatabase           []InlineDatabaseAssignmentModel `tfsdk:"target_database"`
 }
 
 // TimeFrameModel represents policy validity period
@@ -112,14 +96,14 @@ type ChangeInfoModel struct {
 // InlineDatabaseAssignmentModel represents an inline target database assignment
 type InlineDatabaseAssignmentModel struct {
 	// Profile blocks (mutually exclusive based on authentication_method)
-	DBAuthProfile         *DBAuthProfileModel         `tfsdk:"db_auth_profile"`          // 8 bytes (pointer)
-	LDAPAuthProfile       *LDAPAuthProfileModel       `tfsdk:"ldap_auth_profile"`        // 8 bytes (pointer)
-	OracleAuthProfile     *OracleAuthProfileModel     `tfsdk:"oracle_auth_profile"`      // 8 bytes (pointer)
-	MongoAuthProfile      *MongoAuthProfileModel      `tfsdk:"mongo_auth_profile"`       // 8 bytes (pointer)
-	SQLServerAuthProfile  *SQLServerAuthProfileModel  `tfsdk:"sqlserver_auth_profile"`   // 8 bytes (pointer)
+	DBAuthProfile         *DBAuthProfileModel         `tfsdk:"db_auth_profile"`           // 8 bytes (pointer)
+	LDAPAuthProfile       *LDAPAuthProfileModel       `tfsdk:"ldap_auth_profile"`         // 8 bytes (pointer)
+	OracleAuthProfile     *OracleAuthProfileModel     `tfsdk:"oracle_auth_profile"`       // 8 bytes (pointer)
+	MongoAuthProfile      *MongoAuthProfileModel      `tfsdk:"mongo_auth_profile"`        // 8 bytes (pointer)
+	SQLServerAuthProfile  *SQLServerAuthProfileModel  `tfsdk:"sqlserver_auth_profile"`    // 8 bytes (pointer)
 	RDSIAMUserAuthProfile *RDSIAMUserAuthProfileModel `tfsdk:"rds_iam_user_auth_profile"` // 8 bytes (pointer)
 
-	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"`  // types.String
+	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"` // types.String
 	AuthenticationMethod types.String `tfsdk:"authentication_method"` // types.String
 }
 

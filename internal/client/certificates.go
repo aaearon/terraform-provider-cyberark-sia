@@ -122,23 +122,16 @@ func (c *CertificatesClient) refreshSIAAuth(client *common.ArkClient) error {
 //   - json: snake_case (matches API)
 //   - mapstructure: snake_case (for SDK deserialization)
 type Certificate struct {
-	// Core Identifiers
-	CertificateID string `json:"certificate_id" mapstructure:"certificate_id"` // Unique ID (numeric string, e.g., "1761251731882561")
-	TenantID      string `json:"tenant_id" mapstructure:"tenant_id"`           // Internal tenant identifier
-
-	// Certificate Content & Metadata
-	CertName        string            `json:"cert_name" mapstructure:"cert_name"`               // Certificate name (optional, unique if provided)
-	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`               // PEM/DER encoded certificate content (SENSITIVE)
-	CertDescription string            `json:"cert_description" mapstructure:"cert_description"` // Human-readable description
-	CertType        string            `json:"cert_type" mapstructure:"cert_type"`               // "PEM" or "DER" (default: "PEM")
-	DomainName      string            `json:"domain_name" mapstructure:"domain_name"`           // Logical domain assignment
-	Labels          map[string]string `json:"labels" mapstructure:"labels"`                     // Key-value metadata tags
-
-	// Computed Attributes (API-generated)
-	ExpirationDate string `json:"expiration_date" mapstructure:"expiration_date"` // ISO 8601 timestamp
-
-	// Nested Metadata Block (extracted from certificate X.509 structure)
-	Metadata *CertificateMetadata `json:"metadata" mapstructure:"metadata"`
+	Labels          map[string]string    `json:"labels" mapstructure:"labels"`
+	Metadata        *CertificateMetadata `json:"metadata" mapstructure:"metadata"`
+	CertificateID   string               `json:"certificate_id" mapstructure:"certificate_id"`
+	TenantID        string               `json:"tenant_id" mapstructure:"tenant_id"`
+	CertName        string               `json:"cert_name" mapstructure:"cert_name"`
+	CertBody        string               `json:"cert_body" mapstructure:"cert_body"`
+	CertDescription string               `json:"cert_description" mapstructure:"cert_description"`
+	CertType        string               `json:"cert_type" mapstructure:"cert_type"`
+	DomainName      string               `json:"domain_name" mapstructure:"domain_name"`
+	ExpirationDate  string               `json:"expiration_date" mapstructure:"expiration_date"`
 }
 
 // CertificateMetadata contains X.509 certificate metadata extracted by SIA.
@@ -161,12 +154,12 @@ type CertificateMetadata struct {
 // Optional Fields:
 //   - CertName, CertDescription, CertType, DomainName, Labels
 type CertificateCreateRequest struct {
-	CertName        string            `json:"cert_name,omitempty" mapstructure:"cert_name"`               // Optional, unique if provided
-	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`                         // Required: PEM/DER certificate
-	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"` // Optional description
-	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`               // Optional: "PEM" (default) or "DER"
-	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`           // Optional domain assignment
-	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`                     // Optional key-value tags
+	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`
+	CertName        string            `json:"cert_name,omitempty" mapstructure:"cert_name"`
+	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`
+	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"`
+	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`
+	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`
 }
 
 // CertificateUpdateRequest represents the payload for PUT /api/certificates/{id}.
@@ -177,12 +170,12 @@ type CertificateCreateRequest struct {
 //
 // All fields use snake_case matching API contract.
 type CertificateUpdateRequest struct {
-	CertName        string            `json:"cert_name,omitempty" mapstructure:"cert_name"`               // Optional
-	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`                         // ⚠️ REQUIRED (must come from state)
-	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"` // Optional
-	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`               // Optional
-	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`           // Optional
-	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`                     // Optional
+	Labels          map[string]string `json:"labels,omitempty" mapstructure:"labels"`
+	CertName        string            `json:"cert_name,omitempty" mapstructure:"cert_name"`
+	CertBody        string            `json:"cert_body" mapstructure:"cert_body"`
+	CertDescription string            `json:"cert_description,omitempty" mapstructure:"cert_description"`
+	CertType        string            `json:"cert_type,omitempty" mapstructure:"cert_type"`
+	DomainName      string            `json:"domain_name,omitempty" mapstructure:"domain_name"`
 }
 
 // CertificateListResponse represents the response from GET /api/certificates.
@@ -195,8 +188,8 @@ type CertificateUpdateRequest struct {
 //
 // Data sources must map field names when using LIST endpoint.
 type CertificateListResponse struct {
-	TenantID     string                    `json:"tenant_id" mapstructure:"tenant_id"`
 	Certificates *CertificateListContainer `json:"certificates" mapstructure:"certificates"`
+	TenantID     string                    `json:"tenant_id" mapstructure:"tenant_id"`
 }
 
 // CertificateListContainer wraps the array of certificates in LIST response.

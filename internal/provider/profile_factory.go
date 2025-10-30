@@ -303,7 +303,7 @@ func ParseAuthenticationProfile(
 	case "sqlserver_auth":
 		parseSQLServerAuthProfile(ctx, target, data, diagnostics)
 	case "rds_iam_user_auth":
-		parseRDSIAMUserAuthProfile(ctx, target, data, diagnostics)
+		parseRDSIAMUserAuthProfile(ctx, target, data)
 	}
 }
 
@@ -434,7 +434,7 @@ func parseSQLServerAuthProfile(ctx context.Context, target *uapsiadbmodels.ArkUA
 }
 
 // parseRDSIAMUserAuthProfile handles rds_iam_user_auth profile parsing
-func parseRDSIAMUserAuthProfile(_ context.Context, target *uapsiadbmodels.ArkUAPSIADBInstanceTarget, data *models.PolicyDatabaseAssignmentModel, diagnostics *diag.Diagnostics) {
+func parseRDSIAMUserAuthProfile(_ context.Context, target *uapsiadbmodels.ArkUAPSIADBInstanceTarget, data *models.PolicyDatabaseAssignmentModel) {
 	if target.RDSIAMUserAuthProfile != nil {
 		data.RDSIAMUserAuthProfile = &models.RDSIAMUserAuthProfileModel{
 			DBUser: types.StringValue(target.RDSIAMUserAuthProfile.DBUser),

@@ -9,8 +9,8 @@ import (
 
 func TestIsRetryable(t *testing.T) {
 	tests := []struct {
-		name     string
 		err      error
+		name     string
 		expected bool
 	}{
 		// Standard Go error types - should retry

@@ -8,9 +8,9 @@ import (
 // TestBuildCompositeID tests the BuildCompositeID function with various inputs
 func TestBuildCompositeID(t *testing.T) {
 	tests := []struct {
-		parts    []string // 24 bytes (slice)
-		name     string   // 16 bytes
-		expected string   // 16 bytes
+		name     string
+		expected string
+		parts    []string
 	}{
 		{
 			name:     "Two parts - policy and database",
@@ -57,12 +57,12 @@ func TestBuildCompositeID(t *testing.T) {
 // TestParseCompositeID tests the ParseCompositeID function with valid and invalid inputs
 func TestParseCompositeID(t *testing.T) {
 	tests := []struct {
-		wantParts     []string // 24 bytes (slice)
-		name          string   // 16 bytes
-		id            string   // 16 bytes
-		errContains   string   // 16 bytes
-		expectedParts int      // 8 bytes
-		wantErr       bool     // 1 byte
+		name          string
+		id            string
+		errContains   string
+		wantParts     []string
+		expectedParts int
+		wantErr       bool
 	}{
 		{
 			name:          "Valid 2-part ID",
@@ -367,8 +367,8 @@ func TestParsePolicyPrincipalID(t *testing.T) {
 // TestRoundTrip tests building and parsing composite IDs in a round-trip manner
 func TestRoundTrip(t *testing.T) {
 	tests := []struct {
-		parts []string // 24 bytes (slice)
-		name  string   // 16 bytes
+		name  string
+		parts []string
 	}{
 		{
 			name:  "Two-part ID",

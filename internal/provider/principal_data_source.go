@@ -84,12 +84,12 @@ type PrincipalDataSourceModel struct {
 	Description   types.String `tfsdk:"description"`    // Description (optional)
 }
 
-// T003: Implement Metadata() method
+// Metadata returns the data source type name.
 func (d *PrincipalDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_principal"
 }
 
-// T004: Implement Schema() method
+// Schema defines the schema for the data source.
 func (d *PrincipalDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Looks up a principal (user, group, or role) by name from CyberArk Identity directories. " +
@@ -140,7 +140,7 @@ func (d *PrincipalDataSource) Schema(ctx context.Context, req datasource.SchemaR
 	}
 }
 
-// T005: Implement Configure() method
+// Configure configures the data source with provider data.
 func (d *PrincipalDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
@@ -215,7 +215,7 @@ func (d *PrincipalDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 			// User found! Now get directory information via Phase 2 (by UUID)
 			principalID := user.UserID
-			_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
+			dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to Get Directory Information", err.Error())
 				return
@@ -260,7 +260,7 @@ func (d *PrincipalDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Phase 2: Fallback to ListDirectoriesEntities with client-side filtering
 	tflog.Debug(ctx, "Phase 2: Using fallback path via ListDirectoriesEntities API")
-	_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
+	dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to List Directory Entities", err.Error())
 		return
@@ -405,11 +405,11 @@ func buildDirectoryMap(directories []*directoriesmodels.ArkIdentityDirectory) ma
 //
 //	dirs, dirMap, entities, err := d.getDirectoriesAndEntities(ctx, "USER")
 //	// entities now contains ALL users, filter by SystemName in caller
-func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, typeFilter string) ([]*directoriesmodels.ArkIdentityDirectory, map[string]string, []interface{}, error) {
+func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, typeFilter string) (map[string]string, []interface{}, error) {
 	// Get directory mapping
 	directories, err := d.providerData.IdentityClient.Directories().ListDirectories(&directoriesmodels.ArkIdentityListDirectories{})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to list directories: %w", err)
+		return nil, nil, fmt.Errorf("failed to list directories: %w", err)
 	}
 
 	dirMap := buildDirectoryMap(directories)
@@ -430,7 +430,7 @@ func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, typ
 		Limit:       10000,
 	})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to list directory entities: %w", err)
+		return nil, nil, fmt.Errorf("failed to list directory entities: %w", err)
 	}
 
 	// Collect all entities
@@ -444,7 +444,7 @@ func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, typ
 
 	tflog.Debug(ctx, fmt.Sprintf("Phase 2: Collected %d entities from ListDirectoriesEntities", len(allEntities)))
 
-	return directories, dirMap, allEntities, nil
+	return dirMap, allEntities, nil
 }
 
 // populateDataModel populates the Terraform state data model from an SDK entity.
