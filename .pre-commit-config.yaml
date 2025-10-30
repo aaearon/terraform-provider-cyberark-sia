@@ -63,7 +63,7 @@ repos:
     hooks:
       - id: tfplugindocs-generate
         name: Generate Terraform Docs
-        entry: bash -c 'tfplugindocs generate --provider-name cyberarksia || (echo "Install tfplugindocs: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest" && exit 1)'
+        entry: bash -c 'tfplugindocs generate --provider-name cyberarksia || (echo "Install tfplugindocs - go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest" && exit 1)'
         language: system
         pass_filenames: false
         files: ^(internal/provider/.*\.go|docs/.*\.md)$
