@@ -262,7 +262,8 @@ func TestRetryWithBackoff_ExponentialBackoff(t *testing.T) {
 		return errors.New("HTTP 503 service unavailable") // Always fails, testing backoff timing
 	}
 
-	_ = RetryWithBackoff(ctx, config, operation)
+	// Test validates backoff timing, not operation success
+	_ = RetryWithBackoff(ctx, config, operation) //nolint:errcheck
 
 	elapsed := time.Since(startTime)
 	// Expected delays: 10ms, 20ms, 40ms = 70ms minimum
@@ -304,7 +305,8 @@ func TestRetryWithBackoff_MaxDelayEnforced(t *testing.T) {
 		return errors.New("HTTP 503 service unavailable")
 	}
 
-	_ = RetryWithBackoff(ctx, config, operation)
+	// Test validates max delay enforcement, not operation success
+	_ = RetryWithBackoff(ctx, config, operation) //nolint:errcheck
 
 	// Check that no delay exceeds MaxDelay
 	for i, delay := range delays {

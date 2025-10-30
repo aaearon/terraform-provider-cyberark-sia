@@ -9,9 +9,9 @@ import (
 
 // mockNetError implements net.Error for testing
 type mockNetError struct {
-	temporary bool
-	timeout   bool
-	msg       string
+	msg       string // 16 bytes (string = 2 pointers)
+	temporary bool   // 1 byte
+	timeout   bool   // 1 byte
 }
 
 func (e *mockNetError) Error() string   { return e.msg }
@@ -20,9 +20,9 @@ func (e *mockNetError) Temporary() bool { return e.temporary }
 
 func TestClassifyError(t *testing.T) {
 	tests := []struct {
-		name     string
-		err      error
-		expected ErrorCategory
+		err      error         // 16 bytes (interface = 2 pointers)
+		name     string        // 16 bytes
+		expected ErrorCategory // 8 bytes
 	}{
 		// Context errors (most reliable)
 		{

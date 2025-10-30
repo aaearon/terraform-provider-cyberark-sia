@@ -233,11 +233,381 @@ func TestSetProfileOnInstanceTarget_ClearsOtherProfiles(t *testing.T) {
 	}
 }
 
-// TODO: Add comprehensive tests for remaining auth methods:
-// - TestBuildAuthenticationProfile_OracleAuth
-// - TestBuildAuthenticationProfile_MongoAuth
-// - TestBuildAuthenticationProfile_SQLServerAuth
-// - TestBuildAuthenticationProfile_RDSIAMUserAuth
+// TestBuildAuthenticationProfile_OracleAuth tests building an oracle_auth profile
+func TestBuildAuthenticationProfile_OracleAuth(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data with oracle_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		OracleAuthProfile: &models.OracleAuthProfileModel{
+			Roles: types.ListValueMust(types.StringType, []attr.Value{
+				types.StringValue("oracle_reader"),
+				types.StringValue("oracle_writer"),
+			}),
+			DbaRole:     types.BoolValue(true),
+			SysdbaRole:  types.BoolValue(false),
+			SysoperRole: types.BoolValue(true),
+		},
+	}
+
+	// Build profile
+	profile := BuildAuthenticationProfile(ctx, "oracle_auth", data, &diags)
+
+	// Verify no errors
+	if diags.HasError() {
+		t.Fatalf("Expected no errors, got: %v", diags.Errors())
+	}
+
+	// Verify profile type
+	oracleProfile, ok := profile.(*uapsiadbmodels.ArkUAPSIADBOracleAuthProfile)
+	if !ok {
+		t.Fatalf("Expected *ArkUAPSIADBOracleAuthProfile, got %T", profile)
+	}
+
+	// Verify roles
+	if len(oracleProfile.Roles) != 2 {
+		t.Errorf("Expected 2 roles, got %d", len(oracleProfile.Roles))
+	}
+	if oracleProfile.Roles[0] != "oracle_reader" {
+		t.Errorf("Expected first role 'oracle_reader', got %q", oracleProfile.Roles[0])
+	}
+	if oracleProfile.Roles[1] != "oracle_writer" {
+		t.Errorf("Expected second role 'oracle_writer', got %q", oracleProfile.Roles[1])
+	}
+
+	// Verify boolean flags
+	if !oracleProfile.DbaRole {
+		t.Error("Expected DbaRole to be true")
+	}
+	if oracleProfile.SysdbaRole {
+		t.Error("Expected SysdbaRole to be false")
+	}
+	if !oracleProfile.SysoperRole {
+		t.Error("Expected SysoperRole to be true")
+	}
+}
+
+// TestBuildAuthenticationProfile_OracleAuth_Missing tests error when oracle_auth profile is missing
+func TestBuildAuthenticationProfile_OracleAuth_Missing(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data WITHOUT oracle_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		OracleAuthProfile: nil,
+	}
+
+	// Build profile
+	_ = BuildAuthenticationProfile(ctx, "oracle_auth", data, &diags)
+
+	// Verify error occurred
+	if !diags.HasError() {
+		t.Fatal("Expected error for missing oracle_auth profile, got none")
+	}
+
+	// Verify error message contains expected text
+	errors := diags.Errors()
+	if len(errors) == 0 {
+		t.Fatal("Expected error diagnostic, got none")
+	}
+
+	errorSummary := errors[0].Summary()
+	if errorSummary != "Missing oracle_auth Profile" {
+		t.Errorf("Expected error summary 'Missing oracle_auth Profile', got %q", errorSummary)
+	}
+}
+
+// TestBuildAuthenticationProfile_MongoAuth tests building a mongo_auth profile
+func TestBuildAuthenticationProfile_MongoAuth(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data with mongo_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		MongoAuthProfile: &models.MongoAuthProfileModel{
+			GlobalBuiltinRoles: types.ListValueMust(types.StringType, []attr.Value{
+				types.StringValue("readAnyDatabase"),
+				types.StringValue("readWriteAnyDatabase"),
+			}),
+			DatabaseBuiltinRoles: types.MapValueMust(
+				types.ListType{ElemType: types.StringType},
+				map[string]attr.Value{
+					"db1": types.ListValueMust(types.StringType, []attr.Value{
+						types.StringValue("read"),
+						types.StringValue("readWrite"),
+					}),
+				},
+			),
+			DatabaseCustomRoles: types.MapValueMust(
+				types.ListType{ElemType: types.StringType},
+				map[string]attr.Value{
+					"db2": types.ListValueMust(types.StringType, []attr.Value{
+						types.StringValue("customRole1"),
+					}),
+				},
+			),
+		},
+	}
+
+	// Build profile
+	profile := BuildAuthenticationProfile(ctx, "mongo_auth", data, &diags)
+
+	// Verify no errors
+	if diags.HasError() {
+		t.Fatalf("Expected no errors, got: %v", diags.Errors())
+	}
+
+	// Verify profile type
+	mongoProfile, ok := profile.(*uapsiadbmodels.ArkUAPSIADBMongoAuthProfile)
+	if !ok {
+		t.Fatalf("Expected *ArkUAPSIADBMongoAuthProfile, got %T", profile)
+	}
+
+	// Verify global builtin roles
+	if len(mongoProfile.GlobalBuiltinRoles) != 2 {
+		t.Errorf("Expected 2 global builtin roles, got %d", len(mongoProfile.GlobalBuiltinRoles))
+	}
+	if mongoProfile.GlobalBuiltinRoles[0] != "readAnyDatabase" {
+		t.Errorf("Expected first global role 'readAnyDatabase', got %q", mongoProfile.GlobalBuiltinRoles[0])
+	}
+
+	// Verify database builtin roles
+	if len(mongoProfile.DatabaseBuiltinRoles) != 1 {
+		t.Errorf("Expected 1 database builtin role entry, got %d", len(mongoProfile.DatabaseBuiltinRoles))
+	}
+	if db1Roles, ok := mongoProfile.DatabaseBuiltinRoles["db1"]; ok {
+		if len(db1Roles) != 2 {
+			t.Errorf("Expected 2 roles for db1, got %d", len(db1Roles))
+		}
+	} else {
+		t.Error("Expected 'db1' in DatabaseBuiltinRoles")
+	}
+
+	// Verify database custom roles
+	if len(mongoProfile.DatabaseCustomRoles) != 1 {
+		t.Errorf("Expected 1 database custom role entry, got %d", len(mongoProfile.DatabaseCustomRoles))
+	}
+	if db2Roles, ok := mongoProfile.DatabaseCustomRoles["db2"]; ok {
+		if len(db2Roles) != 1 {
+			t.Errorf("Expected 1 role for db2, got %d", len(db2Roles))
+		}
+	} else {
+		t.Error("Expected 'db2' in DatabaseCustomRoles")
+	}
+}
+
+// TestBuildAuthenticationProfile_MongoAuth_Missing tests error when mongo_auth profile is missing
+func TestBuildAuthenticationProfile_MongoAuth_Missing(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data WITHOUT mongo_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		MongoAuthProfile: nil,
+	}
+
+	// Build profile
+	_ = BuildAuthenticationProfile(ctx, "mongo_auth", data, &diags)
+
+	// Verify error occurred
+	if !diags.HasError() {
+		t.Fatal("Expected error for missing mongo_auth profile, got none")
+	}
+
+	// Verify error message contains expected text
+	errors := diags.Errors()
+	if len(errors) == 0 {
+		t.Fatal("Expected error diagnostic, got none")
+	}
+
+	errorSummary := errors[0].Summary()
+	if errorSummary != "Missing mongo_auth Profile" {
+		t.Errorf("Expected error summary 'Missing mongo_auth Profile', got %q", errorSummary)
+	}
+}
+
+// TestBuildAuthenticationProfile_SQLServerAuth tests building a sqlserver_auth profile
+func TestBuildAuthenticationProfile_SQLServerAuth(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data with sqlserver_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		SQLServerAuthProfile: &models.SQLServerAuthProfileModel{
+			GlobalBuiltinRoles: types.ListValueMust(types.StringType, []attr.Value{
+				types.StringValue("sysadmin"),
+				types.StringValue("serveradmin"),
+			}),
+			GlobalCustomRoles: types.ListValueMust(types.StringType, []attr.Value{
+				types.StringValue("customGlobalRole"),
+			}),
+			DatabaseBuiltinRoles: types.MapValueMust(
+				types.ListType{ElemType: types.StringType},
+				map[string]attr.Value{
+					"db1": types.ListValueMust(types.StringType, []attr.Value{
+						types.StringValue("db_owner"),
+						types.StringValue("db_datareader"),
+					}),
+				},
+			),
+			DatabaseCustomRoles: types.MapValueMust(
+				types.ListType{ElemType: types.StringType},
+				map[string]attr.Value{
+					"db2": types.ListValueMust(types.StringType, []attr.Value{
+						types.StringValue("customDBRole"),
+					}),
+				},
+			),
+		},
+	}
+
+	// Build profile
+	profile := BuildAuthenticationProfile(ctx, "sqlserver_auth", data, &diags)
+
+	// Verify no errors
+	if diags.HasError() {
+		t.Fatalf("Expected no errors, got: %v", diags.Errors())
+	}
+
+	// Verify profile type
+	sqlProfile, ok := profile.(*uapsiadbmodels.ArkUAPSIADBSqlServerAuthProfile)
+	if !ok {
+		t.Fatalf("Expected *ArkUAPSIADBSqlServerAuthProfile, got %T", profile)
+	}
+
+	// Verify global builtin roles
+	if len(sqlProfile.GlobalBuiltinRoles) != 2 {
+		t.Errorf("Expected 2 global builtin roles, got %d", len(sqlProfile.GlobalBuiltinRoles))
+	}
+	if sqlProfile.GlobalBuiltinRoles[0] != "sysadmin" {
+		t.Errorf("Expected first global builtin role 'sysadmin', got %q", sqlProfile.GlobalBuiltinRoles[0])
+	}
+
+	// Verify global custom roles
+	if len(sqlProfile.GlobalCustomRoles) != 1 {
+		t.Errorf("Expected 1 global custom role, got %d", len(sqlProfile.GlobalCustomRoles))
+	}
+	if sqlProfile.GlobalCustomRoles[0] != "customGlobalRole" {
+		t.Errorf("Expected global custom role 'customGlobalRole', got %q", sqlProfile.GlobalCustomRoles[0])
+	}
+
+	// Verify database builtin roles
+	if len(sqlProfile.DatabaseBuiltinRoles) != 1 {
+		t.Errorf("Expected 1 database builtin role entry, got %d", len(sqlProfile.DatabaseBuiltinRoles))
+	}
+	if db1Roles, ok := sqlProfile.DatabaseBuiltinRoles["db1"]; ok {
+		if len(db1Roles) != 2 {
+			t.Errorf("Expected 2 roles for db1, got %d", len(db1Roles))
+		}
+	} else {
+		t.Error("Expected 'db1' in DatabaseBuiltinRoles")
+	}
+
+	// Verify database custom roles
+	if len(sqlProfile.DatabaseCustomRoles) != 1 {
+		t.Errorf("Expected 1 database custom role entry, got %d", len(sqlProfile.DatabaseCustomRoles))
+	}
+	if db2Roles, ok := sqlProfile.DatabaseCustomRoles["db2"]; ok {
+		if len(db2Roles) != 1 {
+			t.Errorf("Expected 1 role for db2, got %d", len(db2Roles))
+		}
+	} else {
+		t.Error("Expected 'db2' in DatabaseCustomRoles")
+	}
+}
+
+// TestBuildAuthenticationProfile_SQLServerAuth_Missing tests error when sqlserver_auth profile is missing
+func TestBuildAuthenticationProfile_SQLServerAuth_Missing(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data WITHOUT sqlserver_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		SQLServerAuthProfile: nil,
+	}
+
+	// Build profile
+	_ = BuildAuthenticationProfile(ctx, "sqlserver_auth", data, &diags)
+
+	// Verify error occurred
+	if !diags.HasError() {
+		t.Fatal("Expected error for missing sqlserver_auth profile, got none")
+	}
+
+	// Verify error message contains expected text
+	errors := diags.Errors()
+	if len(errors) == 0 {
+		t.Fatal("Expected error diagnostic, got none")
+	}
+
+	errorSummary := errors[0].Summary()
+	if errorSummary != "Missing sqlserver_auth Profile" {
+		t.Errorf("Expected error summary 'Missing sqlserver_auth Profile', got %q", errorSummary)
+	}
+}
+
+// TestBuildAuthenticationProfile_RDSIAMUserAuth tests building an rds_iam_user_auth profile
+func TestBuildAuthenticationProfile_RDSIAMUserAuth(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data with rds_iam_user_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		RDSIAMUserAuthProfile: &models.RDSIAMUserAuthProfileModel{
+			DBUser: types.StringValue("rds_iam_user"),
+		},
+	}
+
+	// Build profile
+	profile := BuildAuthenticationProfile(ctx, "rds_iam_user_auth", data, &diags)
+
+	// Verify no errors
+	if diags.HasError() {
+		t.Fatalf("Expected no errors, got: %v", diags.Errors())
+	}
+
+	// Verify profile type
+	rdsProfile, ok := profile.(*uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile)
+	if !ok {
+		t.Fatalf("Expected *ArkUAPSIADBRDSIAMUserAuthProfile, got %T", profile)
+	}
+
+	// Verify DBUser field
+	if rdsProfile.DBUser != "rds_iam_user" {
+		t.Errorf("Expected DBUser 'rds_iam_user', got %q", rdsProfile.DBUser)
+	}
+}
+
+// TestBuildAuthenticationProfile_RDSIAMUserAuth_Missing tests error when rds_iam_user_auth profile is missing
+func TestBuildAuthenticationProfile_RDSIAMUserAuth_Missing(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+
+	// Create test data WITHOUT rds_iam_user_auth profile
+	data := &models.PolicyDatabaseAssignmentModel{
+		RDSIAMUserAuthProfile: nil,
+	}
+
+	// Build profile
+	_ = BuildAuthenticationProfile(ctx, "rds_iam_user_auth", data, &diags)
+
+	// Verify error occurred
+	if !diags.HasError() {
+		t.Fatal("Expected error for missing rds_iam_user_auth profile, got none")
+	}
+
+	// Verify error message contains expected text
+	errors := diags.Errors()
+	if len(errors) == 0 {
+		t.Fatal("Expected error diagnostic, got none")
+	}
+
+	errorSummary := errors[0].Summary()
+	if errorSummary != "Missing rds_iam_user_auth Profile" {
+		t.Errorf("Expected error summary 'Missing rds_iam_user_auth Profile', got %q", errorSummary)
+	}
+}
 
 // TODO: Add tests for ParseAuthenticationProfile function:
 // - TestParseAuthenticationProfile_DBAuth

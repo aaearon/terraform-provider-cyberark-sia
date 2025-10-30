@@ -356,7 +356,7 @@ func (r *secretResource) Read(ctx context.Context, req resource.ReadRequest, res
 	state.LastModified = types.StringValue(secretMetadata.LastUpdateTime)
 
 	// Convert tags from map[string]string to types.Map
-	if secretMetadata.Tags != nil && len(secretMetadata.Tags) > 0 {
+	if len(secretMetadata.Tags) > 0 {
 		tagsMap, diag := types.MapValueFrom(ctx, types.StringType, secretMetadata.Tags)
 		if diag.HasError() {
 			resp.Diagnostics.Append(diag...)

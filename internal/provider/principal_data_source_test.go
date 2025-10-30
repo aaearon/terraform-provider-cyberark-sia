@@ -16,7 +16,7 @@ func TestAccPrincipalDataSource_CloudUser(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_CloudUser,
+				Config: testAccPrincipalDataSourceConfigCloudUser,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.cloud_user", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.cloud_user", "principal_type", "USER"),
@@ -40,7 +40,7 @@ func TestAccPrincipalDataSource_FederatedUser(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_FederatedUser,
+				Config: testAccPrincipalDataSourceConfigFederatedUser,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.federated_user", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.federated_user", "principal_type", "USER"),
@@ -60,7 +60,7 @@ func TestAccPrincipalDataSource_Group(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_Group,
+				Config: testAccPrincipalDataSourceConfigGroup,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.group", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.group", "principal_type", "GROUP"),
@@ -81,7 +81,7 @@ func TestAccPrincipalDataSource_TypeFilter(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_TypeFilter,
+				Config: testAccPrincipalDataSourceConfigTypeFilter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.filtered_user", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.filtered_user", "principal_type", "USER"),
@@ -101,7 +101,7 @@ func TestAccPrincipalDataSource_ADUser(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_ADUser,
+				Config: testAccPrincipalDataSourceConfigADUser,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.ad_user", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.ad_user", "principal_type", "USER"),
@@ -121,7 +121,7 @@ func TestAccPrincipalDataSource_NotFound(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccPrincipalDataSourceConfig_NotFound,
+				Config:      testAccPrincipalDataSourceConfigNotFound,
 				ExpectError: regexp.MustCompile("Principal Not Found"),
 			},
 		},
@@ -137,7 +137,7 @@ func TestAccPrincipalDataSource_Role(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_Role,
+				Config: testAccPrincipalDataSourceConfigRole,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.role", "id"),
 					resource.TestCheckResourceAttr("data.cyberarksia_principal.role", "principal_type", "ROLE"),
@@ -158,7 +158,7 @@ func TestAccPrincipalDataSource_WithPolicyAssignment(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPrincipalDataSourceConfig_WithPolicyAssignment,
+				Config: testAccPrincipalDataSourceConfigWithPolicyAssignment,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Principal lookup
 					resource.TestCheckResourceAttrSet("data.cyberarksia_principal.policy_user", "id"),
@@ -173,7 +173,7 @@ func TestAccPrincipalDataSource_WithPolicyAssignment(t *testing.T) {
 
 // Test configurations
 
-const testAccPrincipalDataSourceConfig_CloudUser = `
+const testAccPrincipalDataSourceConfigCloudUser = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "cloud_user" {
@@ -181,7 +181,7 @@ data "cyberarksia_principal" "cloud_user" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_FederatedUser = `
+const testAccPrincipalDataSourceConfigFederatedUser = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "federated_user" {
@@ -189,7 +189,7 @@ data "cyberarksia_principal" "federated_user" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_Group = `
+const testAccPrincipalDataSourceConfigGroup = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "group" {
@@ -197,7 +197,7 @@ data "cyberarksia_principal" "group" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_TypeFilter = `
+const testAccPrincipalDataSourceConfigTypeFilter = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "filtered_user" {
@@ -206,7 +206,7 @@ data "cyberarksia_principal" "filtered_user" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_ADUser = `
+const testAccPrincipalDataSourceConfigADUser = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "ad_user" {
@@ -214,7 +214,7 @@ data "cyberarksia_principal" "ad_user" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_NotFound = `
+const testAccPrincipalDataSourceConfigNotFound = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "nonexistent" {
@@ -222,7 +222,7 @@ data "cyberarksia_principal" "nonexistent" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_Role = `
+const testAccPrincipalDataSourceConfigRole = `
 provider "cyberarksia" {}
 
 data "cyberarksia_principal" "role" {
@@ -231,7 +231,7 @@ data "cyberarksia_principal" "role" {
 }
 `
 
-const testAccPrincipalDataSourceConfig_WithPolicyAssignment = `
+const testAccPrincipalDataSourceConfigWithPolicyAssignment = `
 data "cyberarksia_principal" "policy_user" {
   name = "tim.schindler@cyberark.cloud.40562"
 }

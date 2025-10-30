@@ -636,7 +636,9 @@ func (c *CertificatesClient) ListCertificates(ctx context.Context) ([]Certificat
 
 	// Check HTTP status code
 	if httpResponse.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(httpResponse.Body)
+		// Best-effort error response body read for debugging
+		// Intentionally ignoring error - already in error path
+		bodyBytes, _ := io.ReadAll(httpResponse.Body) //nolint:errcheck
 		return nil, fmt.Errorf("failed to list certificates - [%d] - [%s]",
 			httpResponse.StatusCode, string(bodyBytes))
 	}

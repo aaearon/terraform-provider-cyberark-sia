@@ -13,8 +13,8 @@ import (
 // version, commit, and date are set via ldflags during build
 var (
 	version = "dev"
-	commit  = ""
-	date    = ""
+	commit  = "" //nolint:unused // Set by ldflags during release builds
+	date    = "" //nolint:unused // Set by ldflags during release builds
 )
 
 func main() {

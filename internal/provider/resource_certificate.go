@@ -276,7 +276,7 @@ func mapCertificateToState(ctx context.Context, cert *client.Certificate, model 
 	// Note: cert_body is already in model from plan - we just don't overwrite it
 
 	// Map labels if present
-	if cert.Labels != nil && len(cert.Labels) > 0 {
+	if len(cert.Labels) > 0 {
 		labelsMap, labelDiags := types.MapValueFrom(ctx, types.StringType, cert.Labels)
 		diags.Append(labelDiags...)
 		if !diags.HasError() {

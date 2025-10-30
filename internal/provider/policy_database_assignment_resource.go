@@ -690,42 +690,6 @@ func determineWorkspaceType(platform string) string {
 	return "FQDN/IP"
 }
 
-// mapDatabaseTypeToInstanceType converts database_type to policy InstanceType
-// Handles compound types like "postgres-aws-rds" by extracting base engine
-// Returns capitalized format expected by ArkUAPSIADBInstanceTarget
-//
-// Transformation logic (validated by Gemini 2025-10-27):
-// 1. Extract base engine (substring before first hyphen)
-// 2. Map to capitalized InstanceType value
-// 3. Fallback to "Unknown" for unrecognized types
-func mapDatabaseTypeToInstanceType(databaseType string) string {
-	// Extract base engine (e.g., "postgres" from "postgres-aws-rds")
-	baseEngine := databaseType
-	if idx := strings.Index(databaseType, "-"); idx > 0 {
-		baseEngine = databaseType[:idx]
-	}
-
-	// Map to capitalized InstanceType expected by policy API
-	switch strings.ToLower(baseEngine) {
-	case "postgres":
-		return "Postgres"
-	case "mysql":
-		return "MySQL"
-	case "mssql":
-		return "MSSQL"
-	case "oracle":
-		return "Oracle"
-	case "mariadb":
-		return "MariaDB"
-	case "db2":
-		return "DB2"
-	case "mongo":
-		return "Mongo"
-	default:
-		return "Unknown" // Graceful fallback for new/unrecognized types
-	}
-}
-
 // findDatabaseInPolicy searches all workspace types for a database by InstanceID
 // Returns the target if found, nil otherwise
 // Used for idempotency checking and READ operations

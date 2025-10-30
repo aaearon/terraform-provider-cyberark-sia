@@ -19,7 +19,7 @@ func TestAccSecret_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccSecretConfig_basic,
+				Config: testAccSecretConfigBasic,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.test", "name", "test-strong-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.test", "authentication_type", "local"),
@@ -46,7 +46,7 @@ func TestAccSecret_localAuth(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSecretConfig_localAuth,
+				Config: testAccSecretConfigLocalAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.local", "name", "local-auth-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.local", "authentication_type", "local"),
@@ -65,7 +65,7 @@ func TestAccSecret_domainAuth(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSecretConfig_domainAuth,
+				Config: testAccSecretConfigDomainAuth,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.domain", "name", "domain-auth-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.domain", "authentication_type", "domain"),
@@ -85,7 +85,7 @@ func TestAccSecret_awsIAM(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSecretConfig_awsIAM,
+				Config: testAccSecretConfigAwsIAM,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.aws_iam", "name", "aws-iam-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.aws_iam", "authentication_type", "aws_iam"),
@@ -104,7 +104,7 @@ func TestAccSecret_credentialUpdate(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create with initial credentials
 			{
-				Config: testAccSecretConfig_credentialsBefore,
+				Config: testAccSecretConfigCredentialsBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.rotation_test", "name", "rotation-test-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.rotation_test", "username", "initial_user"),
@@ -112,7 +112,7 @@ func TestAccSecret_credentialUpdate(t *testing.T) {
 			},
 			// Step 2: Update credentials (password and username)
 			{
-				Config: testAccSecretConfig_credentialsAfter,
+				Config: testAccSecretConfigCredentialsAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.rotation_test", "name", "rotation-test-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.rotation_test", "username", "updated_user"),
@@ -130,7 +130,7 @@ func TestAccSecret_import(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create resource
 			{
-				Config: testAccSecretConfig_basic,
+				Config: testAccSecretConfigBasic,
 			},
 			// Test import
 			{
@@ -156,7 +156,7 @@ func TestAccSecret_updateCredentials(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create with initial password
 			{
-				Config: testAccSecretConfig_updateBefore,
+				Config: testAccSecretConfigUpdateBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.update_test", "name", "update-test-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.update_test", "username", "db_user"),
@@ -165,7 +165,7 @@ func TestAccSecret_updateCredentials(t *testing.T) {
 			},
 			// Step 2: Rotate password (credential update)
 			{
-				Config: testAccSecretConfig_updateAfter,
+				Config: testAccSecretConfigUpdateAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_secret.update_test", "name", "update-test-account"),
 					resource.TestCheckResourceAttr("cyberark_sia_secret.update_test", "username", "db_user"),
@@ -188,7 +188,7 @@ func TestAccSecret_updateCredentials(t *testing.T) {
 // Test Configurations
 // ============================================================================
 
-const testAccSecretConfig_basic = `
+const testAccSecretConfigBasic = `
 resource "cyberark_sia_database_workspace" "test" {
   name          = "test-db-for-strong-account"
   database_type = "postgresql"
@@ -211,7 +211,7 @@ resource "cyberark_sia_secret" "test" {
 }
 `
 
-const testAccSecretConfig_localAuth = `
+const testAccSecretConfigLocalAuth = `
 resource "cyberark_sia_database_workspace" "postgres" {
   name          = "postgres-db-local"
   database_type = "postgresql"
@@ -234,7 +234,7 @@ resource "cyberark_sia_secret" "local" {
 }
 `
 
-const testAccSecretConfig_domainAuth = `
+const testAccSecretConfigDomainAuth = `
 resource "cyberark_sia_database_workspace" "sqlserver" {
   name          = "sqlserver-db-domain"
   database_type = "sqlserver"
@@ -258,7 +258,7 @@ resource "cyberark_sia_secret" "domain" {
 }
 `
 
-const testAccSecretConfig_awsIAM = `
+const testAccSecretConfigAwsIAM = `
 resource "cyberark_sia_database_workspace" "rds" {
   name          = "rds-db-iam"
   database_type = "postgresql"
@@ -283,7 +283,7 @@ resource "cyberark_sia_secret" "aws_iam" {
 }
 `
 
-const testAccSecretConfig_credentialsBefore = `
+const testAccSecretConfigCredentialsBefore = `
 resource "cyberark_sia_database_workspace" "rotation" {
   name          = "rotation-test-db"
   database_type = "postgresql"
@@ -306,7 +306,7 @@ resource "cyberark_sia_secret" "rotation_test" {
 }
 `
 
-const testAccSecretConfig_credentialsAfter = `
+const testAccSecretConfigCredentialsAfter = `
 resource "cyberark_sia_database_workspace" "rotation" {
   name          = "rotation-test-db"
   database_type = "postgresql"
@@ -329,7 +329,7 @@ resource "cyberark_sia_secret" "rotation_test" {
 }
 `
 
-const testAccSecretConfig_updateBefore = `
+const testAccSecretConfigUpdateBefore = `
 resource "cyberark_sia_database_workspace" "update" {
   name          = "update-test-db"
   database_type = "postgresql"
@@ -352,7 +352,7 @@ resource "cyberark_sia_secret" "update_test" {
 }
 `
 
-const testAccSecretConfig_updateAfter = `
+const testAccSecretConfigUpdateAfter = `
 resource "cyberark_sia_database_workspace" "update" {
   name          = "update-test-db"
   database_type = "postgresql"

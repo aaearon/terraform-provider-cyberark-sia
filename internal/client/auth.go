@@ -92,9 +92,16 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*ISPAuthContext, error
 
 	tflog.Info(ctx, "ISP authentication successful")
 
+	// Type assert to concrete type for struct field
+	// Safe: NewArkISPAuth() implementation always returns *ArkISPAuth
+	arkISPAuth, ok := ispAuth.(*auth.ArkISPAuth)
+	if !ok {
+		return nil, fmt.Errorf("unexpected auth type: expected *ArkISPAuth, got %T", ispAuth)
+	}
+
 	// Return context with all auth state for re-use in refresh callbacks
 	return &ISPAuthContext{
-		ISPAuth:     ispAuth.(*auth.ArkISPAuth),
+		ISPAuth:     arkISPAuth,
 		Profile:     inMemoryProfile,
 		AuthProfile: authProfile,
 		Secret:      secret,

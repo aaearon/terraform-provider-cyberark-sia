@@ -15,7 +15,7 @@ func TestAccDatabaseWorkspace_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccDatabaseWorkspaceConfig_basic,
+				Config: testAccDatabaseWorkspaceConfigBasic,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.test", "name", "test-postgres-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.test", "database_type", "postgres"),
@@ -43,7 +43,7 @@ func TestAccDatabaseWorkspace_awsRDS(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatabaseWorkspaceConfig_awsRDS,
+				Config: testAccDatabaseWorkspaceConfigAwsRDS,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.aws_rds", "name", "aws-rds-postgres"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.aws_rds", "database_type", "postgres-aws-rds"),
@@ -63,7 +63,7 @@ func TestAccDatabaseWorkspace_azureSQL(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatabaseWorkspaceConfig_azureSQL,
+				Config: testAccDatabaseWorkspaceConfigAzureSQL,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.azure_sql", "name", "azure-sqlserver"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.azure_sql", "database_type", "mssql"),
@@ -83,7 +83,7 @@ func TestAccDatabaseWorkspace_onPremise(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatabaseWorkspaceConfig_onPremise,
+				Config: testAccDatabaseWorkspaceConfigOnPremise,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.oracle", "name", "onprem-oracle-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.oracle", "database_type", "oracle"),
@@ -105,7 +105,7 @@ func TestAccDatabaseWorkspace_import(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create resource
 			{
-				Config: testAccDatabaseWorkspaceConfig_basic,
+				Config: testAccDatabaseWorkspaceConfigBasic,
 			},
 			// Test import
 			{
@@ -124,7 +124,7 @@ func TestAccDatabaseWorkspace_multipleDatabaseTypes(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDatabaseWorkspaceConfig_multipleTypes,
+				Config: testAccDatabaseWorkspaceConfigMultipleTypes,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// PostgreSQL
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.postgres", "database_type", "postgres"),
@@ -155,7 +155,7 @@ func TestAccDatabaseWorkspace_multipleDatabaseTypes(t *testing.T) {
 
 // Test configurations
 
-const testAccDatabaseWorkspaceConfig_basic = `
+const testAccDatabaseWorkspaceConfigBasic = `
 resource "cyberark_sia_database_workspace" "test" {
   name                  = "test-postgres-db"
   database_type         = "postgres"
@@ -166,7 +166,7 @@ resource "cyberark_sia_database_workspace" "test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_awsRDS = `
+const testAccDatabaseWorkspaceConfigAwsRDS = `
 resource "cyberark_sia_database_workspace" "aws_rds" {
   name                  = "aws-rds-postgres"
   database_type         = "postgres-aws-rds"
@@ -178,7 +178,7 @@ resource "cyberark_sia_database_workspace" "aws_rds" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_azureSQL = `
+const testAccDatabaseWorkspaceConfigAzureSQL = `
 resource "cyberark_sia_database_workspace" "azure_sql" {
   name                  = "azure-sqlserver"
   database_type         = "mssql"
@@ -189,7 +189,7 @@ resource "cyberark_sia_database_workspace" "azure_sql" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_onPremise = `
+const testAccDatabaseWorkspaceConfigOnPremise = `
 resource "cyberark_sia_database_workspace" "oracle" {
   name                  = "onprem-oracle-db"
   database_type         = "oracle"
@@ -200,7 +200,7 @@ resource "cyberark_sia_database_workspace" "oracle" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_multipleTypes = `
+const testAccDatabaseWorkspaceConfigMultipleTypes = `
 resource "cyberark_sia_database_workspace" "postgres" {
   name              = "test-postgres"
   database_type     = "postgres"
@@ -277,7 +277,7 @@ func TestAccDatabaseWorkspace_update(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create initial resource
 			{
-				Config: testAccDatabaseWorkspaceConfig_beforeUpdate,
+				Config: testAccDatabaseWorkspaceConfigBeforeUpdate,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.update_test", "name", "update-test-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.update_test", "port", "5432"),
@@ -285,7 +285,7 @@ func TestAccDatabaseWorkspace_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccDatabaseWorkspaceConfig_afterUpdate,
+				Config: testAccDatabaseWorkspaceConfigAfterUpdate,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.update_test", "name", "update-test-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.update_test", "port", "5433"),                                  // Changed
@@ -310,7 +310,7 @@ func TestAccDatabaseWorkspace_forceNew(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create with postgresql
 			{
-				Config: testAccDatabaseWorkspaceConfig_forceNew_before,
+				Config: testAccDatabaseWorkspaceConfigForceNewBefore,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.forcenew_test", "database_type", "postgres"),
 					resource.TestCheckResourceAttrSet("cyberark_sia_database_workspace.forcenew_test", "id"),
@@ -319,7 +319,7 @@ func TestAccDatabaseWorkspace_forceNew(t *testing.T) {
 			// Step 2: Change database_type (should trigger replacement)
 			// Note: Changing database_type should cause destroy-and-recreate
 			{
-				Config: testAccDatabaseWorkspaceConfig_forceNew_after,
+				Config: testAccDatabaseWorkspaceConfigForceNewAfter,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.forcenew_test", "database_type", "mysql"),
 					// ID should be different due to resource replacement
@@ -338,7 +338,7 @@ func TestAccDatabaseWorkspace_noOpUpdate(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create resource
 			{
-				Config: testAccDatabaseWorkspaceConfig_noop,
+				Config: testAccDatabaseWorkspaceConfigNoop,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.noop_test", "name", "noop-test-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.noop_test", "port", "5432"),
@@ -346,12 +346,12 @@ func TestAccDatabaseWorkspace_noOpUpdate(t *testing.T) {
 			},
 			// Step 2: Apply same config again (should be no-op)
 			{
-				Config:   testAccDatabaseWorkspaceConfig_noop,
+				Config:   testAccDatabaseWorkspaceConfigNoop,
 				PlanOnly: true, // Verify no changes planned
 			},
 			// Step 3: Apply with ExpectNonEmptyPlan=false to verify no changes
 			{
-				Config:             testAccDatabaseWorkspaceConfig_noop,
+				Config:             testAccDatabaseWorkspaceConfigNoop,
 				ExpectNonEmptyPlan: false, // No changes should be detected
 			},
 		},
@@ -366,7 +366,7 @@ func TestAccDatabaseWorkspace_concurrent(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create multiple resources concurrently
 			{
-				Config: testAccDatabaseWorkspaceConfig_concurrent,
+				Config: testAccDatabaseWorkspaceConfigConcurrent,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify all resources created successfully
 					resource.TestCheckResourceAttrSet("cyberark_sia_database_workspace.concurrent1", "id"),
@@ -394,7 +394,7 @@ func TestAccDatabaseWorkspace_driftDetection(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create resource
 			{
-				Config: testAccDatabaseWorkspaceConfig_drift,
+				Config: testAccDatabaseWorkspaceConfigDrift,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.drift_test", "name", "drift-test-db"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.drift_test", "port", "5432"),
@@ -405,7 +405,7 @@ func TestAccDatabaseWorkspace_driftDetection(t *testing.T) {
 			// Note: In a real test, you would manually modify the resource in SIA between steps
 			// For now, this verifies the refresh mechanism works
 			{
-				Config:   testAccDatabaseWorkspaceConfig_drift,
+				Config:   testAccDatabaseWorkspaceConfigDrift,
 				PlanOnly: true,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.drift_test", "name", "drift-test-db"),
@@ -417,7 +417,7 @@ func TestAccDatabaseWorkspace_driftDetection(t *testing.T) {
 
 // Test configurations for Phase 5 (User Story 3)
 
-const testAccDatabaseWorkspaceConfig_beforeUpdate = `
+const testAccDatabaseWorkspaceConfigBeforeUpdate = `
 resource "cyberark_sia_database_workspace" "update_test" {
   name              = "update-test-db"
   database_type     = "postgres"
@@ -429,7 +429,7 @@ resource "cyberark_sia_database_workspace" "update_test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_afterUpdate = `
+const testAccDatabaseWorkspaceConfigAfterUpdate = `
 resource "cyberark_sia_database_workspace" "update_test" {
   name              = "update-test-db"
   database_type     = "postgres"
@@ -441,7 +441,7 @@ resource "cyberark_sia_database_workspace" "update_test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_forceNew_before = `
+const testAccDatabaseWorkspaceConfigForceNewBefore = `
 resource "cyberark_sia_database_workspace" "forcenew_test" {
   name              = "forcenew-test-db"
   database_type     = "postgres"
@@ -452,7 +452,7 @@ resource "cyberark_sia_database_workspace" "forcenew_test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_forceNew_after = `
+const testAccDatabaseWorkspaceConfigForceNewAfter = `
 resource "cyberark_sia_database_workspace" "forcenew_test" {
   name              = "forcenew-test-db"
   database_type     = "mysql"
@@ -463,7 +463,7 @@ resource "cyberark_sia_database_workspace" "forcenew_test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_noop = `
+const testAccDatabaseWorkspaceConfigNoop = `
 resource "cyberark_sia_database_workspace" "noop_test" {
   name              = "noop-test-db"
   database_type     = "postgres"
@@ -476,7 +476,7 @@ resource "cyberark_sia_database_workspace" "noop_test" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_concurrent = `
+const testAccDatabaseWorkspaceConfigConcurrent = `
 resource "cyberark_sia_database_workspace" "concurrent1" {
   name              = "concurrent-postgres"
   database_type     = "postgres"
@@ -523,7 +523,7 @@ resource "cyberark_sia_database_workspace" "concurrent5" {
 }
 `
 
-const testAccDatabaseWorkspaceConfig_drift = `
+const testAccDatabaseWorkspaceConfigDrift = `
 resource "cyberark_sia_database_workspace" "drift_test" {
   name              = "drift-test-db"
   database_type     = "postgres"

@@ -50,37 +50,37 @@ func createChangeInfoObject(user, timestamp string) types.Object {
 
 // DatabasePolicyModel represents the Terraform state for cyberarksia_database_policy resource
 type DatabasePolicyModel struct {
-	// Identifying attributes
-	ID       types.String `tfsdk:"id"`        // Same as PolicyID (UUID)
-	PolicyID types.String `tfsdk:"policy_id"` // UUID from API (computed)
-
-	// Required metadata
-	Name                     types.String `tfsdk:"name"`                      // 1-200 chars, unique
-	Status                   types.String `tfsdk:"status"`                    // "active"|"suspended"
-	DelegationClassification types.String `tfsdk:"delegation_classification"` // "restricted"|"unrestricted"
-
-	// Optional metadata
-	Description types.String `tfsdk:"description"` // max 200 chars
-	TimeZone    types.String `tfsdk:"time_zone"`   // max 50 chars, default "GMT"
-
-	// Optional time frame
-	TimeFrame *TimeFrameModel `tfsdk:"time_frame"`
-
-	// Optional tags (max 20)
-	PolicyTags types.List `tfsdk:"policy_tags"` // []string
-
 	// Inline assignments (required by API - at least 1 of each)
 	// Note: Singular tfsdk names match familiar Terraform patterns (aws_security_group ingress/egress)
-	TargetDatabase []InlineDatabaseAssignmentModel `tfsdk:"target_database"`
-	Principal      []InlinePrincipalModel          `tfsdk:"principal"`
+	TargetDatabase []InlineDatabaseAssignmentModel `tfsdk:"target_database"` // 24 bytes (slice)
+	Principal      []InlinePrincipalModel          `tfsdk:"principal"`       // 24 bytes (slice)
+
+	// Optional time frame
+	TimeFrame *TimeFrameModel `tfsdk:"time_frame"` // 8 bytes (pointer)
 
 	// Conditions (nested block)
-	Conditions *ConditionsModel `tfsdk:"conditions"`
+	Conditions *ConditionsModel `tfsdk:"conditions"` // 8 bytes (pointer)
+
+	// Optional tags (max 20)
+	PolicyTags types.List `tfsdk:"policy_tags"` // 8 bytes - []string
 
 	// Computed metadata
-	CreatedBy    types.Object `tfsdk:"created_by"`
-	UpdatedOn    types.Object `tfsdk:"updated_on"`
-	LastModified types.String `tfsdk:"last_modified"`
+	CreatedBy types.Object `tfsdk:"created_by"` // 8 bytes
+	UpdatedOn types.Object `tfsdk:"updated_on"` // 8 bytes
+
+	// Identifying attributes
+	ID       types.String `tfsdk:"id"`        // types.String (likely 8 bytes) - Same as PolicyID (UUID)
+	PolicyID types.String `tfsdk:"policy_id"` // types.String - UUID from API (computed)
+
+	// Required metadata
+	Name                     types.String `tfsdk:"name"`                      // types.String - 1-200 chars, unique
+	Status                   types.String `tfsdk:"status"`                    // types.String - "active"|"suspended"
+	DelegationClassification types.String `tfsdk:"delegation_classification"` // types.String - "restricted"|"unrestricted"
+
+	// Optional metadata
+	Description  types.String `tfsdk:"description"`   // types.String - max 200 chars
+	TimeZone     types.String `tfsdk:"time_zone"`     // types.String - max 50 chars, default "GMT"
+	LastModified types.String `tfsdk:"last_modified"` // types.String
 }
 
 // TimeFrameModel represents policy validity period
@@ -91,9 +91,9 @@ type TimeFrameModel struct {
 
 // ConditionsModel represents policy access conditions
 type ConditionsModel struct {
-	MaxSessionDuration types.Int64        `tfsdk:"max_session_duration"` // 1-24 hours
-	IdleTime           types.Int64        `tfsdk:"idle_time"`            // 1-120 minutes, default 10
-	AccessWindow       *AccessWindowModel `tfsdk:"access_window"`
+	AccessWindow       *AccessWindowModel `tfsdk:"access_window"`        // 8 bytes (pointer)
+	MaxSessionDuration types.Int64        `tfsdk:"max_session_duration"` // 8 bytes - 1-24 hours
+	IdleTime           types.Int64        `tfsdk:"idle_time"`            // 8 bytes - 1-120 minutes, default 10
 }
 
 // AccessWindowModel represents time-based access restrictions
@@ -111,16 +111,16 @@ type ChangeInfoModel struct {
 
 // InlineDatabaseAssignmentModel represents an inline target database assignment
 type InlineDatabaseAssignmentModel struct {
-	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"`
-	AuthenticationMethod types.String `tfsdk:"authentication_method"`
-
 	// Profile blocks (mutually exclusive based on authentication_method)
-	DBAuthProfile         *DBAuthProfileModel         `tfsdk:"db_auth_profile"`
-	LDAPAuthProfile       *LDAPAuthProfileModel       `tfsdk:"ldap_auth_profile"`
-	OracleAuthProfile     *OracleAuthProfileModel     `tfsdk:"oracle_auth_profile"`
-	MongoAuthProfile      *MongoAuthProfileModel      `tfsdk:"mongo_auth_profile"`
-	SQLServerAuthProfile  *SQLServerAuthProfileModel  `tfsdk:"sqlserver_auth_profile"`
-	RDSIAMUserAuthProfile *RDSIAMUserAuthProfileModel `tfsdk:"rds_iam_user_auth_profile"`
+	DBAuthProfile         *DBAuthProfileModel         `tfsdk:"db_auth_profile"`          // 8 bytes (pointer)
+	LDAPAuthProfile       *LDAPAuthProfileModel       `tfsdk:"ldap_auth_profile"`        // 8 bytes (pointer)
+	OracleAuthProfile     *OracleAuthProfileModel     `tfsdk:"oracle_auth_profile"`      // 8 bytes (pointer)
+	MongoAuthProfile      *MongoAuthProfileModel      `tfsdk:"mongo_auth_profile"`       // 8 bytes (pointer)
+	SQLServerAuthProfile  *SQLServerAuthProfileModel  `tfsdk:"sqlserver_auth_profile"`   // 8 bytes (pointer)
+	RDSIAMUserAuthProfile *RDSIAMUserAuthProfileModel `tfsdk:"rds_iam_user_auth_profile"` // 8 bytes (pointer)
+
+	DatabaseWorkspaceID  types.String `tfsdk:"database_workspace_id"`  // types.String
+	AuthenticationMethod types.String `tfsdk:"authentication_method"` // types.String
 }
 
 // InlinePrincipalModel represents an inline principal assignment

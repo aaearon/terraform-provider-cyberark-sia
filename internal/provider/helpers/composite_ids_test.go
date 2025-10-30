@@ -8,9 +8,9 @@ import (
 // TestBuildCompositeID tests the BuildCompositeID function with various inputs
 func TestBuildCompositeID(t *testing.T) {
 	tests := []struct {
-		name     string
-		parts    []string
-		expected string
+		parts    []string // 24 bytes (slice)
+		name     string   // 16 bytes
+		expected string   // 16 bytes
 	}{
 		{
 			name:     "Two parts - policy and database",
@@ -57,12 +57,12 @@ func TestBuildCompositeID(t *testing.T) {
 // TestParseCompositeID tests the ParseCompositeID function with valid and invalid inputs
 func TestParseCompositeID(t *testing.T) {
 	tests := []struct {
-		name          string
-		id            string
-		expectedParts int
-		wantParts     []string
-		wantErr       bool
-		errContains   string
+		wantParts     []string // 24 bytes (slice)
+		name          string   // 16 bytes
+		id            string   // 16 bytes
+		errContains   string   // 16 bytes
+		expectedParts int      // 8 bytes
+		wantErr       bool     // 1 byte
 	}{
 		{
 			name:          "Valid 2-part ID",
@@ -177,12 +177,12 @@ func TestParseCompositeID(t *testing.T) {
 // TestParsePolicyDatabaseID tests the ParsePolicyDatabaseID function
 func TestParsePolicyDatabaseID(t *testing.T) {
 	tests := []struct {
-		name           string
-		id             string
-		wantPolicyID   string
-		wantDatabaseID string
-		wantErr        bool
-		errContains    string
+		name           string // 16 bytes
+		id             string // 16 bytes
+		wantPolicyID   string // 16 bytes
+		wantDatabaseID string // 16 bytes
+		errContains    string // 16 bytes
+		wantErr        bool   // 1 byte
 	}{
 		{
 			name:           "Valid policy:database ID",
@@ -265,13 +265,13 @@ func TestParsePolicyDatabaseID(t *testing.T) {
 // TestParsePolicyPrincipalID tests the ParsePolicyPrincipalID function
 func TestParsePolicyPrincipalID(t *testing.T) {
 	tests := []struct {
-		name              string
-		id                string
-		wantPolicyID      string
-		wantPrincipalID   string
-		wantPrincipalType string
-		wantErr           bool
-		errContains       string
+		name              string // 16 bytes
+		id                string // 16 bytes
+		wantPolicyID      string // 16 bytes
+		wantPrincipalID   string // 16 bytes
+		wantPrincipalType string // 16 bytes
+		errContains       string // 16 bytes
+		wantErr           bool   // 1 byte
 	}{
 		{
 			name:              "Valid policy:principal:type ID",
@@ -367,8 +367,8 @@ func TestParsePolicyPrincipalID(t *testing.T) {
 // TestRoundTrip tests building and parsing composite IDs in a round-trip manner
 func TestRoundTrip(t *testing.T) {
 	tests := []struct {
-		name  string
-		parts []string
+		parts []string // 24 bytes (slice)
+		name  string   // 16 bytes
 	}{
 		{
 			name:  "Two-part ID",

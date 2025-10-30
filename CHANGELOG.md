@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Comprehensive acceptance test coverage for policy resources
+  - `database_policy_resource_test.go`: 12 tests covering CRUD, conditions, time frames, inline assignments, validation, and ForceNew behavior
+  - `database_policy_principal_assignment_resource_test.go`: 10 tests covering principal types (USER, GROUP, ROLE), composite IDs, and assignments
+  - `policy_database_assignment_resource_test.go`: 14 tests covering all 6 authentication methods (db_auth, ldap_auth, oracle_auth, mongo_auth, sqlserver_auth, rds_iam_user_auth) and composite IDs
+- Complete profile factory test coverage
+  - Added tests for all 4 remaining authentication methods: OracleAuth, MongoAuth, SQLServerAuth, RDSIAMUserAuth
+  - Total coverage: 14 tests for all 6 authentication profile types
+- Complete validator test coverage (100% coverage)
+  - `policy_status_validator_test.go`: 16 test cases validating "active"/"suspended" status values
+  - `principal_type_validator_test.go`: 22 test cases validating USER/GROUP/ROLE types
+  - `location_type_validator_test.go`: 20 test cases validating "FQDN/IP" location type
+  - `database_engine_validator_test.go`: 67 test cases covering 60+ database engines (AWS, Azure, GCP, on-premise, Atlas)
+  - `uuid_validator_test.go`: 27 test cases validating UUID v4 format
+  - `email_like_validator_test.go`: 45 test cases validating email-like principal names
+
+### Changed
+- Increased total acceptance test count from 33 to 69 tests
+- Policy resource testing coverage increased from 0% to comprehensive (36 new tests)
+- Validator test coverage increased from 22.9% to 100.0% (197+ new test cases)
+- Total unit test functions increased from 34 to 47
+
 ## [0.1.0] - 2025-01-27
 
 ### BREAKING CHANGES

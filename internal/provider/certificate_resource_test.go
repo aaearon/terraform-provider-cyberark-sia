@@ -22,7 +22,7 @@ func TestAccCertificate_delete(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create certificate
 			{
-				Config: testAccCertificateConfig_basic("test-delete-cert"),
+				Config: testAccCertificateConfigBasic("test-delete-cert"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("cyberark_sia_certificate.test", "id"),
 					resource.TestCheckResourceAttr("cyberark_sia_certificate.test", "cert_name", "test-delete-cert"),
@@ -57,7 +57,7 @@ func TestAccCertificate_deleteInUse(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create certificate and database workspace
 			{
-				Config: testAccCertificateConfig_withDatabaseWorkspace("test-inuse-cert", "test-db-workspace"),
+				Config: testAccCertificateConfigWithDatabaseWorkspace("test-inuse-cert", "test-db-workspace"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("cyberark_sia_certificate.test", "id"),
 					resource.TestCheckResourceAttr("cyberark_sia_database_workspace.test", "name", "test-db-workspace"),
@@ -65,7 +65,7 @@ func TestAccCertificate_deleteInUse(t *testing.T) {
 			},
 			// Attempt to delete only certificate (should fail with 409)
 			{
-				Config: testAccCertificateConfig_deleteCertificateOnly("test-db-workspace"),
+				Config: testAccCertificateConfigDeleteCertificateOnly("test-db-workspace"),
 				// SIA API returns 409 Conflict when attempting to delete a certificate in use
 				// Error message should indicate the certificate is associated with database workspace(s)
 				ExpectError: regexp.MustCompile(`(?i)(certificate.*in use|cannot delete.*certificate|409|conflict)`),
@@ -94,7 +94,7 @@ func TestAccCertificate_import(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create certificate
 			{
-				Config: testAccCertificateConfig_basic("test-import-cert"),
+				Config: testAccCertificateConfigBasic("test-import-cert"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("cyberark_sia_certificate.test", "id"),
 					resource.TestCheckResourceAttr("cyberark_sia_certificate.test", "cert_name", "test-import-cert"),
@@ -122,14 +122,14 @@ func TestAccCertificate_import(t *testing.T) {
 //}
 
 // Test configuration stubs (tests are skipped - these are placeholders)
-func testAccCertificateConfig_basic(certName string) string {
+func testAccCertificateConfigBasic(certName string) string {
 	return ""
 }
 
-func testAccCertificateConfig_withDatabaseWorkspace(certName, dbName string) string {
+func testAccCertificateConfigWithDatabaseWorkspace(certName, dbName string) string {
 	return ""
 }
 
-func testAccCertificateConfig_deleteCertificateOnly(dbName string) string {
+func testAccCertificateConfigDeleteCertificateOnly(dbName string) string {
 	return ""
 }

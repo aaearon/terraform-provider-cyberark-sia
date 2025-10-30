@@ -511,7 +511,7 @@ func (r *databaseWorkspaceResource) Read(ctx context.Context, req resource.ReadR
 	state.Region = types.StringValue(database.Region)
 
 	// Convert services []string from SDK to types.List
-	if database.Services != nil && len(database.Services) > 0 {
+	if len(database.Services) > 0 {
 		servicesList, diag := types.ListValueFrom(ctx, types.StringType, database.Services)
 		if diag.HasError() {
 			resp.Diagnostics.Append(diag...)
@@ -521,7 +521,7 @@ func (r *databaseWorkspaceResource) Read(ctx context.Context, req resource.ReadR
 	}
 
 	// Convert tags from map[string]string to types.Map
-	if database.Tags != nil && len(database.Tags) > 0 {
+	if len(database.Tags) > 0 {
 		tagsMap, diag := types.MapValueFrom(ctx, types.StringType, database.Tags)
 		if diag.HasError() {
 			resp.Diagnostics.Append(diag...)

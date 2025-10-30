@@ -23,6 +23,11 @@ linters:
     errcheck:
       check-blank: true
       check-type-assertions: true
+      # Exclude checking errors in defer statements (common pattern for Body.Close())
+      exclude-functions:
+        - (io.Closer).Close
+        - (*database/sql.Rows).Close
+        - (*database/sql.Stmt).Close
 
     govet:
       enable-all: true

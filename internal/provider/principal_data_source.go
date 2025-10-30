@@ -215,7 +215,7 @@ func (d *PrincipalDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 			// User found! Now get directory information via Phase 2 (by UUID)
 			principalID := user.UserID
-			_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalName, principalTypeFilter)
+			_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to Get Directory Information", err.Error())
 				return
@@ -260,7 +260,7 @@ func (d *PrincipalDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Phase 2: Fallback to ListDirectoriesEntities with client-side filtering
 	tflog.Debug(ctx, "Phase 2: Using fallback path via ListDirectoriesEntities API")
-	_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalName, principalTypeFilter)
+	_, dirMap, allEntities, err := d.getDirectoriesAndEntities(ctx, principalTypeFilter)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to List Directory Entities", err.Error())
 		return
@@ -375,18 +375,6 @@ func buildDirectoryMap(directories []*directoriesmodels.ArkIdentityDirectory) ma
 	return dirMap
 }
 
-// T009: Helper function to get directory info by UUID (for Phase 1 enrichment)
-func getDirectoryInfoByUUID(uuid string, allEntities []interface{}) *directoriesmodels.ArkIdentityUserEntity {
-	for _, entity := range allEntities {
-		if userEntity, ok := entity.(*directoriesmodels.ArkIdentityUserEntity); ok {
-			if userEntity.ID == uuid {
-				return userEntity
-			}
-		}
-	}
-	return nil
-}
-
 // getDirectoriesAndEntities fetches all directories and entities for principal lookup.
 //
 // WHY EMPTY SEARCH STRING:
@@ -415,9 +403,9 @@ func getDirectoryInfoByUUID(uuid string, allEntities []interface{}) *directories
 //
 // EXAMPLE:
 //
-//	dirs, dirMap, entities, err := d.getDirectoriesAndEntities(ctx, "user@domain.com", "USER")
+//	dirs, dirMap, entities, err := d.getDirectoriesAndEntities(ctx, "USER")
 //	// entities now contains ALL users, filter by SystemName in caller
-func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, principalName, typeFilter string) ([]*directoriesmodels.ArkIdentityDirectory, map[string]string, []interface{}, error) {
+func (d *PrincipalDataSource) getDirectoriesAndEntities(ctx context.Context, typeFilter string) ([]*directoriesmodels.ArkIdentityDirectory, map[string]string, []interface{}, error) {
 	// Get directory mapping
 	directories, err := d.providerData.IdentityClient.Directories().ListDirectories(&directoriesmodels.ArkIdentityListDirectories{})
 	if err != nil {

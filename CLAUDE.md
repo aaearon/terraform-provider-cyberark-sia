@@ -596,7 +596,7 @@ For detailed technical information, see:
 
 **Quick Scan**: `rg "TODO|FIXME" --glob "*.go"`
 
-**Current Count**: 8 TODOs across 6 files (as of 2025-10-30)
+**Current Count**: 6 TODOs across 4 files (as of 2025-10-30)
 
 ### High-Priority TODOs
 
@@ -606,7 +606,7 @@ Track critical items as GitHub Issues for better visibility and prioritization:
 |----------|------|------|------------|-------|
 | **P1** | Remove delete_workarounds.go | `internal/client/delete_workarounds.go` | ARK SDK v1.6.0+ release | Critical workaround for nil body panic bug |
 | **P2** | Add conditional validators for secret auth types | `internal/provider/secret_resource.go` | SDK field verification | Enforce required fields per auth type |
-| **P3** | Complete profile_factory test coverage | `internal/provider/profile_factory_test.go` | - | Increase test coverage for all 6 auth methods |
+| **P3** | Add ParseAuthenticationProfile tests | `internal/provider/profile_factory_test.go` | - | Add tests for profile parsing and round-trip validation |
 
 **Recommendation**: Create GitHub Issues for P1 and P2 TODOs to track SDK dependency and coordinate with upstream ARK SDK team.
 

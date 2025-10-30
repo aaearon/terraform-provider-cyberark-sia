@@ -10,10 +10,10 @@ import (
 // Test composite ID building
 func TestBuildCompositeID(t *testing.T) {
 	tests := []struct {
-		name     string
-		policyID string
-		dbID     string
-		want     string
+		name     string // 16 bytes
+		policyID string // 16 bytes
+		dbID     string // 16 bytes
+		want     string // 16 bytes
 	}{
 		{
 			name:     "standard UUIDs",
@@ -42,11 +42,11 @@ func TestBuildCompositeID(t *testing.T) {
 // Test composite ID parsing
 func TestParseCompositeID(t *testing.T) {
 	tests := []struct {
-		name         string
-		id           string
-		wantPolicyID string
-		wantDBID     string
-		wantErr      bool
+		name         string // 16 bytes
+		id           string // 16 bytes
+		wantPolicyID string // 16 bytes
+		wantDBID     string // 16 bytes
+		wantErr      bool   // 1 byte
 	}{
 		{
 			name:         "valid composite ID",
@@ -111,9 +111,9 @@ func TestDetermineWorkspaceType(t *testing.T) {
 	// The cloud_provider attribute is metadata only - validated in ARK SDK with choices:"FQDN/IP"
 	// See CLAUDE.md: "Database Workspace Constraints → All Cloud Providers Use 'FQDN/IP' Target Set"
 	tests := []struct {
-		name     string
-		platform string
-		want     string
+		name     string // 16 bytes
+		platform string // 16 bytes
+		want     string // 16 bytes
 	}{
 		{
 			name:     "AWS platform",
@@ -192,11 +192,11 @@ func TestFindDatabaseInPolicy(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		policy     *uapsiadbmodels.ArkUAPSIADBAccessPolicy
-		databaseID string
-		wantFound  bool
-		wantName   string
+		policy     *uapsiadbmodels.ArkUAPSIADBAccessPolicy // 8 bytes (pointer)
+		name       string                                  // 16 bytes
+		databaseID string                                  // 16 bytes
+		wantName   string                                  // 16 bytes
+		wantFound  bool                                    // 1 byte
 	}{
 		{
 			name:       "found in AWS workspace",
@@ -258,12 +258,12 @@ func TestFindDatabaseInPolicyWithType(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		policy            *uapsiadbmodels.ArkUAPSIADBAccessPolicy
-		databaseID        string
-		wantFound         bool
-		wantName          string
-		wantWorkspaceType string
+		policy            *uapsiadbmodels.ArkUAPSIADBAccessPolicy // 8 bytes (pointer)
+		name              string                                  // 16 bytes
+		databaseID        string                                  // 16 bytes
+		wantName          string                                  // 16 bytes
+		wantWorkspaceType string                                  // 16 bytes
+		wantFound         bool                                    // 1 byte
 	}{
 		{
 			name:              "found in AWS",

@@ -41,7 +41,7 @@ const (
 	databaseWorkspaceDeleteURL = "/api/adb/resources/%d"
 
 	// Secret DELETE endpoint (from SDK source)
-	secretDeleteURL = "/api/adb/secretsmgmt/secrets/%s"
+	secretDeleteURL = "/api/adb/secretsmgmt/secrets/%s" //nolint:gosec // URL path template, not a credential
 
 	// Policy DELETE endpoint (from SDK source)
 	policyDeleteURL = "/api/policies/%s"

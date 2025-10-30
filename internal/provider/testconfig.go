@@ -12,7 +12,7 @@ const (
 	EnvUsername = "CYBERARK_USERNAME"
 
 	// CYBERARK_CLIENT_SECRET is the service account password/secret
-	EnvClientSecret = "CYBERARK_CLIENT_SECRET"
+	EnvClientSecret = "CYBERARK_CLIENT_SECRET" //nolint:gosec // Environment variable name, not a credential
 
 	// CYBERARK_IDENTITY_URL is the CyberArk Identity tenant URL (optional)
 	// Example: https://example.cyberark.cloud

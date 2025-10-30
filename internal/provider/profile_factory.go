@@ -194,7 +194,7 @@ func buildSQLServerAuthProfile(ctx context.Context, data *models.PolicyDatabaseA
 }
 
 // buildRDSIAMUserAuthProfile handles rds_iam_user_auth profile building
-func buildRDSIAMUserAuthProfile(ctx context.Context, data *models.PolicyDatabaseAssignmentModel, diagnostics *diag.Diagnostics) *uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile {
+func buildRDSIAMUserAuthProfile(_ context.Context, data *models.PolicyDatabaseAssignmentModel, diagnostics *diag.Diagnostics) *uapsiadbmodels.ArkUAPSIADBRDSIAMUserAuthProfile {
 	if data.RDSIAMUserAuthProfile == nil {
 		diagnostics.AddError("Missing rds_iam_user_auth Profile", "rds_iam_user_auth_profile block is required when authentication_method is 'rds_iam_user_auth'")
 		return nil
@@ -434,7 +434,7 @@ func parseSQLServerAuthProfile(ctx context.Context, target *uapsiadbmodels.ArkUA
 }
 
 // parseRDSIAMUserAuthProfile handles rds_iam_user_auth profile parsing
-func parseRDSIAMUserAuthProfile(ctx context.Context, target *uapsiadbmodels.ArkUAPSIADBInstanceTarget, data *models.PolicyDatabaseAssignmentModel, diagnostics *diag.Diagnostics) {
+func parseRDSIAMUserAuthProfile(_ context.Context, target *uapsiadbmodels.ArkUAPSIADBInstanceTarget, data *models.PolicyDatabaseAssignmentModel, diagnostics *diag.Diagnostics) {
 	if target.RDSIAMUserAuthProfile != nil {
 		data.RDSIAMUserAuthProfile = &models.RDSIAMUserAuthProfileModel{
 			DBUser: types.StringValue(target.RDSIAMUserAuthProfile.DBUser),
