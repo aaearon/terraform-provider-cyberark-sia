@@ -105,6 +105,7 @@ require (
 	gopkg.in/retry.v1 v1.0.3 // indirect
 )
 
-// Security: Fix GO-2023-2409 - DoS vulnerability in jose2go
+// Security: Fix CVE-2023-50658 - DoS vulnerability in jose2go
 // ARK SDK v1.5.0 depends on vulnerable jose2go@v1.5.0
-replace github.com/dvsekhvalnov/jose2go => github.com/dvsekhvalnov/jose2go v1.5.1-0.20231206184617-48ba0b76bc88
+// Fixed in jose2go v1.6.0+, using latest stable v1.8.0
+replace github.com/dvsekhvalnov/jose2go => github.com/dvsekhvalnov/jose2go v1.8.0
