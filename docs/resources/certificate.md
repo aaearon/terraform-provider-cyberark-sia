@@ -17,10 +17,10 @@ Manages a TLS/SSL certificate in CyberArk Secure Infrastructure Access. Certific
 
 ### Optional
 
-- `cert_body` (String) PEM or DER encoded certificate content. Must be a valid X.509 certificate without private key material (public certificate only). CRITICAL: This attribute must persist in state as it's required for all update operations. The API may normalize whitespace/line endings, so state will reflect server-side format.
+- `cert_body` (String) PEM encoded certificate content. Must be a valid X.509 certificate without private key material (public certificate only). Maximum size: 4 KB. CRITICAL: This attribute must persist in state as it's required for all update operations. The API may normalize whitespace/line endings, so state will reflect server-side format.
 - `cert_description` (String) Human-readable description of the certificate's purpose.
 - `cert_name` (String) Certificate name. Must be unique within the SIA tenant if provided. If not provided, SIA may auto-generate a name.
-- `cert_type` (String) Certificate format: 'PEM' or 'DER'. Defaults to 'PEM' if not specified.
+- `cert_type` (String) Certificate format. Only 'PEM' is supported by SIA. Defaults to 'PEM' if not specified.
 - `domain_name` (String) Logical domain to which the certificate is assigned. Used for organizational grouping of certificates.
 - `labels` (Map of String) Key-value pairs for categorization and filtering. Maximum 10 labels supported.
 
