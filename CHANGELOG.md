@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Future changes will be documented here
 
+## [0.1.2] - 2025-11-01
+
+### Fixed
+- Provider description now includes comprehensive feature list (ZSP/JIT access, 60+ database engines, OAuth2)
+- Documentation regenerated to ensure all 6 resources appear in Terraform Registry
+  - `cyberarksia_database_workspace` (was missing from Registry)
+  - `cyberarksia_secret` (was missing from Registry)
+  - `cyberarksia_database_policy_principal_assignment` (was missing from Registry)
+  - All resource and data source documentation updated with current schema
+- Makefile now detects OS/architecture automatically (works on macOS, Linux, Windows)
+
+### Added
+- Complete end-to-end workflow example in `examples/complete/end-to-end-workflow/`
+  - Demonstrates secret management, database workspaces, policies, and assignments
+  - Shows both inline and modular assignment patterns
+  - Includes comprehensive README with troubleshooting guide
+- Missing `examples/resources/database_workspace/` with multiple cloud provider examples
+- `.pre-commit-config.yaml` already existed (verified complete)
+
 ## [0.1.1] - 2025-10-30
 
 ### Fixed
