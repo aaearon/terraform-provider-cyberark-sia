@@ -74,7 +74,7 @@ For acceptance tests and local development, export these variables:
 ```bash
 # CyberArk Identity Authentication
 export CYBERARK_USERNAME="service-account@cyberark.cloud.12345"
-export CYBERARK_CLIENT_SECRET="your-client-secret"
+export CYBERARK_PASSWORD="<your-password-here>"
 
 # Optional: CyberArk Identity URL (only needed for GovCloud or custom deployments)
 # If not provided, URL is automatically resolved from username by ARK SDK
@@ -392,7 +392,7 @@ updated, err := siaAPI.AccessPolicies().UpdatePolicy(policyID, newPolicy)
 ## Anti-Patterns (What NOT to Do)
 
 ❌ **Don't bypass profile factory** - Creates validation inconsistencies and 410 LOC duplication
-❌ **Don't log sensitive data** - Passwords, tokens, client_secret, aws_secret_access_key
+❌ **Don't log sensitive data** - Passwords, tokens, password, aws_secret_access_key
 ❌ **Don't use SDK Delete methods directly** - Use `delete_workarounds.go` (prevents panics)
 ❌ **Don't assume cloud providers need different target sets** - All use "FQDN/IP"
 ❌ **Don't create ad-hoc test configs** - Use `examples/testing/TESTING-GUIDE.md` templates
@@ -438,7 +438,7 @@ updated, err := siaAPI.AccessPolicies().UpdatePolicy(policyID, newPolicy)
 ### Acceptance Test Prerequisites
 
 **Quick Prerequisites Check** before running `TF_ACC=1 go test ./...`:
-- [ ] Environment variables: `CYBERARK_USERNAME`, `CYBERARK_CLIENT_SECRET`, `TF_ACC=1`
+- [ ] Environment variables: `CYBERARK_USERNAME`, `CYBERARK_PASSWORD`, `TF_ACC=1`
 - [ ] Service account scopes: `sia`, `identity`
 - [ ] CyberArk tenant with SIA enabled
 

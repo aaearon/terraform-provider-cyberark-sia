@@ -30,8 +30,8 @@ variable "sia_username" {
   sensitive   = true
 }
 
-variable "sia_client_secret" {
-  description = "CyberArk SIA client secret (from .env)"
+variable "sia_password" {
+  description = "CyberArk SIA password (from .env)"
   type        = string
   sensitive   = true
 }

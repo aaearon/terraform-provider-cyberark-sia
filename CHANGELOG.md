@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Future changes will be documented here
 
+## [0.2.0] - 2025-11-01
+
+### BREAKING CHANGES
+- **Provider Schema**: Renamed provider attribute `client_secret` to `password` for improved clarity
+  - Update your provider configuration blocks: change `client_secret` to `password`
+  - Example: `provider "cyberarksia" { password = var.password }`
+- **Environment Variable**: Renamed `CYBERARK_CLIENT_SECRET` to `CYBERARK_PASSWORD`
+  - Update environment variables in CI/CD pipelines and local development
+  - Update `.env` files and Terraform variable references
+- **Documentation**: Updated security recommendations to reference CyberArk Conjur instead of Terraform Cloud/HashiCorp Vault
+
+### Migration Guide
+1. **Update Provider Configuration**: Change `client_secret` attribute to `password` in all `provider "cyberarksia"` blocks
+2. **Update Environment Variables**: Rename `CYBERARK_CLIENT_SECRET` to `CYBERARK_PASSWORD` in:
+   - Shell environment (`export CYBERARK_PASSWORD="..."`)
+   - CI/CD pipeline secrets
+   - Terraform Cloud/Enterprise workspace variables
+   - `.env` files
+3. **Update Terraform Variables**: Rename any variables like `cyberark_client_secret` to `cyberark_password`
+4. **Update Scripts**: Search for `CYBERARK_CLIENT_SECRET` in automation scripts and update to `CYBERARK_PASSWORD`
+
+### Changed
+- All examples updated to use `password` attribute
+- All documentation updated to reference `password` terminology
+- Error messages now use "username or password" terminology instead of "client_id or client_secret"
+
 ## [0.1.2] - 2025-11-01
 
 ### Fixed

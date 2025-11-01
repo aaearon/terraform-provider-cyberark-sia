@@ -22,8 +22,8 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = var.sia_username
-  client_secret = var.sia_client_secret
+  username = var.sia_username
+  password = var.sia_password
 }
 
 variable "sia_username" {
@@ -31,8 +31,8 @@ variable "sia_username" {
   type        = string
 }
 
-variable "sia_client_secret" {
-  description = "SIA service account client secret"
+variable "sia_password" {
+  description = "SIA service account password"
   type        = string
   sensitive   = true
 }

@@ -10,8 +10,8 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = var.cyberark_username
-  client_secret = var.cyberark_client_secret
+  username = var.cyberark_username
+  password = var.cyberark_password
 }
 
 # Upload a TLS certificate for PostgreSQL databases

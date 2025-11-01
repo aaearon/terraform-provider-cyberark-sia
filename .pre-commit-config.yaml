@@ -83,7 +83,7 @@ repos:
 
       - id: detect-hardcoded-credentials
         name: Detect Hardcoded Credentials
-        entry: 'bash -c "if grep -r CYBERARK_CLIENT_SECRET= . --include=*.tf --include=*.go 2>/dev/null | awk -F: \"!/^[^:]*:[[:space:]]*(#|\/\/)/ {print}\" | grep .; then echo ERROR: Hardcoded credentials found; exit 1; fi"'
+        entry: 'bash -c "if grep -r CYBERARK_PASSWORD= . --include=*.tf --include=*.go 2>/dev/null | awk -F: \"!/^[^:]*:[[:space:]]*(#|\/\/)/ {print}\" | grep .; then echo ERROR: Hardcoded credentials found; exit 1; fi"'
         language: system
         pass_filenames: false
 

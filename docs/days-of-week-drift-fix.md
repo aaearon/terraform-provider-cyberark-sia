@@ -523,7 +523,7 @@ terraform {
 
 provider "cyberarksia" {
   username      = "your-service-account@cyberark.cloud.XXXX"
-  client_secret = "your-secret"
+  password = "your-secret"
 }
 
 resource "cyberarksia_database_policy" "test" {

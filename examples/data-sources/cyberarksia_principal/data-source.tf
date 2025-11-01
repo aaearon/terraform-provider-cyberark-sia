@@ -10,8 +10,8 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = "service-account@cyberark.cloud.12345"
-  client_secret = var.cyberark_secret
+  username = "service-account@cyberark.cloud.12345"
+  password = var.cyberark_password
 }
 
 # Example 1: Basic Cloud Directory user lookup
@@ -118,8 +118,8 @@ resource "cyberarksia_database_policy_principal_assignment" "qa_access" {
 }
 
 # Variables
-variable "cyberark_secret" {
-  description = "CyberArk service account secret"
+variable "cyberark_password" {
+  description = "CyberArk service account password"
   type        = string
   sensitive   = true
 }

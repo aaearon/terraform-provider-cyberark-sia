@@ -8,8 +8,8 @@ variable "sia_username" {
   sensitive   = true
 }
 
-variable "sia_client_secret" {
-  description = "CyberArk SIA client secret (from .env file)"
+variable "sia_password" {
+  description = "CyberArk SIA password (from .env file)"
   type        = string
   sensitive   = true
 }

@@ -11,8 +11,8 @@ const (
 	// Example: my-service-account@cyberark.cloud.12345
 	EnvUsername = "CYBERARK_USERNAME"
 
-	// CYBERARK_CLIENT_SECRET is the service account password/secret
-	EnvClientSecret = "CYBERARK_CLIENT_SECRET" //nolint:gosec // Environment variable name, not a credential
+	// CYBERARK_PASSWORD is the service account password
+	EnvPassword = "CYBERARK_PASSWORD" //nolint:gosec // Environment variable name, not a credential
 
 	// CYBERARK_IDENTITY_URL is the CyberArk Identity tenant URL (optional)
 	// Example: https://example.cyberark.cloud
@@ -23,6 +23,6 @@ const (
 // TestAccPreCheckVars lists the required environment variables for acceptance tests
 var TestAccPreCheckVars = []string{
 	EnvUsername,
-	EnvClientSecret,
+	EnvPassword,
 	// EnvIdentityURL is optional - omitted from required list
 }

@@ -13,13 +13,13 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = "service-account@cyberark.cloud.12345"
-  client_secret = var.cyberark_client_secret
+  username = "service-account@cyberark.cloud.12345"
+  password = var.cyberark_password
 }
 
-# Define the client_secret as a sensitive variable
-variable "cyberark_client_secret" {
-  description = "CyberArk Identity service account client secret"
+# Define the password as a sensitive variable
+variable "cyberark_password" {
+  description = "CyberArk Identity service account password"
   type        = string
   sensitive   = true
 }

@@ -24,8 +24,8 @@ terraform {
 provider "cyberarksia" {
   # Get credentials from .env file in project root:
   # - CYBERARK_USERNAME=your-username@cyberark.cloud.XXXX
-  # - CYBERARK_CLIENT_SECRET=your-secret
+  # - CYBERARK_PASSWORD=your-password
 
-  username      = "your-username@cyberark.cloud.XXXX"
-  client_secret = "your-client-secret"
+  username = "your-username@cyberark.cloud.XXXX"
+  password = "<your-password-here>"
 }

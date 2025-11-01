@@ -48,7 +48,7 @@ The provider authenticates using a CyberArk service account. Simply provide the 
 2. Assign the **`DpaAdmin`** role (required for managing SIA resources)
 3. Provide the username and password to the provider
 
-**Important:** Never commit credentials to version control. Use environment variables or secure variable storage (e.g., Terraform Cloud, HashiCorp Vault).
+**Important:** Never commit credentials to version control. Use environment variables or secure variable storage (e.g., CyberArk Conjur).
 
 ## Quick Start
 
@@ -63,8 +63,8 @@ terraform {
 }
 
 provider "cyberarksia" {
-  username      = "service-account@cyberark.cloud.1234"  # OAuth2 client username
-  client_secret = var.client_secret                     # OAuth2 client secret
+  username = "service-account@cyberark.cloud.1234"  # Service account username
+  password = var.password                           # Service account password
 }
 
 # Create a TLS certificate

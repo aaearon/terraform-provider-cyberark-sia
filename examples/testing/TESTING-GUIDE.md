@@ -178,7 +178,7 @@ This test validates all CyberArk SIA Terraform provider resources:
 
 ### Basic Testing (On-Premise/Mock Resources)
 - ✅ CyberArk SIA tenant with UAP service provisioned
-- ✅ Valid credentials (username + client_secret) - exported as environment variables (see CLAUDE.md → Environment Setup)
+- ✅ Valid credentials (username + password) - exported as environment variables (see CLAUDE.md → Environment Setup)
 - ✅ Provider built and installed (`make build && make install`)
 
 ### Cloud Provider Testing (Azure/AWS/GCP)
@@ -222,7 +222,7 @@ make check-env
 
 # Should confirm:
 # ✅ CYBERARK_USERNAME
-# ✅ CYBERARK_CLIENT_SECRET
+# ✅ CYBERARK_PASSWORD
 # ⚠️  TF_ACC=1 (recommended)
 ```
 
@@ -294,7 +294,7 @@ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out test-cert.pem \
 Ensure environment variables are exported (see CLAUDE.md → Environment Setup):
 ```bash
 export CYBERARK_USERNAME="your-username@cyberark.cloud.XXXX"
-export CYBERARK_CLIENT_SECRET="your-client-secret"
+export CYBERARK_PASSWORD="<your-password-here>"
 export TF_ACC=1  # For acceptance testing
 ```
 
@@ -311,7 +311,7 @@ Edit `crud-test-provider.tf`:
 ```hcl
 provider "cyberarksia" {
   username      = "your-username@cyberark.cloud.XXXX"
-  client_secret = var.client_secret  # Use variables, not hardcoded
+  password = var.password  # Use variables, not hardcoded
 }
 ```
 
@@ -380,7 +380,7 @@ cp -r ~/terraform-provider-cyberark-sia/examples/testing/azure-postgresql/* .
 
 # 3. Export environment variables (recommended)
 export CYBERARK_USERNAME="your-username@cyberark.cloud.XXXX"
-export CYBERARK_CLIENT_SECRET="your-client-secret"
+export CYBERARK_PASSWORD="<your-password-here>"
 export TF_ACC=1
 
 # Verify environment
@@ -390,7 +390,7 @@ make check-env
 # Alternative: Create terraform.tfvars (if not using environment variables)
 cat > terraform.tfvars <<EOF
 sia_username              = "your-username@cyberark.cloud.XXXX"
-sia_client_secret         = "your-client-secret"
+sia_password         = "<your-password-here>"
 
 # Azure settings
 azure_subscription_id     = "YOUR_AZURE_SUBSCRIPTION_ID"
@@ -1642,7 +1642,7 @@ Use this checklist before committing resource changes or releasing new provider 
 ### Pre-Test Preparation
 
 **Environment**:
-- [ ] `.env` file exists with valid `CYBERARK_USERNAME` and `CYBERARK_CLIENT_SECRET`
+- [ ] `.env` file exists with valid `CYBERARK_USERNAME` and `CYBERARK_PASSWORD`
 - [ ] Azure CLI authenticated: `az login && az account show`
 - [ ] Provider built and installed: `cd ~/terraform-provider-cyberark-sia && make build && make install`
 - [ ] Clean working directory: `/tmp/sia-crud-validation-$(date +%Y%m%d-%H%M%S)`
@@ -1776,7 +1776,7 @@ Use this checklist before committing resource changes or releasing new provider 
 3. **UAP service not available**: Verify tenant provisioning, may need to contact CyberArk support
 4. **Azure location restricted**: Change `azure_region` to "westus2"
 5. **Terraform state drift**: Run `terraform refresh` then `terraform plan`
-6. **Environment variables missing**: Run `make check-env` to verify `CYBERARK_USERNAME` and `CYBERARK_CLIENT_SECRET`
+6. **Environment variables missing**: Run `make check-env` to verify `CYBERARK_USERNAME` and `CYBERARK_PASSWORD`
 
 **Error Patterns**:
 - **"Policy not found"**: Verify policy name or create new test policy

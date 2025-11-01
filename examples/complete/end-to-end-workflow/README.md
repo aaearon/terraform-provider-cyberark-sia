@@ -55,7 +55,7 @@ This example demonstrates a complete CyberArk SIA implementation using Terraform
 2. **Service account credentials**:
    ```bash
    export CYBERARK_USERNAME="service-account@cyberark.cloud.12345"
-   export CYBERARK_CLIENT_SECRET="your-client-secret"
+   export CYBERARK_PASSWORD="<your-password-here>"
    ```
 3. **Existing users/groups** in CyberArk Identity:
    - `developers@example.com` (GROUP)

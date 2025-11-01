@@ -29,9 +29,9 @@ type CyberArkSIAProvider struct {
 
 // CyberArkSIAProviderModel describes the provider data model
 type CyberArkSIAProviderModel struct {
-	Username     types.String `tfsdk:"username"`
-	ClientSecret types.String `tfsdk:"client_secret"`
-	IdentityURL  types.String `tfsdk:"identity_url"`
+	Username    types.String `tfsdk:"username"`
+	Password    types.String `tfsdk:"password"`
+	IdentityURL types.String `tfsdk:"identity_url"`
 }
 
 // ProviderData holds the ARK SDK instances shared with resources
@@ -89,9 +89,9 @@ func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaReq
 					stringvalidator.LengthAtLeast(1),
 				},
 			},
-			"client_secret": schema.StringAttribute{
-				Description: "Service account password/secret. " +
-					"Can also be set via CYBERARK_CLIENT_SECRET environment variable.",
+			"password": schema.StringAttribute{
+				Description: "Service account password. " +
+					"Can also be set via CYBERARK_PASSWORD environment variable.",
 				Optional:  true,
 				Sensitive: true,
 				Validators: []validator.String{
@@ -124,7 +124,7 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 
 	// Get values from environment variables if not set in configuration
 	username := getEnvOrConfig(config.Username.ValueString(), EnvUsername)
-	clientSecret := getEnvOrConfig(config.ClientSecret.ValueString(), EnvClientSecret)
+	password := getEnvOrConfig(config.Password.ValueString(), EnvPassword)
 	identityURL := getEnvOrConfig(config.IdentityURL.ValueString(), EnvIdentityURL)
 
 	// Validate required fields
@@ -134,10 +134,10 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 			"username must be set in provider configuration or via CYBERARK_USERNAME environment variable",
 		)
 	}
-	if clientSecret == "" {
+	if password == "" {
 		resp.Diagnostics.AddError(
-			"Missing client_secret",
-			"client_secret must be set in provider configuration or via CYBERARK_CLIENT_SECRET environment variable",
+			"Missing password",
+			"password must be set in provider configuration or via CYBERARK_PASSWORD environment variable",
 		)
 	}
 
@@ -152,9 +152,9 @@ func (p *CyberArkSIAProvider) Configure(ctx context.Context, req provider.Config
 	// Uses IdentityServiceUser method - SDK auto-resolves Identity URL from username if not provided
 	LogAuthStart(ctx)
 	authCtx, err := client.NewISPAuth(ctx, &client.AuthConfig{
-		Username:     username,
-		ClientSecret: clientSecret,
-		IdentityURL:  identityURL, // Optional - SDK auto-resolves from username
+		Username:    username,
+		Password:    password,
+		IdentityURL: identityURL, // Optional - SDK auto-resolves from username
 	})
 	if err != nil {
 		resp.Diagnostics.Append(client.MapError(err, "provider configuration"))
