@@ -141,6 +141,8 @@ exclude: |
   (?x)(
     ^\.git/|
     ^\.github/|
+    ^\.claude/|
+    ^\.specify/|
     ^vendor/|
     ^dist/|
     .*\.tfstate$|
