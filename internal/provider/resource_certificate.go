@@ -47,9 +47,9 @@ type CertificateModel struct {
 
 	// Input Attributes
 	CertName        types.String `tfsdk:"cert_name"`        // Certificate name (optional, unique)
-	CertBody        types.String `tfsdk:"cert_body"`        // PEM/DER certificate content (must persist!)
+	CertBody        types.String `tfsdk:"cert_body"`        // PEM certificate content (must persist!)
 	CertDescription types.String `tfsdk:"cert_description"` // Human-readable description
-	CertType        types.String `tfsdk:"cert_type"`        // "PEM" or "DER"
+	CertType        types.String `tfsdk:"cert_type"`        // "PEM" (only format supported by SIA)
 	DomainName      types.String `tfsdk:"domain_name"`      // Logical domain assignment
 	Labels          types.Map    `tfsdk:"labels"`           // Key-value metadata
 
@@ -109,8 +109,9 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"cert_body": schema.StringAttribute{
-				Description: "PEM or DER encoded certificate content. " +
+				Description: "PEM encoded certificate content. " +
 					"Must be a valid X.509 certificate without private key material (public certificate only). " +
+					"Maximum size: 4 KB. " +
 					"CRITICAL: This attribute must persist in state as it's required for all update operations. " +
 					"The API may normalize whitespace/line endings, so state will reflect server-side format.",
 				Optional: true, // Cannot be Required+Computed (framework limitation)
@@ -128,14 +129,14 @@ func (r *CertificateResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"cert_type": schema.StringAttribute{
-				Description: "Certificate format: 'PEM' or 'DER'. Defaults to 'PEM' if not specified.",
+				Description: "Certificate format. Only 'PEM' is supported by SIA. Defaults to 'PEM' if not specified.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("PEM", "DER"),
+					stringvalidator.OneOf("PEM"),
 				},
 			},
 			"domain_name": schema.StringAttribute{
