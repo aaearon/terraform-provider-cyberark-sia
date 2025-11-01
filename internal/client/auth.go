@@ -13,9 +13,9 @@ import (
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	Username     string // Service account username in full format (e.g., "user@cyberark.cloud.12345")
-	ClientSecret string // Service account password/secret
-	IdentityURL  string // Optional - SDK auto-resolves from username if empty
+	Username    string // Service account username in full format (e.g., "user@cyberark.cloud.12345")
+	Password    string // Service account password
+	IdentityURL string // Optional - SDK auto-resolves from username if empty
 }
 
 // ISPAuthContext holds authentication state for re-use across operations
@@ -39,8 +39,8 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*ISPAuthContext, error
 	if config.Username == "" {
 		return nil, fmt.Errorf("username is required")
 	}
-	if config.ClientSecret == "" {
-		return nil, fmt.Errorf("client_secret is required")
+	if config.Password == "" {
+		return nil, fmt.Errorf("password is required")
 	}
 
 	tflog.Debug(ctx, "Creating ISP authentication context", map[string]interface{}{
@@ -65,7 +65,7 @@ func NewISPAuth(ctx context.Context, config *AuthConfig) (*ISPAuthContext, error
 
 	// Create secret
 	secret := &authmodels.ArkSecret{
-		Secret: config.ClientSecret,
+		Secret: config.Password,
 	}
 
 	// CRITICAL: Create in-memory ArkProfile to bypass filesystem profile loading

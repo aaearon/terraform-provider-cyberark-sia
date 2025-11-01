@@ -3,8 +3,8 @@
 # ============================================================================
 # Copy values from project root .env file
 
-sia_username      = "your-service-account@cyberark.cloud.XXXXX"
-sia_client_secret = "your-client-secret-here"
+sia_username = "your-service-account@cyberark.cloud.XXXXX"
+sia_password = "your-password-here"
 
 # ============================================================================
 # Azure Configuration

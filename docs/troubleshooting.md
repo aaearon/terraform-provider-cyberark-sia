@@ -37,7 +37,7 @@ This is the safest approach as it maintains Terraform state consistency.
 **Example**:
 ```bash
 # Fix authentication issue (e.g., renew ISPSS credentials)
-export TF_VAR_cyberark_client_secret="new-secret-value"
+export TF_VAR_cyberark_password="new-secret-value"
 
 # Re-apply configuration
 terraform apply
@@ -87,7 +87,7 @@ Only use this if Options 1 and 2 don't work.
 
 **Error Message**:
 ```
-Authentication failed: Invalid client_id or client_secret
+Authentication failed: Invalid client_id or password
 ```
 
 **Resolution**:
@@ -523,7 +523,7 @@ terraform {
 
 provider "cyberarksia" {
   username      = "your-service-account@cyberark.cloud.XXXX"
-  client_secret = "your-secret"
+  password = "your-secret"
 }
 
 resource "cyberarksia_certificate" "test" {

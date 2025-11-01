@@ -205,11 +205,11 @@ func MapError(err error, operation string) diag.Diagnostic {
 	case ErrorCategoryAuth:
 		return diag.NewErrorDiagnostic(
 			fmt.Sprintf("Authentication Failed - %s", operation),
-			fmt.Sprintf("Invalid client_id or client_secret.\n\n"+
+			fmt.Sprintf("Invalid username or password.\n\n"+
 				"Error: %s\n\n"+
 				"Recommended actions:\n"+
 				"1. Verify credentials in provider configuration\n"+
-				"2. Check client ID format: client-id@cyberark.cloud.tenant-id\n"+
+				"2. Check username format: service-account@cyberark.cloud.tenant-id\n"+
 				"3. Ensure service account has SIA role memberships", errorMsg),
 		)
 

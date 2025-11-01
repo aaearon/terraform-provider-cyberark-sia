@@ -1156,7 +1156,7 @@ TF_ACC=1 go test ./... -v
 
 ### Logging
 - Use `terraform-plugin-log/tflog` for structured logging
-- NEVER log: password, client_secret, aws_secret_access_key, tokens
+- NEVER log: password, password, aws_secret_access_key, tokens
 
 ### Helper Usage
 - Use `internal/provider/helpers` for ID conversion and composite IDs

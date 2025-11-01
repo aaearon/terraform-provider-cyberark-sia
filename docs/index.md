@@ -16,6 +16,6 @@ Terraform provider for CyberArk Secure Infrastructure Access (SIA). Manage datab
 
 ### Optional
 
-- `client_secret` (String, Sensitive) Service account password/secret. Can also be set via CYBERARK_CLIENT_SECRET environment variable.
 - `identity_url` (String) CyberArk Identity tenant URL (e.g., https://abc123.cyberark.cloud). OPTIONAL - only needed for GovCloud (https://abc123.cyberarkgov.cloud) or custom identity deployments. If not provided, the URL is automatically resolved from the username by the ARK SDK. Can also be set via CYBERARK_IDENTITY_URL environment variable.
+- `password` (String, Sensitive) Service account password. Can also be set via CYBERARK_PASSWORD environment variable.
 - `username` (String, Sensitive) Service account username in full format (e.g., 'my-service-account@cyberark.cloud.12345'). The tenant information is automatically extracted from the username by the ARK SDK. Can also be set via CYBERARK_USERNAME environment variable.

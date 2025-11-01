@@ -9,8 +9,8 @@ import (
 
 // SensitiveFields are fields that should NEVER be logged
 var SensitiveFields = []string{
-	"client_secret",
 	"password",
+	"client_secret",
 	"aws_secret_access_key",
 	"token",
 	"bearer",
@@ -21,7 +21,7 @@ var SensitiveFields = []string{
 func LogProviderConfig(ctx context.Context, config *CyberArkSIAProviderModel) {
 	tflog.Debug(ctx, "Provider configuration loaded", map[string]interface{}{
 		"identity_url": config.IdentityURL.ValueString(),
-		// NEVER log: username, client_secret
+		// NEVER log: username, password
 		// Note: Username contains tenant info - logged only when identity_url is not provided
 	})
 }

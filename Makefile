@@ -108,7 +108,7 @@ generate:
 check-env:
 	@echo "Checking required environment variables..."
 	@test -n "$(CYBERARK_USERNAME)" || (echo "❌ CYBERARK_USERNAME not set (see CLAUDE.md → Environment Setup)" && exit 1)
-	@test -n "$(CYBERARK_CLIENT_SECRET)" || (echo "❌ CYBERARK_CLIENT_SECRET not set (see CLAUDE.md → Environment Setup)" && exit 1)
+	@test -n "$(CYBERARK_PASSWORD)" || (echo "❌ CYBERARK_PASSWORD not set (see CLAUDE.md → Environment Setup)" && exit 1)
 	@echo "✅ Required environment variables are set"
 	@if [ -z "$(TF_ACC)" ]; then \
 		echo "⚠️  TF_ACC not set (recommended: export TF_ACC=1)"; \
@@ -203,7 +203,7 @@ validate-security:
 		echo "❌ .env file found in repository!"; \
 		exit 1; \
 	fi
-	@if grep -r "CYBERARK_CLIENT_SECRET=" . --include="*.tf" --include="*.go" 2>/dev/null | grep -E -v '^[[:space:]]*#' | grep -E -v '^[[:space:]]*//'; then \
+	@if grep -r "CYBERARK_PASSWORD=" . --include="*.tf" --include="*.go" 2>/dev/null | grep -E -v '^[[:space:]]*#' | grep -E -v '^[[:space:]]*//'; then \
 		echo "❌ Hardcoded credentials found!"; \
 		exit 1; \
 	fi

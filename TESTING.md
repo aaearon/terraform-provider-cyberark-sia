@@ -6,7 +6,7 @@ Comprehensive testing guide for terraform-provider-cyberark-sia.
 
 ### Prerequisites
 
-1. Valid SIA credentials (username and client_secret)
+1. Valid SIA credentials (username and password)
 2. Provider built and installed: `go install`
 3. Test certificates available (can generate with `openssl`)
 
@@ -123,7 +123,7 @@ For common testing issues and solutions, see [`docs/troubleshooting.md`](docs/tr
 ```bash
 # Verify credentials are set correctly
 echo $CYBERARK_USERNAME
-echo $CYBERARK_CLIENT_SECRET  # Should show value
+echo $CYBERARK_PASSWORD  # Should show value
 ```
 
 **Provider Not Found**:

@@ -23,8 +23,8 @@ if [ -z "$CYBERARK_USERNAME" ]; then
     exit 1
 fi
 
-if [ -z "$CYBERARK_CLIENT_SECRET" ]; then
-    echo "❌ ERROR: CYBERARK_CLIENT_SECRET not set in .env"
+if [ -z "$CYBERARK_PASSWORD" ]; then
+    echo "❌ ERROR: CYBERARK_PASSWORD not set in .env"
     exit 1
 fi
 
@@ -59,8 +59,8 @@ cat > terraform.tfvars <<EOF
 # ============================================================================
 
 # SIA Provider Configuration (from .env)
-sia_username      = "$CYBERARK_USERNAME"
-sia_client_secret = "$CYBERARK_CLIENT_SECRET"
+sia_username = "$CYBERARK_USERNAME"
+sia_password = "$CYBERARK_PASSWORD"
 
 # Azure Configuration
 azure_subscription_id = "$AZURE_SUBSCRIPTION_ID"

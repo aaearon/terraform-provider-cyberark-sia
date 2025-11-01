@@ -10,5 +10,5 @@ postgres_admin_username = "siaadmin"
 postgres_admin_password = "GENERATE_SECURE_PASSWORD"  # Generate with: openssl rand -base64 24
 
 # CyberArk SIA credentials (from project root .env)
-sia_username      = "your-username@cyberark.cloud.XXXXX"
-sia_client_secret = "YOUR_CLIENT_SECRET"
+sia_username = "your-username@cyberark.cloud.XXXXX"
+sia_password = "YOUR_PASSWORD"

@@ -45,8 +45,8 @@ if [ -z "$CYBERARK_USERNAME" ]; then
     exit 1
 fi
 
-if [ -z "$CYBERARK_CLIENT_SECRET" ]; then
-    echo "❌ ERROR: CYBERARK_CLIENT_SECRET not set"
+if [ -z "$CYBERARK_PASSWORD" ]; then
+    echo "❌ ERROR: CYBERARK_PASSWORD not set"
     echo "   See CLAUDE.md → Environment Setup"
     exit 1
 fi
@@ -121,7 +121,7 @@ if [ $CREATE_EXIT -ne 0 ]; then
     echo ""
     echo "Troubleshooting:"
     echo "  1. Check provider configuration in crud-test-provider.tf"
-    echo "  2. Verify credentials: CYBERARK_USERNAME, CYBERARK_CLIENT_SECRET"
+    echo "  2. Verify credentials: CYBERARK_USERNAME, CYBERARK_PASSWORD"
     echo "  3. Review error messages above"
     echo "  4. See docs/troubleshooting.md for common issues"
     echo ""

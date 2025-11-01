@@ -34,7 +34,7 @@ go test ./... -v
 # Acceptance tests (requires CyberArk SIA tenant)
 export TF_ACC=1
 export CYBERARK_USERNAME="your-username@cyberark.cloud.XXXX"
-export CYBERARK_CLIENT_SECRET="your-secret"
+export CYBERARK_PASSWORD="your-secret"
 go test ./... -v
 ```
 
@@ -284,7 +284,7 @@ tflog.Info(ctx, "Operation succeeded", map[string]interface{}{
 ```
 
 **NEVER log sensitive data**:
-- ❌ password, client_secret, aws_secret_access_key, tokens
+- ❌ password, password, aws_secret_access_key, tokens
 - ✅ Log resource IDs, operation names, non-sensitive metadata
 
 ### Helper Usage

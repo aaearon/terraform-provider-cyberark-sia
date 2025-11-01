@@ -31,8 +31,8 @@ provider "azurerm" {
 }
 
 provider "cyberarksia" {
-  username      = var.sia_username
-  client_secret = var.sia_client_secret
+  username = var.sia_username
+  password = var.sia_password
 }
 
 # ============================================================================
