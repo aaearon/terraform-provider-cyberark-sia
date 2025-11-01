@@ -4,7 +4,11 @@
 
 BINARY_NAME=terraform-provider-cyberark-sia
 VERSION?=dev
-INSTALL_PATH=~/.terraform.d/plugins/local/aaearon/cyberark-sia/$(VERSION)/linux_amd64
+
+# Detect OS and architecture for cross-platform support
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
+INSTALL_PATH=~/.terraform.d/plugins/local/aaearon/cyberark-sia/$(VERSION)/$(GOOS)_$(GOARCH)
 
 # Default target
 help:

@@ -74,7 +74,10 @@ func (p *CyberArkSIAProvider) Metadata(ctx context.Context, req provider.Metadat
 func (p *CyberArkSIAProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Terraform provider for CyberArk Secure Infrastructure Access (SIA). " +
-			"Manages database workspaces, certificates, and secrets using the CyberArk ARK SDK.",
+			"Manage database workspaces, secrets, certificates, and access policies for Zero Standing Privilege (ZSP) " +
+			"and Just-In-Time (JIT) database access. Supports 60+ database engines including AWS RDS, Azure SQL Database, " +
+			"PostgreSQL, MySQL, MongoDB, Oracle, SQL Server, and more. " +
+			"Uses the CyberArk ARK SDK for OAuth2 authentication with automatic token refresh.",
 		Attributes: map[string]schema.Attribute{
 			"username": schema.StringAttribute{
 				Description: "Service account username in full format (e.g., 'my-service-account@cyberark.cloud.12345'). " +
